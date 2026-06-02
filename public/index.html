@@ -1,0 +1,2400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FormSarthi — Privacy-First Form Filler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      /* Dark mode variables (Default) */
+      --bg: #070d19;
+      --surface: #0e1726;
+      --surface2: #162235;
+      --border: rgba(255, 255, 255, 0.08);
+      --border2: rgba(255, 255, 255, 0.15);
+      --text: #f0f4f8;
+      --muted: #8ea3bf;
+      --accent: #5eead4;
+      --accent2: #8b5cf6;
+      --green: #34d399;
+      --red: #f87171;
+      --amber: #fbbf24;
+      --radius: 18px;
+      --radius-sm: 10px;
+      --shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      --card-max-width: 480px;
+    }
+
+    [data-theme="light"] {
+      /* Light mode variables */
+      --bg: #f3f6fa;
+      --surface: #ffffff;
+      --surface2: #f0f4f8;
+      --border: rgba(0, 0, 0, 0.08);
+      --border2: rgba(0, 0, 0, 0.15);
+      --text: #1a2333;
+      --muted: #5c6f89;
+      --accent: #0d9488;
+      --accent2: #6d28d9;
+      --green: #059669;
+      --red: #dc2626;
+      --amber: #d97706;
+      --shadow: 0 12px 30px rgba(12, 28, 54, 0.08);
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      transition: background 0.3s, color 0.3s;
+      background-image: radial-gradient(circle at top right, rgba(94, 234, 212, 0.05), transparent 30%),
+                        radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.05), transparent 35%);
+    }
+
+    .app { width: 100%; max-width: var(--card-max-width); transition: max-width 0.3s ease; }
+
+    /* ── UNLOCKED DOCK LAYOUT STYLE ── */
+    body.unlocked-layout {
+      display: block;
+      padding: 0;
+      background-image: none;
+    }
+    body.unlocked-layout .app {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 30px 24px;
+    }
+
+    /* ── LOGO (Locked state) ── */
+    .logo {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 15px rgba(94, 234, 212, 0.2);
+    }
+    .logo-icon svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+    .logo-text { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text span { color: var(--accent); }
+
+    /* ── GENERAL CARD ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      box-shadow: var(--shadow);
+    }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Theme btn for locked view */
+    .locked-theme-toggle {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .locked-theme-toggle:hover {
+      background: var(--surface2);
+      border-color: var(--border2);
+    }
+
+    /* ── SCREEN: WHO ── */
+    .who-title {
+      font-size: 22px; font-weight: 700;
+      text-align: center; margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .who-sub {
+      font-size: 14px; color: var(--muted);
+      text-align: center; margin-bottom: 28px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .profile-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .profile-btn:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .avatar {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 600;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-name {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+    }
+
+    .add-btn {
+      width: 100%;
+      background: transparent;
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 15px;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s;
+    }
+    .add-btn:hover {
+      color: var(--text);
+      border-color: var(--text);
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* ── SCREEN: ADD PROFILE ── */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* Avatar and Color builder in creation */
+    .builder-container {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .avatar-preview {
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      font-size: 28px;
+      display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .builder-selectors {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .builder-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .color-dot {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.1s, border-color 0.2s;
+    }
+    .color-dot:hover { transform: scale(1.1); }
+    .color-dot.selected { border-color: var(--text); }
+
+    .emoji-option {
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .emoji-option:hover { transform: scale(1.25); background: rgba(255,255,255,0.08); }
+    .emoji-option.selected { background: rgba(255,255,255,0.15); }
+
+    /* ── SCREEN: PIN ── */
+    .pin-header {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 10px; margin-bottom: 24px;
+    }
+    .pin-name { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .pin-sub { font-size: 14px; color: var(--muted); }
+
+    .pin-dots {
+      display: flex; gap: 14px;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border2);
+      background: transparent;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+    .dot.filled {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: scale(1.15);
+      box-shadow: 0 0 10px rgba(94, 234, 212, 0.4);
+    }
+    .dot.error {
+      background: var(--red);
+      border-color: var(--red);
+      transform: scale(1.15);
+      box-shadow: 0 0 10px rgba(248, 113, 113, 0.4);
+    }
+
+    .err-msg {
+      text-align: center;
+      font-size: 13px;
+      color: var(--red);
+      font-weight: 600;
+      min-height: 20px;
+      margin-bottom: 16px;
+    }
+
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 260px;
+      margin: 0 auto 20px;
+    }
+    .num {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 56px; height: 56px;
+      font-family: inherit;
+      font-size: 22px; font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto;
+      transition: background 0.15s, transform 0.1s, border-color 0.15s;
+    }
+    .num:hover {
+      background: var(--border2);
+      border-color: var(--accent);
+    }
+    .num:active { transform: scale(0.92); }
+    .num.sm {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      width: auto; height: 56px;
+    }
+    .num.sm:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+    .back-link {
+      text-align: center;
+      font-size: 14px; color: var(--muted);
+      cursor: pointer;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    /* ── UNLOCKED DASHBOARD STYLING ── */
+    .main-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 24px;
+      box-shadow: var(--shadow);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    
+    .pill {
+      background: rgba(94, 234, 212, 0.1);
+      border: 1px solid rgba(94, 234, 212, 0.25);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn-theme, .btn-action {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-theme:hover, .btn-action:hover {
+      background: var(--border2);
+      border-color: var(--accent);
+    }
+    .lock-btn {
+      background: var(--accent2);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(139, 92, 246, 0.15);
+    }
+    .lock-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 950px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .profile-summary-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 20px;
+    }
+    .avatar-circle {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .profile-details h3 {
+      font-size: 15px; font-weight: 700;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;
+    }
+    .profile-details p {
+      font-size: 12px; color: var(--muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;
+      margin-bottom: 2px;
+    }
+    .switch-profile-link {
+      font-size: 11px;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 700;
+      display: inline-block;
+      text-decoration: underline;
+      transition: opacity 0.2s;
+    }
+    .switch-profile-link:hover {
+      opacity: 0.8;
+    }
+
+    .nav-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .nav-item:hover {
+      color: var(--text);
+      background: var(--surface2);
+      border-color: var(--border);
+    }
+    .nav-item.active {
+      color: var(--accent);
+      background: rgba(94, 234, 212, 0.08);
+      border-color: rgba(94, 234, 212, 0.2);
+    }
+    .nav-item .badge {
+      background: var(--surface2);
+      color: var(--text);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+    }
+    .nav-item.active .badge {
+      background: var(--accent);
+      color: #070d19;
+      border-color: var(--accent);
+    }
+
+    .main-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      min-height: 500px;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── DOCS TAB & SLOTS ── */
+    .docs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .doc-slot {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .doc-slot:hover {
+      transform: translateY(-2px);
+      border-color: var(--border2);
+    }
+    .doc-slot.filled {
+      border-color: rgba(52, 211, 153, 0.2);
+    }
+    .doc-slot-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .doc-slot-icon {
+      width: 32px; height: 32px;
+      background: rgba(139, 92, 246, 0.1);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .doc-slot-icon svg { width: 16px; height: 16px; stroke: var(--accent2); fill: none; stroke-width: 2.2; }
+    .doc-slot.filled .doc-slot-icon {
+      background: rgba(52, 211, 153, 0.1);
+    }
+    .doc-slot.filled .doc-slot-icon svg {
+      stroke: var(--green);
+    }
+    .doc-slot-title { font-size: 14px; font-weight: 700; }
+    
+    .doc-slot-status {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      width: fit-content;
+    }
+    .doc-slot-status.empty { background: rgba(255,255,255,0.05); color: var(--muted); }
+    .doc-slot-status.uploaded { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+
+    .doc-slot-detail {
+      font-size: 11px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── UPLOAD ZONE ── */
+    .upload-zone {
+      border: 2px dashed var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover {
+      border-color: var(--accent);
+      background: rgba(94, 234, 212, 0.02);
+    }
+    .upload-zone input {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon {
+      width: 48px; height: 48px;
+      background: rgba(94, 234, 212, 0.08);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+    }
+    .upload-icon svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 2.2; }
+    .upload-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+    .upload-hint { font-size: 12px; color: var(--muted); }
+
+    /* ── OCR PROCESS BOX ── */
+    .ocr-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      margin-top: 16px;
+    }
+    .ocr-label { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .ocr-result {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      line-height: 1.6;
+      max-height: 140px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── AUTOFILL TAB ── */
+    .url-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .url-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-family: inherit;
+      font-size: 14px; color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .url-input:focus { border-color: var(--accent); }
+
+    .btn {
+      background: var(--accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px 24px;
+      font-family: inherit;
+      font-size: 14px; font-weight: 700; color: #070d19;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(94, 234, 212, 0.15);
+    }
+    .btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+    .btn:active { transform: translateY(0); }
+    .btn.outline {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text);
+      box-shadow: none;
+    }
+    .btn.outline:hover {
+      background: rgba(255,255,255,0.03);
+      border-color: var(--text);
+    }
+
+    /* meter */
+    .meter-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+    .meter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .meter-label { font-size: 14px; font-weight: 700; }
+    .meter-pct { font-size: 16px; color: var(--accent); font-weight: 800; }
+    .meter-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .meter-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.5s; }
+
+    /* field checklist */
+    .field-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; max-height: 350px; overflow-y: auto; padding-right: 4px; }
+    .field-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+    .field-key { color: var(--muted); flex: 1; font-weight: 600; }
+    .field-arrow { color: var(--border2); }
+    .field-val { color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 12px; flex: 1.5; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .field-val.missing { color: var(--red); font-family: inherit; font-size: 12px; font-style: italic; }
+
+    /* ── PROFILE COLLAPSIBLE SECTIONS ── */
+    details.profile-group {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    details.profile-group:hover {
+      border-color: var(--border2);
+    }
+    details.profile-group summary {
+      list-style: none;
+      padding: 14px 18px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+    details.profile-group summary::-webkit-details-marker { display: none; }
+    
+    .group-indicator {
+      font-size: 10px;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+    details.profile-group[open] .group-indicator {
+      transform: rotate(90deg);
+    }
+    details.profile-group[open] summary {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    .data-cell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+    }
+    .data-cell-label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
+    .data-cell-val { font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .data-cell-val.empty { color: var(--border2); font-style: italic; font-family: inherit; font-size: 12px; font-weight: 500; }
+
+    /* profile manual edit */
+    .edit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+    .edit-form-cell label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .edit-form-cell input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .edit-form-cell input:focus { border-color: var(--accent); }
+
+    /* ── DOC TOOLS ── */
+    .tool-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+    }
+    .tool-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 600px) {
+      .tool-row { grid-template-columns: 1fr; }
+    }
+    .tool-cell label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .tool-cell select, .tool-cell input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    /* ── LIST GROUPS ── */
+    .list-group { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+    .list-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: border-color 0.2s;
+    }
+    .list-item:hover { border-color: var(--border2); }
+
+    /* ── DEADLINES TAB ── */
+    .deadline-creator {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .deadline-inputs-row {
+      display: grid;
+      grid-template-columns: 1.5fr 1.5fr 1.2fr auto;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    @media (max-width: 750px) {
+      .deadline-inputs-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .deadline-inputs-row input {
+      background: var(--surface);
+    }
+
+    /* ── SECURITY TAB ── */
+    .security-banner {
+      background: linear-gradient(135deg, rgba(94, 234, 212, 0.08), rgba(139, 92, 246, 0.08));
+      border: 1px dashed rgba(94, 234, 212, 0.3);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .security-banner-icon {
+      font-size: 28px;
+    }
+    .security-banner-text h3 {
+      font-size: 16px; font-weight: 700; margin-bottom: 4px;
+    }
+    .security-banner-text p {
+      font-size: 13px; color: var(--muted); line-height: 1.6;
+    }
+    
+    .security-features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 700px) {
+      .security-features { grid-template-columns: 1fr; }
+    }
+    .security-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+    }
+    .security-card h4 {
+      font-size: 14px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+    }
+    .security-card p {
+      font-size: 12px; color: var(--muted); line-height: 1.6;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--surface2); border: 1px solid var(--border2);
+      border-radius: var(--radius-sm); padding: 14px 24px;
+      font-size: 14px; color: var(--text); font-weight: 600;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 999;
+      box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--green); color: var(--green); }
+    .toast.error   { border-color: var(--red);   color: var(--red);   }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <!-- Theme Toggle Button (Only visible on WHO, ADD, PIN screens) -->
+  <button class="locked-theme-toggle" id="theme-toggle-locked" onclick="toggleTheme()">
+    <span>🌙</span> Theme
+  </button>
+
+  <div class="app">
+
+    <!-- LOGO (Locked view only) -->
+    <div class="logo" id="logo-container">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+        </div>
+        <div class="logo-text">Form<span>Sarthi</span></div>
+      </div>
+    </div>
+
+    <!-- ══════════ SCREEN: WHO ══════════ -->
+    <div class="card screen active" id="screen-who">
+      <p class="who-title">Who's filling the form?</p>
+      <p class="who-sub">Select your encrypted profile to continue</p>
+
+      <div class="profile-grid" id="profile-grid">
+        <!-- Injected dynamically -->
+      </div>
+
+      <button class="add-btn" onclick="showAddProfile()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add new profile
+      </button>
+    </div>
+
+    <!-- ══════════ SCREEN: ADD PROFILE ══════════ -->
+    <div class="card screen" id="screen-add">
+      <p class="who-title" style="margin-bottom:20px">Create Secure Profile</p>
+
+      <div class="form-group">
+        <label>Name</label>
+        <input id="new-name" class="form-input" type="text" placeholder="Enter your name">
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input id="new-email" class="form-input" type="email" placeholder="name@example.com">
+      </div>
+
+      <div class="form-group">
+        <label>Custom Avatar & Background</label>
+        <div class="builder-container">
+          <div id="new-avatar-preview" class="avatar-preview">🦊</div>
+          <div class="builder-selectors">
+            <!-- Colors -->
+            <div class="builder-row" id="color-selector">
+              <!-- JS Injected color dots -->
+            </div>
+            <!-- Emojis -->
+            <div class="builder-row" id="emoji-selector">
+              <!-- JS Injected emoji icons -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:6px">Set 6-digit PIN</label>
+        <div class="pin-dots" id="add-dots" style="justify-content:flex-start; gap:10px; margin-bottom:14px">
+          <div class="dot" id="ad0"></div><div class="dot" id="ad1"></div>
+          <div class="dot" id="ad2"></div><div class="dot" id="ad3"></div>
+          <div class="dot" id="ad4"></div><div class="dot" id="ad5"></div>
+        </div>
+        <div class="numpad">
+          <button class="num" onclick="addPinKey('1')">1</button>
+          <button class="num" onclick="addPinKey('2')">2</button>
+          <button class="num" onclick="addPinKey('3')">3</button>
+          <button class="num" onclick="addPinKey('4')">4</button>
+          <button class="num" onclick="addPinKey('5')">5</button>
+          <button class="num" onclick="addPinKey('6')">6</button>
+          <button class="num" onclick="addPinKey('7')">7</button>
+          <button class="num" onclick="addPinKey('8')">8</button>
+          <button class="num" onclick="addPinKey('9')">9</button>
+          <button class="num sm" onclick="addPinKey('clear')">clear</button>
+          <button class="num" onclick="addPinKey('0')">0</button>
+          <button class="num sm" onclick="addPinKey('back')">⌫</button>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px">
+        <button class="btn outline" style="flex:1" onclick="goBack()">Cancel</button>
+        <button class="btn" style="flex:1" onclick="saveNewProfile()">Create Profile</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SCREEN: PIN ══════════ -->
+    <div class="card screen" id="screen-pin">
+      <div class="pin-header">
+        <div class="avatar" id="pin-avatar" style="width:64px;height:64px;font-size:26px">🦊</div>
+        <p class="pin-name" id="pin-name">Rahul</p>
+        <p class="pin-sub">Enter your 6-digit PIN to decrypt</p>
+      </div>
+
+      <div class="pin-dots">
+        <div class="dot" id="d0"></div><div class="dot" id="d1"></div>
+        <div class="dot" id="d2"></div><div class="dot" id="d3"></div>
+        <div class="dot" id="d4"></div><div class="dot" id="d5"></div>
+      </div>
+      <div class="err-msg" id="pin-error"></div>
+
+      <div class="numpad">
+        <button class="num" onclick="pressKey('1')">1</button>
+        <button class="num" onclick="pressKey('2')">2</button>
+        <button class="num" onclick="pressKey('3')">3</button>
+        <button class="num" onclick="pressKey('4')">4</button>
+        <button class="num" onclick="pressKey('5')">5</button>
+        <button class="num" onclick="pressKey('6')">6</button>
+        <button class="num" onclick="pressKey('7')">7</button>
+        <button class="num" onclick="pressKey('8')">8</button>
+        <button class="num" onclick="pressKey('9')">9</button>
+        <button class="num sm" onclick="pressKey('clear')">clear</button>
+        <button class="num" onclick="pressKey('0')">0</button>
+        <button class="num sm" onclick="pressKey('back')">⌫</button>
+      </div>
+
+      <div class="back-link" onclick="show('who')">← Back to profiles</div>
+    </div>
+
+    <!-- ══════════ SCREEN: MAIN (UNLOCKED WIDE LAYOUT) ══════════ -->
+    <div class="screen" id="screen-main">
+      <header class="main-header">
+        <div class="brand">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><rect x="3" y="3" width="18" height="18" rx="3"/></svg>
+          </div>
+          <div class="logo-text">Form<span>Sarthi</span></div>
+        </div>
+        <div class="header-actions">
+          <span class="pill" id="session-badge">🔓 Vault Unlocked</span>
+          <button class="btn-theme" onclick="toggleTheme()">☀️ Theme Toggle</button>
+          <button class="lock-btn" onclick="lockAndGoBack()">🔒 Lock Vault</button>
+        </div>
+      </header>
+
+      <div class="dashboard-grid">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+          <div class="profile-summary-card">
+            <div class="avatar-circle" id="main-avatar">🦊</div>
+            <div class="profile-details">
+              <h3 id="main-name">Rahul</h3>
+              <p id="main-email">rahul@example.com</p>
+              <span class="switch-profile-link" onclick="lockAndGoBack()">Switch Profile 👥</span>
+            </div>
+          </div>
+
+          <nav class="nav-menu">
+            <button class="nav-item active" id="nav-docs" onclick="switchTab('docs', this)">
+              <span>📁 My Documents</span>
+              <span class="badge" id="docs-count-badge">0/8</span>
+            </button>
+            <button class="nav-item" id="nav-autofill" onclick="switchTab('autofill', this)">
+              <span>⚡ Smart Autofill</span>
+            </button>
+            <button class="nav-item" id="nav-profile" onclick="switchTab('profile', this)">
+              <span>👤 Profile Vault</span>
+              <span class="badge" id="profile-pct-badge">0%</span>
+            </button>
+            <button class="nav-item" id="nav-tools" onclick="switchTab('tools', this)">
+              <span>🛠️ Document Tools</span>
+            </button>
+            <button class="nav-item" id="nav-deadlines" onclick="switchTab('deadlines', this)">
+              <span>⏰ Deadlines</span>
+            </button>
+            <button class="nav-item" id="nav-history" onclick="switchTab('history', this)">
+              <span>📜 Autofill History</span>
+            </button>
+            <button class="nav-item" id="nav-security" onclick="switchTab('security', this)">
+              <span>🛡️ Security Shield</span>
+            </button>
+          </nav>
+        </aside>
+
+        <!-- Main Panel Content -->
+        <main class="main-content">
+          
+          <!-- ── TAB: DOCUMENTS ── -->
+          <div class="tab-panel active" id="tab-docs">
+            <div style="margin-bottom: 18px">
+              <h2 style="font-size: 18px; font-weight: 700">My Uploaded Documents</h2>
+              <p style="font-size: 13px; color: var(--muted)">Upload and scan credentials to parse details into your encrypted vault.</p>
+            </div>
+
+            <div class="docs-grid" id="doc-list-render">
+              <!-- Rendered document slots -->
+            </div>
+
+            <div class="upload-zone" id="upload-zone">
+              <input type="file" id="file-input" accept="image/*,.pdf" multiple onchange="handleUpload(this.files)">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <div class="upload-title">Scan and parse new documents</div>
+              <div class="upload-hint">Upload Aadhaar, PAN, DL, Resume, Passport, Marksheets, or Passbooks (PDF, JPG, PNG)</div>
+            </div>
+
+            <div class="ocr-box" id="ocr-box" style="display:none">
+              <div class="ocr-label" id="ocr-label">Processing...</div>
+              <div class="progress-bar"><div class="progress-fill" id="ocr-progress"></div></div>
+              <div class="ocr-result" id="ocr-result"></div>
+            </div>
+          </div>
+
+          <!-- ── TAB: AUTOFILL ── -->
+          <div class="tab-panel" id="tab-autofill">
+            <div style="margin-bottom:18px">
+              <h2 style="font-size: 18px; font-weight: 700">Smart Form Autofill</h2>
+              <p style="font-size: 13px; color: var(--muted)">Enter form URL (e.g. JEE, NEET, or any job application) to analyze field matches.</p>
+            </div>
+
+            <div class="url-row">
+              <input type="text" id="form-url" class="url-input" placeholder="https://forms.gle/... or form website link" />
+              <button class="btn" onclick="analyzeForm()">Analyze Form</button>
+            </div>
+
+            <div id="meter-section" style="display:none">
+              <div class="meter-card">
+                <div class="meter-row">
+                  <span class="meter-label">Form Completeness Rating</span>
+                  <span class="meter-pct" id="meter-pct">0%</span>
+                </div>
+                <div class="meter-bar"><div class="meter-fill" id="meter-fill"></div></div>
+              </div>
+
+              <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Detected Fields Map</div>
+              <div class="field-list" id="field-list"></div>
+
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="btn" style="flex: 1" onclick="fillForm()">⚡ Auto Fill Form</button>
+                <button class="btn outline" style="flex: 1" onclick="trackCurrentForm()">⏰ Set Reminders</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TAB: PROFILE VAULT ── -->
+          <div class="tab-panel" id="tab-profile">
+            <div style="margin-bottom:18px; display: flex; justify-content: space-between; align-items: center">
+              <div>
+                <h2 style="font-size: 18px; font-weight: 700">Profile Vault Data</h2>
+                <p style="font-size: 13px; color: var(--muted)">Review, add or modify extracted field data stored in browser IndexedDB.</p>
+              </div>
+              <div style="display:flex; gap:8px">
+                <button class="btn outline" style="font-size:12px; padding: 8px 12px" onclick="toggleEditProfile(true)" id="edit-btn-profile">✏️ Edit data</button>
+                <button class="btn outline" style="font-size:12px; padding: 8px 12px; color:var(--red); border-color:transparent" onclick="deleteProfile()">🗑️ Delete Profile</button>
+              </div>
+            </div>
+
+            <!-- Read Mode -->
+            <div id="profile-view-mode">
+              <!-- Collapsible details panels generated dynamically -->
+              <div id="collapsible-vault-render"></div>
+            </div>
+
+            <!-- Edit Mode -->
+            <div id="profile-edit-mode" style="display:none">
+              <div id="manual-edit-form">
+                <!-- Editable form segments generated dynamically -->
+              </div>
+              <div style="display:flex; gap:10px; margin-top:20px; justify-content: flex-end">
+                <button class="btn outline" onclick="toggleEditProfile(false)">Cancel</button>
+                <button class="btn" onclick="saveProfileEdits()">Save Vault Changes</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── TAB: DOCUMENT TOOLS ── -->
+          <div class="tab-panel" id="tab-tools">
+            <div style="margin-bottom:18px">
+              <h2 style="font-size: 18px; font-weight: 700">Document Image Tools</h2>
+              <p style="font-size: 13px; color: var(--muted)">Convert formats, resize resolution, and compress images directly client-side.</p>
+            </div>
+
+            <div class="tool-card">
+              <div class="tool-cell" style="margin-bottom: 14px">
+                <label>Select Document Image</label>
+                <input type="file" id="tool-file-input" accept="image/*,.pdf">
+              </div>
+
+              <div class="tool-row">
+                <div class="tool-cell">
+                  <label>Target Width (px)</label>
+                  <input type="number" id="tool-width" placeholder="Original Width">
+                </div>
+                <div class="tool-cell">
+                  <label>Target Height (px)</label>
+                  <input type="number" id="tool-height" placeholder="Original Height">
+                </div>
+              </div>
+
+              <div class="tool-row">
+                <div class="tool-cell">
+                  <label>Convert Format</label>
+                  <select id="tool-format">
+                    <option value="jpeg">JPEG</option>
+                    <option value="png">PNG</option>
+                    <option value="webp">WEBP</option>
+                    <option value="pdf">PDF</option>
+                  </select>
+                </div>
+                <div class="tool-cell">
+                  <label>Quality compression (10-100)</label>
+                  <input type="number" id="tool-quality" value="85" min="10" max="100">
+                </div>
+              </div>
+
+              <button class="btn" style="width:100%; margin-top:10px" onclick="runDocTool()">Process & Download Document ↗</button>
+            </div>
+          </div>
+
+          <!-- ── TAB: DEADLINES ── -->
+          <div class="tab-panel" id="tab-deadlines">
+            <div style="margin-bottom:18px">
+              <h2 style="font-size: 18px; font-weight: 700">Application Deadlines & Reminders</h2>
+              <p style="font-size: 13px; color: var(--muted)">Track application closing dates. Get alerts before deadlines expire.</p>
+            </div>
+
+            <div class="deadline-creator">
+              <div style="font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase">Add Form Deadline</div>
+              <div class="deadline-inputs-row">
+                <div style="display:flex; flex-direction:column; gap:4px">
+                  <label style="font-size:11px; font-weight:700">Form / Portal Name</label>
+                  <input type="text" id="deadline-form-name" class="form-input" placeholder="e.g. JEE Main 2026 Registration" style="padding:10px">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px">
+                  <label style="font-size:11px; font-weight:700">Form Link</label>
+                  <input type="text" id="deadline-form-url" class="form-input" placeholder="https://jeemain.nta.nic.in" style="padding:10px">
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px">
+                  <label style="font-size:11px; font-weight:700">Closing Date & Time</label>
+                  <input type="datetime-local" id="deadline-time" class="form-input" style="padding:10px">
+                </div>
+                <button class="btn" onclick="addDeadline()" style="padding: 10px 20px">Add</button>
+              </div>
+            </div>
+
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Tracked Portals</div>
+            <div class="list-group" id="deadline-list-render">
+              <!-- Rendered deadlines list -->
+            </div>
+          </div>
+
+          <!-- ── TAB: HISTORY ── -->
+          <div class="tab-panel" id="tab-history">
+            <div style="margin-bottom:18px; display: flex; justify-content: space-between; align-items: center">
+              <div>
+                <h2 style="font-size: 18px; font-weight: 700">Autofill History Logs</h2>
+                <p style="font-size: 13px; color: var(--muted)">Locally logged list of form applications visited and autofilled.</p>
+              </div>
+              <button class="btn outline" style="font-size:12px; padding:6px 12px" onclick="clearHistory()">Clear History Logs</button>
+            </div>
+
+            <div class="list-group" id="history-list-render">
+              <!-- Rendered history logs -->
+            </div>
+          </div>
+
+          <!-- ── TAB: SECURITY SHIELD ── -->
+          <div class="tab-panel" id="tab-security">
+            <div style="margin-bottom:18px">
+              <h2 style="font-size: 18px; font-weight: 700">Local Security Shield</h2>
+              <p style="font-size: 13px; color: var(--muted)">FormSarthi operates as a zero-knowledge local-first vault. Here's how your data stays safe.</p>
+            </div>
+
+            <div class="security-banner">
+              <div class="security-banner-icon">🛡️</div>
+              <div class="security-banner-text">
+                <h3>Zero Server-Side Storage</h3>
+                <p>Your documents, identity details, bank specifications, and login PIN never leave this device. The backend server acts only as a stateless utility engine for running OCR processing and converting image configurations.</p>
+              </div>
+            </div>
+
+            <div class="security-features">
+              <div class="security-card">
+                <h4>🔒 AES-256 Bit Encryption</h4>
+                <p>All database elements are encrypted in your browser's private IndexedDB storage using AES-256 standard encryption. Decryption only takes place in active system memory when successfully unlocked.</p>
+              </div>
+
+              <div class="security-card">
+                <h4>🔑 PBKDF2 Key Derivation</h4>
+                <p>Decryption keys are generated dynamically inside the browser client using PBKDF2 with 1,000 hash iterations. The key is derived directly from your unique email address salt and your private 6-digit PIN.</p>
+              </div>
+
+              <div class="security-card">
+                <h4>🧠 Stateless Session Access</h4>
+                <p>When you unlock your vault, a decrypted copy is held briefly inside window <code>sessionStorage</code>. The Chrome Extension reads from this local memory tab-to-tab, completely bypassing API networks.</p>
+              </div>
+
+              <div class="security-card">
+                <h4>🚫 Zero Data Profiling</h4>
+                <p>No analytics engines, trackers, or databases monitor your filled fields. FormSarthi is fully private and run locally by you, keeping your documents and metadata 100% isolated.</p>
+              </div>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="autofill.js"></script>
+  <script>
+    // ── COLORS & AVATARS blue print ──
+    const PRESET_COLORS = {
+      purple: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
+      green: 'linear-gradient(135deg, #10b981, #34d399)',
+      amber: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+      red: 'linear-gradient(135deg, #ef4444, #f87171)',
+      blue: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+      slate: 'linear-gradient(135deg, #64748b, #94a3b8)'
+    };
+    const PRESET_EMOJIS = ['🦊', '🐼', '🦁', '🐯', '🐸', '🐨', '🦄', '🦖'];
+
+    // ── IndexedDB Configuration ──
+    const DB_NAME = "FormSarthiLocalDB";
+    const DB_VERSION = 1;
+
+    function getDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("profiles")) {
+            db.createObjectStore("profiles", { keyPath: "email" });
+          }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function dbGetAll(storeName) {
+      return getDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(storeName, "readonly");
+          const store = transaction.objectStore(storeName);
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      });
+    }
+
+    function dbPut(storeName, value) {
+      return getDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(storeName, "readwrite");
+          const store = transaction.objectStore(storeName);
+          const request = store.put(value);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      });
+    }
+
+    function dbDelete(storeName, key) {
+      return getDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(storeName, "readwrite");
+          const store = transaction.objectStore(storeName);
+          const request = store.delete(key);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      });
+    }
+
+    // ── State Variables ──
+    let profiles       = [];
+    let activeProfile  = null;  // email
+    let activeKey      = null;  // derived PBKDF2 key
+    let sessionData    = null;  // decrypted profile vault fields
+    let pinEntered     = '';
+    let addPinEntered  = '';
+    
+    // Creator builders
+    let selectedColor  = 'purple';
+    let selectedAvatar = '🦊';
+    
+    // Theme state
+    let activeTheme = localStorage.getItem("fs_theme") || "dark";
+    
+    // Autofill Tracker State
+    let currentFormCompleteness = 100;
+
+    // ── Document types blueprint (8 slots) ──
+    const DOC_TYPES = [
+      { key: 'aadhaar',          label: 'Aadhaar Card' },
+      { key: 'pan',              label: 'PAN Card' },
+      { key: 'dl',               label: 'Driving Licence' },
+      { key: 'resume',           label: 'Resume / CV' },
+      { key: 'marksheet_10',     label: 'Class 10 Marksheet' },
+      { key: 'marksheet_12',     label: 'Class 12 Marksheet' },
+      { key: 'passport',         label: 'Indian Passport' },
+      { key: 'bank_passbook',    label: 'Bank Passbook' }
+    ];
+
+    // ── Grouped fields blueprint (30 fields) ──
+    const PROFILE_FIELDS = [
+      // Personal Info
+      { group: 'Personal Info', label: 'Full Name', key: 'name' },
+      { group: 'Personal Info', label: 'Date of Birth', key: 'dob' },
+      { group: 'Personal Info', label: 'Gender', key: 'gender' },
+      { group: 'Personal Info', label: 'Caste / Category', key: 'caste' },
+      { group: 'Personal Info', label: 'Nationality', key: 'nationality' },
+      { group: 'Personal Info', label: 'Religion', key: 'religion' },
+      { group: 'Personal Info', label: 'Blood Group', key: 'blood_group' },
+      { group: 'Personal Info', label: 'Marital Status', key: 'marital_status' },
+
+      // Contact Details
+      { group: 'Contact Details', label: 'Mobile Number', key: 'phone' },
+      { group: 'Contact Details', label: 'Alternate Mobile', key: 'alt_phone' },
+      { group: 'Contact Details', label: 'Email Address', key: 'email' },
+      { group: 'Contact Details', label: 'Address', key: 'address' },
+      { group: 'Contact Details', label: 'City', key: 'city' },
+      { group: 'Contact Details', label: 'State', key: 'state' },
+      { group: 'Contact Details', label: 'Pincode', key: 'pincode' },
+
+      // Academic Records
+      { group: 'Academic Records', label: 'Class 10 Roll No', key: 'roll_10' },
+      { group: 'Academic Records', label: 'Class 10 Board', key: 'board_10' },
+      { group: 'Academic Records', label: 'Class 10 Marks', key: 'marks_10' },
+      { group: 'Academic Records', label: 'Class 12 Roll No', key: 'roll_12' },
+      { group: 'Academic Records', label: 'Class 12 Board', key: 'board_12' },
+      { group: 'Academic Records', label: 'Class 12 Marks', key: 'marks_12' },
+      { group: 'Academic Records', label: 'College / Institute', key: 'college' },
+      { group: 'Academic Records', label: 'Degree', key: 'degree' },
+      { group: 'Academic Records', label: 'Graduation Year', key: 'grad_year' },
+
+      // Identity & Finance
+      { group: 'Identity & Finance', label: 'Aadhaar Number', key: 'aadhaar' },
+      { group: 'Identity & Finance', label: 'PAN Number', key: 'pan' },
+      { group: 'Identity & Finance', label: 'Driving License / Passport', key: 'dl' },
+      { group: 'Identity & Finance', label: 'Bank Name', key: 'bank_name' },
+      { group: 'Identity & Finance', label: 'Bank Account Number', key: 'account_no' },
+      { group: 'Identity & Finance', label: 'IFSC Code', key: 'ifsc' }
+    ];
+
+    // Initialize Page Theme
+    setTheme(activeTheme);
+
+    function toggleTheme() {
+      const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+      activeTheme = nextTheme;
+      localStorage.setItem("fs_theme", nextTheme);
+      setTheme(nextTheme);
+    }
+
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      // Toggle button emoji indicator
+      const lockedThemeBtn = document.getElementById('theme-toggle-locked');
+      if (lockedThemeBtn) {
+        lockedThemeBtn.innerHTML = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+      }
+    }
+
+    // ── Navigation ──
+    function show(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + screenId).classList.add('active');
+      
+      // Control body class based on locked / unlocked screen
+      if (screenId === 'main') {
+        document.body.classList.add('unlocked-layout');
+        document.getElementById('theme-toggle-locked').style.display = 'none';
+        document.getElementById('logo-container').style.display = 'none';
+      } else {
+        document.body.classList.remove('unlocked-layout');
+        document.getElementById('theme-toggle-locked').style.display = 'flex';
+        document.getElementById('logo-container').style.display = 'block';
+      }
+    }
+
+    function goBack() { show('who'); loadProfiles(); }
+
+    // ── Toast Notifications ──
+    function toast(msg, type='') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + type;
+      setTimeout(() => t.className = 'toast', 2800);
+    }
+
+    // ── Load profiles ──
+    async function loadProfiles() {
+      try {
+        profiles = await dbGetAll("profiles");
+        renderProfileGrid();
+      } catch (e) {
+        console.error(e);
+        toast("Error loading local profiles", "error");
+      }
+    }
+
+    function getColorValue(color) {
+      return PRESET_COLORS[color] || PRESET_COLORS.purple;
+    }
+
+    function renderProfileGrid() {
+      const grid = document.getElementById('profile-grid');
+      if (profiles.length === 0) {
+        grid.innerHTML = `<p style="grid-column: span 3; font-size:13px; color:var(--muted); text-align:center; padding:16px 0;">No profiles yet. Add one below.</p>`;
+        return;
+      }
+      grid.innerHTML = profiles.map((p, i) => `
+        <button class="profile-btn" onclick="selectProfile(${i})">
+          <div class="avatar" style="background: ${getColorValue(p.color)}">${p.avatar || '🦊'}</div>
+          <span class="profile-name">${p.name}</span>
+        </button>
+      `).join('');
+    }
+
+    // ── Select profile → PIN screen ──
+    function selectProfile(idx) {
+      const p = profiles[idx];
+      activeProfile = p.email;
+      pinEntered = '';
+      const pinAvatar = document.getElementById('pin-avatar');
+      pinAvatar.style.background = getColorValue(p.color);
+      pinAvatar.textContent = p.avatar || '🦊';
+      document.getElementById('pin-name').textContent = p.name;
+      document.getElementById('pin-error').textContent = '';
+      updateDots([]);
+      show('pin');
+    }
+
+    function updateDots(entered, isError) {
+      for (let i = 0; i < 6; i++) {
+        const d = document.getElementById('d' + i);
+        d.className = 'dot' + (i < entered.length ? (isError ? ' error' : ' filled') : '');
+      }
+    }
+
+    function pressKey(k) {
+      document.getElementById('pin-error').textContent = '';
+      if (k === 'clear') pinEntered = '';
+      else if (k === 'back') pinEntered = pinEntered.slice(0, -1);
+      else if (pinEntered.length < 6) pinEntered += k;
+      updateDots(pinEntered);
+      if (pinEntered.length === 6) setTimeout(verifyPin, 120);
+    }
+
+    // Verify PIN locally via Decryption
+    async function verifyPin() {
+      const p = profiles.find(pr => pr.email === activeProfile);
+      if (!p) return;
+
+      // Derive cryptographic key from user PIN + email salt
+      const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
+      const derivedKey = CryptoJS.PBKDF2(pinEntered, salt, { keySize: 256 / 32, iterations: 1000 });
+
+      try {
+        const decryptedBytes = CryptoJS.AES.decrypt(p.encryptedProfile, derivedKey.toString());
+        const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+        
+        if (!decryptedText) {
+          throw new Error("Wrong PIN");
+        }
+
+        sessionData = JSON.parse(decryptedText);
+        activeKey = derivedKey;
+
+        // Save decrypted profile into sessionStorage for extension access
+        sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
+
+        openMainScreen(p);
+      } catch (e) {
+        updateDots('xxxxxx', true);
+        document.getElementById('pin-error').textContent = 'Wrong PIN. Please try again.';
+        setTimeout(() => { pinEntered = ''; updateDots([]); }, 800);
+      }
+    }
+
+    // Open Dashboard
+    function openMainScreen(p) {
+      const mainAvatar = document.getElementById('main-avatar');
+      mainAvatar.style.background = getColorValue(p.color);
+      mainAvatar.textContent = p.avatar || '🦊';
+      
+      document.getElementById('main-name').textContent = p.name;
+      document.getElementById('main-email').textContent = p.email;
+      
+      // Default to docs tab
+      switchTab('docs', document.getElementById('nav-docs'));
+      renderDocSlots();
+      renderDataGrid();
+      renderDeadlines();
+      renderHistory();
+      updateBadges();
+      show('main');
+    }
+
+    function updateBadges() {
+      const data = sessionData || {};
+      
+      // Calculate parsed document count
+      const docsObj = data.uploadedDocs || {};
+      const uploadedCount = Object.values(docsObj).filter(Boolean).length;
+      document.getElementById('docs-count-badge').textContent = `${uploadedCount}/8`;
+
+      // Calculate completeness percentage across 30 fields
+      const allKeys = PROFILE_FIELDS.map(f => f.key);
+      const filledCount = allKeys.filter(k => data[k] !== undefined && data[k] !== null && data[k] !== '').length;
+      const pct = Math.round((filledCount / allKeys.length) * 100);
+      document.getElementById('profile-pct-badge').textContent = `${pct}%`;
+    }
+
+    function lockAndGoBack() {
+      activeKey = null;
+      sessionData = null;
+      activeProfile = null;
+      sessionStorage.removeItem("fs_active_session");
+      show('who');
+      loadProfiles();
+    }
+
+    // ── Tabs controller ──
+    function switchTab(name, el) {
+      document.querySelectorAll('.nav-item').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    // ── Render Document Slots (8 slots) ──
+    function renderDocSlots() {
+      const listDiv = document.getElementById('doc-list-render');
+      const data = sessionData || {};
+      const uploadedMap = data.uploadedDocs || {};
+
+      listDiv.innerHTML = DOC_TYPES.map(d => {
+        const isUploaded = !!uploadedMap[d.key];
+        const statusClass = isUploaded ? 'uploaded' : 'empty';
+        const statusText = isUploaded ? '✓ Extracted' : 'Not Uploaded';
+        const slotClass = isUploaded ? 'doc-slot filled' : 'doc-slot';
+
+        // Extract a preview value (e.g. roll number, Aadhaar number, IFSC, name etc.)
+        let detailText = '';
+        if (isUploaded) {
+          if (d.key === 'aadhaar' && data.aadhaar) detailText = 'ID: ' + data.aadhaar;
+          else if (d.key === 'pan' && data.pan) detailText = 'ID: ' + data.pan;
+          else if (d.key === 'dl' && data.dl) detailText = 'ID: ' + data.dl;
+          else if (d.key === 'resume' && data.college) detailText = 'Ed: ' + data.college;
+          else if (d.key === 'marksheet_10' && data.roll_10) detailText = 'Roll: ' + data.roll_10;
+          else if (d.key === 'marksheet_12' && data.roll_12) detailText = 'Roll: ' + data.roll_12;
+          else if (d.key === 'passport' && data.dl) detailText = 'Passport: ' + data.dl;
+          else if (d.key === 'bank_passbook' && data.account_no) detailText = 'A/C: ' + data.account_no;
+          else detailText = 'Parsed successfully';
+        } else {
+          detailText = 'No scan parsed';
+        }
+
+        return `
+          <div class="${slotClass}">
+            <div class="doc-slot-header">
+              <div class="doc-slot-icon">
+                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M9 8h6M9 16h4"/></svg>
+              </div>
+              <div>
+                <div class="doc-slot-title">${d.label}</div>
+                <div class="doc-slot-detail" title="${detailText}">${detailText}</div>
+              </div>
+            </div>
+            <div class="doc-slot-status ${statusClass}">${statusText}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Multi-doc upload & Parallel stateless processing ──
+    async function handleUpload(files) {
+      if (!files.length) return;
+      document.getElementById('ocr-box').style.display = 'block';
+      document.getElementById('ocr-label').textContent = `Processing ${files.length} document(s) in parallel...`;
+      document.getElementById('ocr-progress').style.width = '15%';
+      document.getElementById('ocr-result').textContent = '';
+
+      let successCount = 0;
+      let progressVal = 15;
+      const progressStep = 85 / files.length;
+
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('document', file);
+
+        try {
+          const res = await fetch('/api/process', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          
+          progressVal += progressStep;
+          document.getElementById('ocr-progress').style.width = `${Math.min(progressVal, 100)}%`;
+
+          if (res.ok && data.success) {
+            successCount++;
+            if (!sessionData) sessionData = {};
+            sessionData.uploadedDocs = sessionData.uploadedDocs || {};
+
+            let hasConfidenceWarning = data.confidence < 60;
+            let warningText = hasConfidenceWarning ? " (⚠️ Low Confidence)" : "";
+
+            // Write logs to box
+            const logLine = `[${file.name}]: Identified as ${data.docType.toUpperCase()} with ${Math.round(data.confidence)}% confidence.${warningText}\n`;
+            document.getElementById('ocr-result').textContent += logLine;
+
+            // Map docType for slots
+            let mappedType = data.docType;
+            if (mappedType === 'marksheet') {
+              if (data.fields.roll_12 || data.fields.marks_12 || data.fields.board_12) {
+                mappedType = 'marksheet_12';
+              } else {
+                mappedType = 'marksheet_10';
+              }
+            }
+            sessionData.uploadedDocs[mappedType] = true;
+
+            // Merge parsed fields
+            for (const [key, value] of Object.entries(data.fields)) {
+              if (value !== undefined && value !== null && value !== '') {
+                sessionData[key] = value;
+              }
+            }
+          } else {
+            document.getElementById('ocr-result').textContent += `[Error: ${file.name}]: ${data.error || 'Failed to process.'}\n`;
+          }
+        } catch (e) {
+          document.getElementById('ocr-result').textContent += `[Error: ${file.name}]: Network/Server error.\n`;
+        }
+      });
+
+      await Promise.all(uploadPromises);
+
+      document.getElementById('ocr-progress').style.width = '100%';
+      document.getElementById('ocr-label').textContent = `Processing finished (${successCount}/${files.length} documents parsed)`;
+      
+      if (successCount > 0) {
+        await saveLocalVault();
+        renderDocSlots();
+        renderDataGrid();
+        updateBadges();
+        toast(`Successfully processed ${successCount} document(s)`, 'success');
+      }
+    }
+
+    // Save decrypted session data into encrypted IndexedDB storage
+    async function saveLocalVault() {
+      if (!activeProfile || !activeKey || !sessionData) return;
+      
+      const ciphertext = CryptoJS.AES.encrypt(JSON.stringify(sessionData), activeKey.toString()).toString();
+      const p = profiles.find(pr => pr.email === activeProfile);
+      if (p) {
+        p.encryptedProfile = ciphertext;
+        await dbPut("profiles", p);
+        
+        // Update session storage for Chrome extension
+        sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
+      }
+    }
+
+    // ── Profile Data Collapsible Grids (30 fields) ──
+    function renderDataGrid() {
+      const d = sessionData || {};
+      const renderDiv = document.getElementById('collapsible-vault-render');
+      
+      // Group fields
+      const groups = {};
+      PROFILE_FIELDS.forEach(f => {
+        if (!groups[f.group]) groups[f.group] = [];
+        groups[f.group].push(f);
+      });
+
+      let html = '';
+      for (const [groupName, fields] of Object.entries(groups)) {
+        const gridCells = fields.map(f => {
+          const val = d[f.key];
+          return `
+            <div class="data-cell">
+              <div class="data-cell-label">${f.label}</div>
+              <div class="data-cell-val ${val ? '' : 'empty'}">${val || 'Not set'}</div>
+            </div>
+          `;
+        }).join('');
+
+        html += `
+          <details class="profile-group" open>
+            <summary>
+              <span>${groupName}</span>
+              <span class="group-indicator">▶</span>
+            </summary>
+            <div class="data-grid">
+              ${gridCells}
+            </div>
+          </details>
+        `;
+      }
+      renderDiv.innerHTML = html;
+    }
+
+    // Manual Profile Edits
+    function toggleEditProfile(editing) {
+      const readDiv = document.getElementById('profile-view-mode');
+      const editDiv = document.getElementById('profile-edit-mode');
+      const editBtn = document.getElementById('edit-btn-profile');
+      
+      if (editing) {
+        const formDiv = document.getElementById('manual-edit-form');
+        const d = sessionData || {};
+        
+        // Group fields
+        const groups = {};
+        PROFILE_FIELDS.forEach(f => {
+          if (!groups[f.group]) groups[f.group] = [];
+          groups[f.group].push(f);
+        });
+
+        let html = '';
+        for (const [groupName, fields] of Object.entries(groups)) {
+          const cells = fields.map(f => `
+            <div class="edit-form-cell">
+              <label>${f.label}</label>
+              <input type="text" id="edit-${f.key}" value="${d[f.key] || ''}">
+            </div>
+          `).join('');
+
+          html += `
+            <details class="profile-group" open>
+              <summary>
+                <span>${groupName}</span>
+                <span class="group-indicator">▶</span>
+              </summary>
+              <div class="edit-grid">
+                ${cells}
+              </div>
+            </details>
+          `;
+        }
+        
+        formDiv.innerHTML = html;
+        readDiv.style.display = 'none';
+        editDiv.style.display = 'block';
+        editBtn.style.display = 'none';
+      } else {
+        readDiv.style.display = 'block';
+        editDiv.style.display = 'none';
+        editBtn.style.display = 'inline-block';
+      }
+    }
+
+    async function saveProfileEdits() {
+      if (!sessionData) sessionData = {};
+      
+      PROFILE_FIELDS.forEach(f => {
+        const val = document.getElementById(`edit-${f.key}`).value.trim();
+        sessionData[f.key] = val || null;
+      });
+
+      await saveLocalVault();
+      renderDataGrid();
+      renderDocSlots();
+      updateBadges();
+      toggleEditProfile(false);
+      toast("Vault updated manually", "success");
+    }
+
+    async function deleteProfile() {
+      if (!confirm(`Are you sure you want to delete this profile? All local data will be permanently wiped.`)) return;
+      
+      await dbDelete("profiles", activeProfile);
+      
+      localStorage.removeItem(`fs_deadlines_${activeProfile}`);
+      localStorage.removeItem(`fs_history_${activeProfile}`);
+
+      toast("Profile deleted successfully");
+      lockAndGoBack();
+    }
+
+    // ── Autofill Tab & Completeness Meter ──
+    function analyzeForm() {
+      const url = document.getElementById('form-url').value.trim();
+      if (!url) { toast('Please enter a form URL', 'error'); return; }
+
+      if (!sessionData || Object.keys(sessionData).length === 0) {
+        toast('No profile data found — please scan documents first', 'error');
+        return;
+      }
+
+      const mapping = FS_Autofill.mapFields(sessionData);
+      const filled  = mapping.filter(m => m.value).length;
+      const pct     = Math.round((filled / mapping.length) * 100);
+
+      document.getElementById('meter-section').style.display = 'block';
+      document.getElementById('meter-pct').textContent  = pct + '%';
+      document.getElementById('meter-fill').style.width = pct + '%';
+      
+      document.getElementById('field-list').innerHTML = mapping.map(m => `
+        <div class="field-row">
+          <span class="field-key">${m.label}</span>
+          <span class="field-arrow">→</span>
+          <span class="field-val ${m.value ? '' : 'missing'}">${m.value || 'Not set (Missing)'}</span>
+        </div>
+      `).join('');
+    }
+
+    function fillForm() {
+      const url = document.getElementById('form-url').value.trim();
+      if (!url) return;
+
+      toast('Form fields copied to clipboard — opening portal', 'success');
+      const data = FS_Autofill.mapFields(sessionData || {});
+      const text = data.filter(d => d.value).map(d => `${d.label}: ${d.value}`).join('\n');
+      navigator.clipboard.writeText(text).catch(() => {});
+
+      // Save history logs
+      let history = JSON.parse(localStorage.getItem(`fs_history_${activeProfile}`) || '[]');
+      history.push({
+        id: Date.now(),
+        url: url,
+        timestamp: new Date().toLocaleString(),
+        filledCount: data.filter(d => d.value).length
+      });
+      localStorage.setItem(`fs_history_${activeProfile}`, JSON.stringify(history));
+      renderHistory();
+
+      window.open(url, '_blank');
+    }
+
+    // Pre-fill fields and redirect to deadlines tab for incomplete form reminders
+    function trackCurrentForm() {
+      const url = document.getElementById('form-url').value.trim();
+      const pct = parseInt(document.getElementById('meter-pct').textContent);
+      
+      if (!url) return;
+      
+      let name = "Form application";
+      try {
+        const domain = new URL(url).hostname;
+        name = domain.replace('www.', '').split('.')[0].toUpperCase() + " Form";
+      } catch (e) {}
+
+      document.getElementById('deadline-form-name').value = name;
+      document.getElementById('deadline-form-url').value = url;
+      
+      currentFormCompleteness = pct;
+
+      switchTab('deadlines', document.getElementById('nav-deadlines'));
+      toast("Set closing date/time and click Add to track form!", "success");
+    }
+
+    // ── Doc Tools: Resizer & Converter ──
+    async function runDocTool() {
+      const fileInput = document.getElementById('tool-file-input');
+      if (!fileInput.files.length) {
+        toast("Please select a document or image first", "error");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const width = document.getElementById('tool-width').value;
+      const height = document.getElementById('tool-height').value;
+      const format = document.getElementById('tool-format').value;
+      const quality = document.getElementById('tool-quality').value;
+
+      const formData = new FormData();
+      formData.append('file', file);
+      if (width) formData.append('width', width);
+      if (height) formData.append('height', height);
+      formData.append('format', format);
+      formData.append('quality', quality);
+
+      toast("Processing document transformation...", "success");
+
+      try {
+        const res = await fetch('/api/tools/resize', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          const errorJson = await res.json();
+          throw new Error(errorJson.error || "Failed to process document.");
+        }
+
+        // Trigger file download
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `processed_${file.name.split('.')[0]}.${format === 'pdf' ? 'pdf' : format}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        toast("Processed file downloaded!", "success");
+      } catch (e) {
+        console.error(e);
+        toast(e.message, "error");
+      }
+    }
+
+    // ── Deadlines & Reminders ──
+    function renderDeadlines() {
+      const listDiv = document.getElementById('deadline-list-render');
+      const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
+
+      if (deadlines.length === 0) {
+        listDiv.innerHTML = `<p style="font-size:12px; color:var(--muted); text-align:center; padding:12px 0;">No active deadlines tracked.</p>`;
+        return;
+      }
+
+      const now = new Date().getTime();
+
+      listDiv.innerHTML = deadlines.map((d, index) => {
+        const diff = new Date(d.time).getTime() - now;
+        let badge = '';
+
+        if (diff < 0) {
+          badge = `<span style="color:var(--red); font-size:11px; font-weight:700">OVERDUE</span>`;
+        } else if (diff < 24 * 60 * 60 * 1000) {
+          badge = `<span style="color:var(--amber); font-size:11px; font-weight:700">DUE SOON</span>`;
+        } else {
+          badge = `<span style="color:var(--green); font-size:11px; font-weight:600">ACTIVE</span>`;
+        }
+
+        const compText = d.completeness !== undefined 
+          ? `<div style="font-size:11px; color:var(--accent); margin-top:2px; font-weight:700">Completeness Meter: ${d.completeness}%</div>` 
+          : '';
+
+        return `
+          <div class="list-item">
+            <div>
+              <div style="font-weight:700; font-size:14px">${d.name}</div>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px">Closes: ${new Date(d.time).toLocaleString()}</div>
+              ${compText}
+            </div>
+            <div style="display:flex; align-items:center; gap:10px">
+              ${badge}
+              <button class="btn outline" style="font-size:11px; padding:5px 10px" onclick="fillDeadlineForm('${d.url}')">Fill Form</button>
+              <button class="btn outline" style="font-size:11px; padding:5px 10px; color:var(--red); border-color:transparent" onclick="deleteDeadline(${index})">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function addDeadline() {
+      const name = document.getElementById('deadline-form-name').value.trim();
+      const url = document.getElementById('deadline-form-url').value.trim();
+      const time = document.getElementById('deadline-time').value;
+
+      if (!name || !url || !time) {
+        toast("Please enter form name, url and closing date", "error");
+        return;
+      }
+
+      const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
+      deadlines.push({ 
+        name, 
+        url, 
+        time,
+        completeness: currentFormCompleteness,
+        lastNotified: 0
+      });
+      localStorage.setItem(`fs_deadlines_${activeProfile}`, JSON.stringify(deadlines));
+      
+      document.getElementById('deadline-form-name').value = '';
+      document.getElementById('deadline-form-url').value = '';
+      document.getElementById('deadline-time').value = '';
+      currentFormCompleteness = 100; // reset to default
+      
+      renderDeadlines();
+      toast("Deadline tracked successfully!", "success");
+    }
+
+    function deleteDeadline(idx) {
+      const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
+      deadlines.splice(idx, 1);
+      localStorage.setItem(`fs_deadlines_${activeProfile}`, JSON.stringify(deadlines));
+      renderDeadlines();
+    }
+
+    function fillDeadlineForm(url) {
+      document.getElementById('form-url').value = url;
+      switchTab('autofill', document.getElementById('nav-autofill'));
+      analyzeForm();
+    }
+
+    // Check deadlines interval (triggers alerts for incomplete forms at regular intervals)
+    setInterval(() => {
+      if (!activeProfile) return;
+      const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
+      const now = new Date().getTime();
+      let updated = false;
+      
+      deadlines.forEach(d => {
+        const diff = new Date(d.time).getTime() - now;
+        
+        // 1. Alert exactly 1 hour before
+        if (diff > 0 && diff < 60 * 60 * 1000 && diff > 59 * 60 * 1000) {
+          sendNotification(`Form Deadline Reminder ⏰`, `"${d.name}" closes in less than an hour!`);
+        }
+
+        // 2. Alert if form is incomplete (completeness < 100) and hasn't been reminded recently (every 5 minutes)
+        if (diff > 0 && d.completeness !== undefined && Number(d.completeness) < 100) {
+          const lastNotified = d.lastNotified || 0;
+          if (now - lastNotified > 5 * 60 * 1000) { // 5 minutes frequency threshold
+            sendNotification(
+              `Incomplete Form Reminder ⚠️`,
+              `Your application for "${d.name}" is only ${d.completeness}% complete. Please submit soon!`
+            );
+            d.lastNotified = now;
+            updated = true;
+          }
+        }
+      });
+
+      if (updated) {
+        localStorage.setItem(`fs_deadlines_${activeProfile}`, JSON.stringify(deadlines));
+      }
+    }, 15000); // Poll every 15 seconds for responsive checks
+
+    function sendNotification(title, body) {
+      if (window.Notification && Notification.permission === "granted") {
+        new Notification(title, { body });
+      }
+    }
+
+    // ── History Management ──
+    function renderHistory() {
+      const listDiv = document.getElementById('history-list-render');
+      const history = JSON.parse(localStorage.getItem(`fs_history_${activeProfile}`) || '[]');
+
+      if (history.length === 0) {
+        listDiv.innerHTML = `<p style="font-size:12px; color:var(--muted); text-align:center; padding:12px 0;">No fill logs yet.</p>`;
+        return;
+      }
+
+      listDiv.innerHTML = history.slice().reverse().map(h => `
+        <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:6px">
+          <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
+            <span style="font-weight:700; font-size:13px; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${h.url}</span>
+            <span style="color:var(--green); font-size:12px; font-weight:700">${h.filledCount} fields filled</span>
+          </div>
+          <div style="font-size:11px; color:var(--muted)">${h.timestamp}</div>
+        </div>
+      `).join('');
+    }
+
+    function clearHistory() {
+      localStorage.removeItem(`fs_history_${activeProfile}`);
+      renderHistory();
+      toast("History logs wiped");
+    }
+
+    // ── Add profile UI flows ──
+    function showAddProfile() {
+      addPinEntered = '';
+      selectedColor = 'purple';
+      selectedAvatar = '🦊';
+      document.getElementById('new-name').value = '';
+      document.getElementById('new-email').value = '';
+      
+      // Render colors and emojis builders
+      renderBuilderSelectors();
+      updateAvatarPreview();
+      updateAddDots([]);
+      show('add');
+    }
+
+    function renderBuilderSelectors() {
+      const colorDiv = document.getElementById('color-selector');
+      const emojiDiv = document.getElementById('emoji-selector');
+
+      // Color selection dots
+      colorDiv.innerHTML = Object.keys(PRESET_COLORS).map(color => {
+        const isSelected = color === selectedColor ? 'selected' : '';
+        return `<div class="color-dot ${isSelected}" style="background: ${getColorValue(color)}" onclick="selectBuilderColor('${color}', this)"></div>`;
+      }).join('');
+
+      // Emoji selection icons
+      emojiDiv.innerHTML = PRESET_EMOJIS.map(emoji => {
+        const isSelected = emoji === selectedAvatar ? 'selected' : '';
+        return `<div class="emoji-option ${isSelected}" onclick="selectBuilderEmoji('${emoji}', this)">${emoji}</div>`;
+      }).join('');
+    }
+
+    function selectBuilderColor(color, el) {
+      selectedColor = color;
+      document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+      el.classList.add('selected');
+      updateAvatarPreview();
+    }
+
+    function selectBuilderEmoji(emoji, el) {
+      selectedAvatar = emoji;
+      document.querySelectorAll('.emoji-option').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      updateAvatarPreview();
+    }
+
+    function updateAvatarPreview() {
+      const preview = document.getElementById('new-avatar-preview');
+      preview.textContent = selectedAvatar;
+      preview.style.background = getColorValue(selectedColor);
+    }
+
+    function updateAddDots(entered) {
+      for (let i = 0; i < 6; i++) {
+        document.getElementById('ad' + i).className = 'dot' + (i < entered.length ? ' filled' : '');
+      }
+    }
+
+    function addPinKey(k) {
+      if (k === 'clear') addPinEntered = '';
+      else if (k === 'back') addPinEntered = addPinEntered.slice(0, -1);
+      else if (addPinEntered.length < 6) addPinEntered += k;
+      updateAddDots(addPinEntered);
+    }
+
+    // Save new profile encrypted locally
+    async function saveNewProfile() {
+      const name = document.getElementById('new-name').value.trim();
+      const email = document.getElementById('new-email').value.trim();
+      
+      if (!name) { toast('Please enter a name', 'error'); return; }
+      if (!email) { toast('Please enter an email', 'error'); return; }
+      if (addPinEntered.length < 6) { toast('Please set a 6-digit PIN', 'error'); return; }
+
+      const salt = CryptoJS.enc.Utf8.parse(email + "FormSarthiSalt2026");
+      const key = CryptoJS.PBKDF2(addPinEntered, salt, { keySize: 256 / 32, iterations: 1000 });
+
+      // Clean blueprint initialization for all 30 fields
+      const initialVault = {
+        name: name, dob: null, gender: null, caste: null, nationality: null, religion: null, blood_group: null, marital_status: null,
+        phone: null, alt_phone: null, email: email, address: null, city: null, state: null, pincode: null,
+        roll_10: null, roll_12: null, board_10: null, board_12: null, marks_10: null, marks_12: null, college: null, degree: null, grad_year: null,
+        aadhaar: null, pan: null, dl: null, bank_name: null, account_no: null, ifsc: null,
+        uploadedDocs: {
+          aadhaar: false,
+          pan: false,
+          dl: false,
+          resume: false,
+          marksheet_10: false,
+          marksheet_12: false,
+          passport: false,
+          bank_passbook: false
+        }
+      };
+
+      const ciphertext = CryptoJS.AES.encrypt(JSON.stringify(initialVault), key.toString()).toString();
+
+      const newProfile = {
+        name,
+        email,
+        avatar: selectedAvatar,
+        color: selectedColor,
+        encryptedProfile: ciphertext
+      };
+
+      try {
+        await dbPut("profiles", newProfile);
+        toast("Secure profile created!", "success");
+        goBack();
+      } catch (e) {
+        toast("Failed to save profile", "error");
+      }
+    }
+
+    // Global Keyboard Listeners for PIN inputs
+    window.addEventListener('keydown', (e) => {
+      const activeScreen = document.querySelector('.screen.active');
+      if (!activeScreen) return;
+
+      const key = e.key;
+
+      if (activeScreen.id === 'screen-pin') {
+        if (key >= '0' && key <= '9') {
+          pressKey(key);
+        } else if (key === 'Backspace') {
+          pressKey('back');
+        } else if (key === 'Escape') {
+          show('who');
+        }
+      } else if (activeScreen.id === 'screen-add') {
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.id === 'new-name' || activeEl.id === 'new-email')) {
+          return; // Ignore key capture during name/email text entry
+        }
+        if (key >= '0' && key <= '9') {
+          addPinKey(key);
+        } else if (key === 'Backspace') {
+          addPinKey('back');
+        }
+      }
+    });
+
+    // ── Communication with Extension ──
+    // Listen to messages from content script to share decrypted session data
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.type === "FORM_SARTHI_GET_SESSION") {
+        event.source.postMessage({
+          type: "FORM_SARTHI_SESSION_RESPONSE",
+          profile: sessionData,
+          status: {
+            percent: sessionData ? Math.round(Object.values(sessionData).filter(Boolean).length / PROFILE_FIELDS.length * 100) : 0
+          }
+        }, event.origin);
+      }
+    });
+
+    // Request permissions for notifications
+    if (window.Notification && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    // ── Init ──
+    loadProfiles();
+  </script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FormSarthi Test Application Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-image: radial-gradient(circle at top right, rgba(94, 234, 212, 0.04), transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.04), transparent 40%);
+    }
+
+    .form-container {
+      width: 100%;
+      max-width: 800px;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 24px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .header p {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+
+    .tip-box {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px dashed rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .tip-icon { font-size: 20px; }
+    .tip-text { font-size: 13px; color: #bae6fd; line-height: 1.5; }
+    .tip-text b { color: #38bdf8; }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #a78bfa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 24px 0 16px;
+      border-left: 3px solid #a78bfa;
+      padding-left: 10px;
+    }
+
+    .grid-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    @media (max-width: 600px) {
+      .grid-row { grid-template-columns: 1fr; }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    .form-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: #f8fafc;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+    }
+    
+    select.form-input {
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, #38bdf8, #a78bfa);
+      color: #0f172a;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 30px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.2);
+    }
+    .btn-submit:hover {
+      opacity: 0.95;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-container">
+    <div class="header">
+      <h1>JEE / NEET Entrance Examination Registration 2026</h1>
+      <p>Official Testing Portal for FormSarthi Autofill Integrations</p>
+    </div>
+
+    <div class="tip-box">
+      <div class="tip-icon">⚡</div>
+      <div class="tip-text">
+        <b>Testing with FormSarthi:</b><br>
+        1. Open the FormSarthi Dashboard, go to **Smart Autofill**, paste this URL: <b>http://localhost:4000/mock-form.html</b> and click **Analyze**.<br>
+        2. Click **⚡ Auto Fill Form** or open the **FormSarthi Chrome Extension** popup on this tab and click **⚡ Auto Fill This Page** to fill all 30 fields in one click!
+      </div>
+    </div>
+
+    <form onsubmit="event.preventDefault(); alert('Test Form Submitted Successfully!');">
+      
+      <!-- Section 1 -->
+      <div class="section-title">Personal Details</div>
+      
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Candidate's Full Name</label>
+          <input type="text" name="name" class="form-input" placeholder="As per official documents">
+        </div>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <input type="date" name="dob" class="form-input">
+        </div>
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Gender</label>
+          <select name="gender" class="form-input">
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Transgender">Transgender</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Category / Caste</label>
+          <select name="caste" class="form-input">
+            <option value="">Select Category</option>
+            <option value="General">General</option>
+            <option value="OBC">OBC</option>
+            <option value="SC">SC</option>
+            <option value="ST">ST</option>
+            <option value="EWS">EWS</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Nationality</label>
+          <input type="text" name="nationality" class="form-input" placeholder="e.g. Indian">
+        </div>
+        <div class="form-group">
+          <label>Religion</label>
+          <input type="text" name="religion" class="form-input" placeholder="e.g. Hinduism">
+        </div>
+      </div>
+
+      <!-- Section 2 -->
+      <div class="section-title">Contact & Communication Details</div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Primary Mobile Number</label>
+          <input type="tel" name="phone" class="form-input" placeholder="10-digit number">
+        </div>
+        <div class="form-group">
+          <label>Alternate Mobile Number</label>
+          <input type="tel" name="altphone" class="form-input" placeholder="Alternate contact">
+        </div>
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" name="email" class="form-input" placeholder="name@example.com">
+        </div>
+        <div class="form-group">
+          <label>Pincode / Postal Code</label>
+          <input type="text" name="pincode" class="form-input" placeholder="6-digit pin">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 18px">
+        <label>Permanent Residential Address</label>
+        <textarea name="address" class="form-input" rows="3" placeholder="Full residential details"></textarea>
+      </div>
+
+      <!-- Section 3 -->
+      <div class="section-title">Academic Qualifications</div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Class 10 Roll Number</label>
+          <input type="text" name="ssc_roll" class="form-input" placeholder="Matric roll number">
+        </div>
+        <div class="form-group">
+          <label>Class 10 Board</label>
+          <input type="text" name="ssc_board" class="form-input" placeholder="e.g. CBSE / ICSE / State Board">
+        </div>
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Class 12 Roll Number</label>
+          <input type="text" name="hsc_roll" class="form-input" placeholder="Intermediate roll number">
+        </div>
+        <div class="form-group">
+          <label>Class 12 Board</label>
+          <input type="text" name="hsc_board" class="form-input" placeholder="e.g. CBSE / ICSE">
+        </div>
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Current College / School</label>
+          <input type="text" name="college" class="form-input" placeholder="Name of last attended school">
+        </div>
+        <div class="form-group">
+          <label>Degree / Class</label>
+          <input type="text" name="qualification" class="form-input" placeholder="e.g. Intermediate Science">
+        </div>
+      </div>
+
+      <!-- Section 4 -->
+      <div class="section-title">Identity & Financial Specifications</div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Aadhaar Card Number</label>
+          <input type="text" name="aadhaar" class="form-input" placeholder="12-digit UID">
+        </div>
+        <div class="form-group">
+          <label>PAN Card Number</label>
+          <input type="text" name="pan" class="form-input" placeholder="10-digit alpha-numeric">
+        </div>
+      </div>
+
+      <div class="grid-row">
+        <div class="form-group">
+          <label>Bank Name</label>
+          <input type="text" name="bank_name" class="form-input" placeholder="e.g. State Bank of India">
+        </div>
+        <div class="form-group">
+          <label>Account Number</label>
+          <input type="text" name="account_number" class="form-input" placeholder="Bank savings account">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>IFSC Code</label>
+        <input type="text" name="ifsc" class="form-input" placeholder="11-digit branch code">
+      </div>
+
+      <button type="submit" class="btn-submit">Submit Registration Application</button>
+
+    </form>
+  </div>
+
+</body>
+</html>

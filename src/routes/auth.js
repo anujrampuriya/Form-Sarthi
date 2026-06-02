@@ -1,0 +1,179 @@
+// =============================================================
+// src/routes/auth.js
+// Auth Routes — Signup / Login / Logout
+//
+// ENDPOINTS:
+//   POST /api/auth/signup   → create account
+//   POST /api/auth/login    → verify PIN, return JWT
+//   POST /api/auth/logout   → clear encryption key from memory
+// =============================================================
+
+const express = require("express");
+const bcrypt  = require("bcryptjs");
+const jwt     = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
+
+const db = require("../db/database");
+const { deriveKeyFromPIN, encryptProfileFields } = require("../utils/encrypt");
+const { decryptProfileFields }                   = require("../utils/decrypt");
+const { setKey, removeKey }                      = require("../utils/keyStore");
+const { requireAuth }                            = require("../middleware/authMiddleware");
+
+const router = express.Router();
+
+const JWT_SECRET = process.env.JWT_SECRET || "change_this_in_production";
+
+// ── Input validators ──────────────────────────────────────────
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPIN(pin) {
+  return /^\d{6}$/.test(pin);
+}
+
+function isValidName(name) {
+  return name && name.trim().length >= 2;
+}
+
+// =============================================================
+// POST /api/auth/signup
+// =============================================================
+router.post("/signup", async (req, res) => {
+  try {
+    const { name, email, pin } = req.body;
+
+    const errors = [];
+    if (!name  || !isValidName(name))   errors.push("Name must be at least 2 characters.");
+    if (!email || !isValidEmail(email)) errors.push("A valid email address is required.");
+    if (!pin   || !isValidPIN(pin))     errors.push("PIN must be exactly 6 digits (numbers only).");
+
+    if (errors.length > 0) {
+      return res.status(400).json({ error: "Validation failed.", details: errors });
+    }
+
+    const existing = db
+      .prepare("SELECT id FROM Users WHERE email = ?")
+      .get(email.toLowerCase().trim());
+
+    if (existing) {
+      return res.status(409).json({ error: "An account with this email already exists." });
+    }
+
+    const pin_hash      = await bcrypt.hash(pin, 12);
+    const encryptionKey = deriveKeyFromPIN(pin);
+    const userId        = uuidv4();
+
+    db.prepare(`
+      INSERT INTO Users (id, email, name, pin_hash)
+      VALUES (?, ?, ?, ?)
+    `).run(userId, email.toLowerCase().trim(), name.trim(), pin_hash);
+
+    const emptyEncrypted = encryptProfileFields(
+      { name: null, dob: null, address: null, phone: null, email: null, college: null },
+      encryptionKey
+    );
+
+    db.prepare(`
+      INSERT INTO UserProfile
+        (user_id, encrypted_name, encrypted_dob, encrypted_address,
+         encrypted_phone, encrypted_email, encrypted_college)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      userId,
+      emptyEncrypted.encrypted_name,
+      emptyEncrypted.encrypted_dob,
+      emptyEncrypted.encrypted_address,
+      emptyEncrypted.encrypted_phone,
+      emptyEncrypted.encrypted_email,
+      emptyEncrypted.encrypted_college
+    );
+
+    setKey(userId, encryptionKey);
+
+    const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: "24h" });
+
+    console.log(`✅ New user registered: ${email}`);
+
+    return res.status(201).json({
+      message: "Account created successfully.",
+      token,
+      user: { id: userId, name: name.trim(), email: email.toLowerCase().trim() },
+    });
+
+  } catch (err) {
+    console.error("Signup error:", err.message);
+    return res.status(500).json({ error: "Server error during signup. Please try again." });
+  }
+});
+
+// =============================================================
+// POST /api/auth/login
+// =============================================================
+router.post("/login", async (req, res) => {
+  try {
+    const { email, pin } = req.body;
+
+    if (!email || !pin) {
+      return res.status(400).json({ error: "Email and PIN are required." });
+    }
+    if (!isValidPIN(pin)) {
+      return res.status(400).json({ error: "PIN must be exactly 6 digits." });
+    }
+
+    const user = db
+      .prepare("SELECT * FROM Users WHERE email = ?")
+      .get(email.toLowerCase().trim());
+
+    if (!user) {
+      return res.status(401).json({ error: "Invalid email or PIN." });
+    }
+
+    const pinCorrect = await bcrypt.compare(pin, user.pin_hash);
+    if (!pinCorrect) {
+      console.warn(`⚠️  Failed login attempt for: ${email}`);
+      return res.status(401).json({ error: "Invalid email or PIN." });
+    }
+
+    const encryptionKey = deriveKeyFromPIN(pin);
+    setKey(user.id, encryptionKey);
+
+    const encryptedProfile = db
+      .prepare("SELECT * FROM UserProfile WHERE user_id = ?")
+      .get(user.id);
+
+    let profile = null;
+    if (encryptedProfile) {
+      profile = decryptProfileFields(encryptedProfile, encryptionKey);
+    }
+
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: "24h" });
+
+    console.log(`✅ User logged in: ${email}`);
+
+    return res.status(200).json({
+      message: "Login successful.",
+      token,
+      user:    { id: user.id, name: user.name, email: user.email },
+      profile,
+    });
+
+  } catch (err) {
+    console.error("Login error:", err.message);
+    return res.status(500).json({ error: "Server error during login." });
+  }
+});
+
+// =============================================================
+// POST /api/auth/logout
+// =============================================================
+router.post("/logout", requireAuth, (req, res) => {
+  const { userId } = req.user;
+  removeKey(userId);
+  console.log(`✅ User logged out: ${userId}`);
+  return res.status(200).json({
+    message: "Logged out successfully. Please delete your token on the client.",
+  });
+});
+
+module.exports = router;

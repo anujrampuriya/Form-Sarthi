@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FormSarthi</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      background: #0e0e10;
+      color: #f0efe8;
+    }
+    .header {
+      background: linear-gradient(135deg, #7f6ef0, #a594f9);
+      color: white;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.5px; }
+    .header p  { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+    .section { padding: 16px; }
+    .status-bar {
+      background: #18181c;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .status-bar .label { font-size: 12px; color: #888680; margin-bottom: 6px; }
+    .progress-track { background: rgba(255,255,255,0.08); border-radius: 99px; height: 6px; overflow: hidden; }
+    .progress-fill { background: #3ecf8e; height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; max-height: 180px; overflow-y: auto; }
+    .field-chip { background: #18181c; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 6px 10px; font-size: 11px; }
+    .field-chip .key { color: #888680; font-size: 9px; text-transform: uppercase; }
+    .field-chip .val { color: #f0efe8; font-weight: 500; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .field-chip.empty { opacity: 0.4; }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-family: inherit; }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #7f6ef0; color: white; margin-bottom: 8px; }
+    .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #f0efe8; }
+    .msg { font-size: 12px; text-align: center; margin-top: 8px; padding: 6px; border-radius: 6px; }
+    .msg.error   { background: #3a0f0f; color: #f56565; border: 1px solid rgba(245,101,101,0.2); }
+    .msg.success { background: #0f3027; color: #3ecf8e; border: 1px solid rgba(62,207,142,0.2); }
+    #lockedView, #mainView { display: none; }
+    #lockedView.active, #mainView.active { display: block; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>FormSarthi Extension</h1>
+    <p>Smart Form Filler for Bharat 🇮🇳</p>
+  </div>
+</div>
+
+<!-- LOCKED VIEW -->
+<div id="lockedView">
+  <div class="section" style="text-align: center; padding: 24px 16px;">
+    <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
+    <h2 style="font-size: 15px; font-weight: 600; margin-bottom: 8px;">Vault is Locked</h2>
+    <p style="color: #888680; font-size: 12px; line-height: 1.6; margin-bottom: 20px;">
+      Please open your FormSarthi dashboard in a browser tab and enter your PIN to unlock your vault.
+    </p>
+    <button class="btn btn-primary" id="openDashboardBtn">Open Dashboard ↗</button>
+  </div>
+</div>
+
+<!-- MAIN VIEW (after dashboard unlock) -->
+<div id="mainView">
+  <div class="section">
+
+    <div class="status-bar">
+      <div class="label">Vault Status — <span id="pctText">0%</span> Complete</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="profile-grid" id="profileGrid">
+      <!-- Filled dynamically -->
+    </div>
+
+    <button class="btn btn-primary" id="fillBtn">⚡ Auto Fill This Page</button>
+    <button class="btn btn-secondary" id="refreshBtn">🔄 Refresh Session</button>
+
+    <div id="fillMsg" class="msg" style="display:none;"></div>
+
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
