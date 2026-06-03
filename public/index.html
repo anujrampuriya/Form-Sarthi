@@ -32,19 +32,19 @@
 
     [data-theme="light"] {
       /* Light mode variables */
-      --bg: #f3f6fa;
+      --bg: #fdfbf7;
       --surface: #ffffff;
-      --surface2: #f0f4f8;
-      --border: rgba(0, 0, 0, 0.08);
-      --border2: rgba(0, 0, 0, 0.15);
-      --text: #1a2333;
-      --muted: #5c6f89;
-      --accent: #0d9488;
-      --accent2: #6d28d9;
-      --green: #059669;
+      --surface2: #f4ede1;
+      --border: rgba(139, 69, 19, 0.1);
+      --border2: rgba(139, 69, 19, 0.2);
+      --text: #4a3b32;
+      --muted: #8a7b72;
+      --accent: #f97316;
+      --accent2: #8b4513;
+      --green: #15803d;
       --red: #dc2626;
-      --amber: #d97706;
-      --shadow: 0 12px 30px rgba(12, 28, 54, 0.08);
+      --amber: #b45309;
+      --shadow: 0 12px 30px rgba(139, 69, 19, 0.08);
     }
 
     body {
@@ -953,6 +953,33 @@
       box-shadow: 0 5px 25px rgba(0,0,0,0.3);
       white-space: nowrap;
     }
+    .hero-illustration {
+      text-align: center;
+      margin: 0 0 20px 0;
+      position: relative;
+    }
+    .hero-illustration svg {
+      width: 80px;
+      height: auto;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+    .scanner-line {
+      position: absolute;
+      width: 70px;
+      height: 2px;
+      background: var(--accent);
+      left: 50%;
+      transform: translateX(-50%);
+      top: 10%;
+      box-shadow: 0 0 8px var(--accent);
+      animation: scan 2s infinite ease-in-out;
+    }
+    @keyframes scan {
+      0% { top: 10%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 90%; opacity: 0; }
+    }
     .toast.show { transform: translateX(-50%) translateY(0); }
     .toast.success { border-color: var(--green); color: var(--green); }
     .toast.error   { border-color: var(--red);   color: var(--red);   }
@@ -963,6 +990,7 @@
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
   </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -985,17 +1013,34 @@
 
     <!-- ══════════ SCREEN: WHO ══════════ -->
     <div class="card screen active" id="screen-who">
-      <p class="who-title">Who's filling the form?</p>
-      <p class="who-sub">Select your encrypted profile to continue</p>
+      <div class="hero-illustration">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="10" width="60" height="80" rx="4" fill="var(--surface2)" stroke="var(--border)" stroke-width="2"/>
+          <line x1="30" y1="30" x2="70" y2="30" stroke="var(--muted)" stroke-width="3" stroke-linecap="round"/>
+          <line x1="30" y1="45" x2="60" y2="45" stroke="var(--muted)" stroke-width="3" stroke-linecap="round"/>
+          <line x1="30" y1="60" x2="65" y2="60" stroke="var(--muted)" stroke-width="3" stroke-linecap="round"/>
+          <rect x="55" y="70" width="15" height="15" rx="2" fill="var(--accent)" opacity="0.5"/>
+        </svg>
+        <div class="scanner-line"></div>
+      </div>
+      <p class="who-title">Smart AI Form Filler</p>
+      <p class="who-sub" style="margin-bottom: 24px">Local, secure, and blazing fast. Select your profile to unlock the vault.</p>
 
       <div class="profile-grid" id="profile-grid">
         <!-- Injected dynamically -->
       </div>
 
-      <button class="add-btn" onclick="showAddProfile()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add new profile
-      </button>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+        <button onclick="mockGoogleLogin()" style="width: 100%; display:flex; align-items:center; justify-content:center; gap:10px; background:transparent; border:1.5px solid var(--border2); border-radius:var(--radius-sm); padding:15px; font-family:inherit; font-size:14px; font-weight:600; color:var(--text); cursor:pointer; transition: all 0.2s;">
+          <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="18px" height="18px" viewBox="0 0 48 48"><g><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></g></svg>
+          Continue with Google
+        </button>
+
+        <button class="add-btn" onclick="showAddProfile()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add new profile manually
+        </button>
+      </div>
     </div>
 
     <!-- ══════════ SCREEN: ADD PROFILE ══════════ -->
@@ -1015,7 +1060,7 @@
       <div class="form-group">
         <label>Custom Avatar & Background</label>
         <div class="builder-container">
-          <div id="new-avatar-preview" class="avatar-preview">🦊</div>
+          <div id="new-avatar-preview" class="avatar-preview">🪪</div>
           <div class="builder-selectors">
             <!-- Colors -->
             <div class="builder-row" id="color-selector">
@@ -1061,7 +1106,7 @@
     <!-- ══════════ SCREEN: PIN ══════════ -->
     <div class="card screen" id="screen-pin">
       <div class="pin-header">
-        <div class="avatar" id="pin-avatar" style="width:64px;height:64px;font-size:26px">🦊</div>
+        <div class="avatar" id="pin-avatar" style="width:64px;height:64px;font-size:26px">🪪</div>
         <p class="pin-name" id="pin-name">Rahul</p>
         <p class="pin-sub">Enter your 6-digit PIN to decrypt</p>
       </div>
@@ -1111,7 +1156,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
           <div class="profile-summary-card">
-            <div class="avatar-circle" id="main-avatar">🦊</div>
+            <div class="avatar-circle" id="main-avatar">🪪</div>
             <div class="profile-details">
               <h3 id="main-name">Rahul</h3>
               <p id="main-email">rahul@example.com</p>
@@ -1366,6 +1411,13 @@
               </div>
             </div>
           </div>
+          <!-- ── ABOUT FORMSARTHI ── -->
+          <div class="about-section" style="margin-top: 40px; padding: 20px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border);">
+            <h3 style="margin-bottom: 10px; color: var(--accent);">About FormSarthi</h3>
+            <p style="font-size: 14px; color: var(--muted); line-height: 1.5;">
+              FormSarthi is your private, stateless utility engine for form filling. Designed for Indian students and citizens, it seamlessly processes and encrypts your data locally, ensuring your PAN, Aadhaar, and other sensitive details never leave your device unencrypted. We utilize on-device OCR and document analysis to make filling out tedious online applications a breeze.
+            </p>
+          </div>
 
         </main>
       </div>
@@ -1378,6 +1430,62 @@
 
   <script src="autofill.js"></script>
   <script>
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      } catch(e) { return null; }
+    }
+
+    async function mockGoogleLogin() {
+      // Simulate Google returning a successful payload
+      const email = "demo.user@gmail.com";
+      const name = "Demo User";
+      
+      const allProfiles = await dbGetAll("profiles");
+      const existing = allProfiles.find(p => p.email === email);
+      
+      if(existing) {
+        const index = allProfiles.indexOf(existing);
+        selectProfile(index);
+        toast("Mock Google Profile found. Enter your secure PIN.", "success");
+      } else {
+        showAddProfile();
+        document.getElementById("new-email").value = email;
+        document.getElementById("new-name").value = name;
+        toast("Mock Google Login: Create your secure PIN.", "success");
+      }
+    }
+
+    async function handleGoogleLogin(response) {
+      const payload = parseJwt(response.credential);
+      if(!payload) return toast("Google Login failed to parse", "error");
+      
+      const email = payload.email.toLowerCase().trim();
+      const name = payload.name;
+      
+      // Check if profile exists locally
+      const allProfiles = await dbGetAll("profiles");
+      const existing = allProfiles.find(p => p.email === email);
+      
+      if(existing) {
+        // User exists, go to PIN screen
+        const index = allProfiles.indexOf(existing);
+        selectProfile(index);
+        toast("Google Profile found. Enter your secure PIN.", "success");
+      } else {
+        // New user, go to ADD screen
+        showAddProfile();
+        document.getElementById("new-email").value = email;
+        document.getElementById("new-name").value = name;
+        toast("Create your secure PIN for this Google account.", "success");
+      }
+    }
+
     // ── COLORS & AVATARS blue print ──
     const PRESET_COLORS = {
       purple: 'linear-gradient(135deg, #8b5cf6, #a78bfa)',
@@ -1387,7 +1495,7 @@
       blue: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
       slate: 'linear-gradient(135deg, #64748b, #94a3b8)'
     };
-    const PRESET_EMOJIS = ['🦊', '🐼', '🦁', '🐯', '🐸', '🐨', '🦄', '🦖'];
+    const PRESET_EMOJIS = ['🪪', '📄', '📝', '📋', '📁', '💼', '📌', '📎'];
 
     // ── IndexedDB Configuration ──
     const DB_NAME = "FormSarthiLocalDB";
@@ -1453,7 +1561,7 @@
     
     // Creator builders
     let selectedColor  = 'purple';
-    let selectedAvatar = '🦊';
+    let selectedAvatar = '🪪';
     
     // Theme state
     let activeTheme = localStorage.getItem("fs_theme") || "dark";
@@ -1583,7 +1691,7 @@
       }
       grid.innerHTML = profiles.map((p, i) => `
         <button class="profile-btn" onclick="selectProfile(${i})">
-          <div class="avatar" style="background: ${getColorValue(p.color)}">${p.avatar || '🦊'}</div>
+          <div class="avatar" style="background: ${getColorValue(p.color)}">${p.avatar || '🪪'}</div>
           <span class="profile-name">${p.name}</span>
         </button>
       `).join('');
@@ -1596,7 +1704,7 @@
       pinEntered = '';
       const pinAvatar = document.getElementById('pin-avatar');
       pinAvatar.style.background = getColorValue(p.color);
-      pinAvatar.textContent = p.avatar || '🦊';
+      pinAvatar.textContent = p.avatar || '🪪';
       document.getElementById('pin-name').textContent = p.name;
       document.getElementById('pin-error').textContent = '';
       updateDots([]);
@@ -1654,15 +1762,16 @@
     function openMainScreen(p) {
       const mainAvatar = document.getElementById('main-avatar');
       mainAvatar.style.background = getColorValue(p.color);
-      mainAvatar.textContent = p.avatar || '🦊';
+      mainAvatar.textContent = p.avatar || '🪪';
       
       document.getElementById('main-name').textContent = p.name;
       document.getElementById('main-email').textContent = p.email;
       
       // Default to docs tab
-      switchTab('docs', document.getElementById('nav-docs'));
+      switchTab('profile', document.getElementById('nav-profile'));
       renderDocSlots();
       renderDataGrid();
+      toggleEditProfile(true);
       renderDeadlines();
       renderHistory();
       updateBadges();
@@ -2236,7 +2345,7 @@
     function showAddProfile() {
       addPinEntered = '';
       selectedColor = 'purple';
-      selectedAvatar = '🦊';
+      selectedAvatar = '🪪';
       document.getElementById('new-name').value = '';
       document.getElementById('new-email').value = '';
       
