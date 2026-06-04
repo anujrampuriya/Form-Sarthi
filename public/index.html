@@ -1076,8 +1076,13 @@
       <p class="who-title" style="margin-bottom:20px">Create Secure Profile</p>
 
       <div class="form-group">
-        <label>Name</label>
-        <input id="new-name" class="form-input" type="text" placeholder="Enter your name">
+        <label>Profile Nickname (Display Name)</label>
+        <input id="new-name" class="form-input" type="text" placeholder="e.g. Rahul, Sweety">
+      </div>
+
+      <div class="form-group">
+        <label>Official Legal Name (As per Documents)</label>
+        <input id="new-official-name" class="form-input" type="text" placeholder="e.g. Rahul Kumar Sharma">
       </div>
 
       <div class="form-group">
@@ -1190,19 +1195,19 @@
           </div>
 
           <nav class="nav-menu">
-            <button class="nav-item active" id="nav-docs" onclick="switchTab('docs', this)">
+            <button class="nav-item active" id="nav-profile" onclick="switchTab('profile', this)">
+              <span>👤 My Profile Vault</span>
+              <span class="badge" id="profile-pct-badge">0%</span>
+            </button>
+            <button class="nav-item" id="nav-docs" onclick="switchTab('docs', this)">
               <span>📁 My Documents</span>
               <span class="badge" id="docs-count-badge">0/8</span>
             </button>
             <button class="nav-item" id="nav-autofill" onclick="switchTab('autofill', this)">
               <span>⚡ Smart Autofill</span>
             </button>
-            <button class="nav-item" id="nav-profile" onclick="switchTab('profile', this)">
-              <span>👤 Profile Vault</span>
-              <span class="badge" id="profile-pct-badge">0%</span>
-            </button>
             <button class="nav-item" id="nav-tools" onclick="switchTab('tools', this)">
-              <span>🛠️ Document Tools</span>
+              <span>📐 Document Resizing</span>
             </button>
             <button class="nav-item" id="nav-deadlines" onclick="switchTab('deadlines', this)">
               <span>⏰ Deadlines</span>
@@ -1211,7 +1216,7 @@
               <span>📜 Autofill History</span>
             </button>
             <button class="nav-item" id="nav-security" onclick="switchTab('security', this)">
-              <span>🛡️ Security Shield</span>
+              <span>🛡️ About Security Shield</span>
             </button>
           </nav>
         </aside>
@@ -1220,7 +1225,7 @@
         <main class="main-content">
           
           <!-- ── TAB: DOCUMENTS ── -->
-          <div class="tab-panel active" id="tab-docs">
+          <div class="tab-panel" id="tab-docs">
             <div style="margin-bottom: 18px">
               <h2 style="font-size: 18px; font-weight: 700">My Uploaded Documents</h2>
               <p style="font-size: 13px; color: var(--muted)">Upload and scan credentials to parse details into your encrypted vault.</p>
@@ -1278,7 +1283,7 @@
           </div>
 
           <!-- ── TAB: PROFILE VAULT ── -->
-          <div class="tab-panel" id="tab-profile">
+          <div class="tab-panel active" id="tab-profile">
             <div style="margin-bottom:18px; display: flex; justify-content: space-between; align-items: center">
               <div>
                 <h2 style="font-size: 18px; font-weight: 700">Profile Vault Data</h2>
@@ -1450,6 +1455,21 @@
 
   </div>
 
+  <!-- FULL SIZE DOCUMENT MODAL -->
+  <div id="doc-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; flex-direction:column;">
+    <div style="width:100%; padding:20px; display:flex; justify-content:space-between; align-items:center;">
+      <h2 id="doc-modal-title" style="color:#fff; font-size:20px;">Document Review</h2>
+      <button onclick="document.getElementById('doc-modal').style.display='none'" style="background:var(--red); color:#fff; border:none; padding:8px 16px; border-radius:var(--radius-sm); font-weight:bold; cursor:pointer;">Close ✕</button>
+    </div>
+    <div style="flex:1; width:90%; max-width:1000px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:20px;">
+      <img id="doc-modal-img" style="display:none; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;" />
+      <iframe id="doc-modal-pdf" style="display:none; width:100%; height:100%; border:none; border-radius:8px; background:#fff;"></iframe>
+    </div>
+  </div>
+
+  <!-- Hidden targeted upload input -->
+  <input type="file" id="targeted-upload-input" style="display:none" accept="image/*,application/pdf" />
+
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
@@ -1524,7 +1544,7 @@
 
     // ── IndexedDB Configuration ──
     const DB_NAME = "FormSarthiLocalDB";
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
 
     function getDB() {
       return new Promise((resolve, reject) => {
@@ -1533,6 +1553,9 @@
           const db = e.target.result;
           if (!db.objectStoreNames.contains("profiles")) {
             db.createObjectStore("profiles", { keyPath: "email" });
+          }
+          if (!db.objectStoreNames.contains("files")) {
+            db.createObjectStore("files", { keyPath: "id" });
           }
         };
         request.onsuccess = (e) => resolve(e.target.result);
@@ -1546,6 +1569,18 @@
           const transaction = db.transaction(storeName, "readonly");
           const store = transaction.objectStore(storeName);
           const request = store.getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      });
+    }
+
+    function dbGet(storeName, key) {
+      return getDB().then(db => {
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(storeName, "readonly");
+          const store = transaction.objectStore(storeName);
+          const request = store.get(key);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
         });
@@ -1609,14 +1644,14 @@
     // ── Grouped fields blueprint (30 fields) ──
     const PROFILE_FIELDS = [
       // Personal Info
-      { group: 'Personal Info', label: 'Full Name', key: 'name' },
+      { group: 'Personal Info', label: 'Official Legal Name (for Forms)', key: 'name' },
       { group: 'Personal Info', label: 'Date of Birth', key: 'dob' },
-      { group: 'Personal Info', label: 'Gender', key: 'gender' },
-      { group: 'Personal Info', label: 'Caste / Category', key: 'caste' },
+      { group: 'Personal Info', label: 'Gender', key: 'gender', options: ['Male', 'Female', 'Transgender', 'Other'] },
+      { group: 'Personal Info', label: 'Caste / Category', key: 'caste', options: ['General', 'OBC (Other Backward Class)', 'SC (Scheduled Caste)', 'ST (Scheduled Tribe)', 'EWS (Economically Weaker Section)'] },
       { group: 'Personal Info', label: 'Nationality', key: 'nationality' },
       { group: 'Personal Info', label: 'Religion', key: 'religion' },
-      { group: 'Personal Info', label: 'Blood Group', key: 'blood_group' },
-      { group: 'Personal Info', label: 'Marital Status', key: 'marital_status' },
+      { group: 'Personal Info', label: 'Blood Group', key: 'blood_group', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
+      { group: 'Personal Info', label: 'Marital Status', key: 'marital_status', options: ['Single', 'Married', 'Divorced', 'Widowed'] },
 
       // Contact Details
       { group: 'Contact Details', label: 'Mobile Number', key: 'phone' },
@@ -1624,7 +1659,7 @@
       { group: 'Contact Details', label: 'Email Address', key: 'email' },
       { group: 'Contact Details', label: 'Address', key: 'address' },
       { group: 'Contact Details', label: 'City', key: 'city' },
-      { group: 'Contact Details', label: 'State', key: 'state' },
+      { group: 'Contact Details', label: 'State', key: 'state', options: ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar", "Chandigarh", "Dadra and Nagar Haveli", "Daman and Diu", "Delhi", "Lakshadweep", "Puducherry"] },
       { group: 'Contact Details', label: 'Pincode', key: 'pincode' },
 
       // Academic Records
@@ -1857,6 +1892,19 @@
         const statusClass = isUploaded ? 'uploaded' : 'empty';
         const statusText = isUploaded ? '✓ Extracted' : 'Not Uploaded';
         const slotClass = isUploaded ? 'doc-slot filled' : 'doc-slot';
+        
+        const actionBtnHtml = isUploaded ? `
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <button onclick="viewDocument('${d.key}', '${d.label}')" style="flex:1; font-size:11px; padding:4px; background:var(--surface2); color:var(--accent); border:1px solid var(--accent); border-radius:4px; cursor:pointer;">🔍 Review</button>
+            <button onclick="deleteDocument('${d.key}')" style="font-size:11px; padding:4px 8px; background:var(--red); color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete
+            </button>
+          </div>
+        ` : `
+          <div style="display:flex; gap:6px; margin-top:8px;">
+            <button onclick="triggerTargetedUpload('${d.key}')" style="flex:1; font-size:11px; padding:4px; background:var(--surface2); color:var(--accent); border:1px dashed var(--accent); border-radius:4px; cursor:pointer;">⬆️ Upload</button>
+          </div>
+        `;
 
         // Extract a preview value (e.g. roll number, Aadhaar number, IFSC, name etc.)
         let detailText = '';
@@ -1880,22 +1928,91 @@
               <div class="doc-slot-icon">
                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M9 8h6M9 16h4"/></svg>
               </div>
-              <div>
+              <div style="flex:1;">
                 <div class="doc-slot-title">${d.label}</div>
                 <div class="doc-slot-detail" title="${detailText}">${detailText}</div>
               </div>
             </div>
-            <div class="doc-slot-status ${statusClass}">${statusText}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="doc-slot-status ${statusClass}">${statusText}</div>
+            </div>
+            ${actionBtnHtml}
           </div>
         `;
       }).join('');
     }
 
+    let currentUploadTarget = null;
+    function triggerTargetedUpload(docKey) {
+      currentUploadTarget = docKey;
+      const inp = document.getElementById('targeted-upload-input');
+      inp.value = ''; // reset so same file can be re-selected
+      inp.onchange = function() {
+        if (this.files.length) {
+          handleUpload(this.files, currentUploadTarget);
+        }
+      };
+      inp.click();
+    }
+
+    async function viewDocument(docKey, docLabel) {
+      if (!activeProfile) return;
+      try {
+        const fileObj = await dbGet("files", activeProfile + "_" + docKey);
+        if (!fileObj) {
+          toast("Document file not found in local storage.", "error");
+          return;
+        }
+        document.getElementById('doc-modal-title').textContent = docLabel + " Review";
+        const imgEl = document.getElementById('doc-modal-img');
+        const pdfEl = document.getElementById('doc-modal-pdf');
+        
+        if (fileObj.fileType && fileObj.fileType.includes("pdf")) {
+          imgEl.style.display = 'none';
+          pdfEl.style.display = 'block';
+          pdfEl.src = fileObj.fileData;
+        } else {
+          pdfEl.style.display = 'none';
+          imgEl.style.display = 'block';
+          imgEl.src = fileObj.fileData;
+        }
+        document.getElementById('doc-modal').style.display = 'flex';
+      } catch (err) {
+        console.error(err);
+        toast("Error loading document", "error");
+      }
+    }
+
+    async function deleteDocument(docKey) {
+      if (!activeProfile) return;
+      if (!confirm("Are you sure you want to delete this document?")) return;
+      
+      try {
+        // Delete from files store
+        await dbDelete("files", activeProfile + "_" + docKey);
+        
+        // Remove from sessionData uploaded flag
+        if (sessionData && sessionData.uploadedDocs) {
+          sessionData.uploadedDocs[docKey] = false;
+        }
+        
+        // Save vault and re-render
+        await saveLocalVault();
+        renderDocSlots();
+        updateBadges();
+        
+        toast("Document deleted successfully", "success");
+      } catch (err) {
+        console.error("Failed to delete document:", err);
+        toast("Failed to delete document", "error");
+      }
+    }
+
     // ── Multi-doc upload & Parallel stateless processing ──
-    async function handleUpload(files) {
+    async function handleUpload(files, targetDocKey = null) {
       if (!files.length) return;
       document.getElementById('ocr-box').style.display = 'block';
-      document.getElementById('ocr-label').textContent = `Processing ${files.length} document(s) in parallel...`;
+      document.getElementById('ocr-label').textContent = `Processing ${files.length} document(s)...`;
       document.getElementById('ocr-progress').style.width = '15%';
       document.getElementById('ocr-result').textContent = '';
 
@@ -1906,6 +2023,9 @@
       const uploadPromises = Array.from(files).map(async (file) => {
         const formData = new FormData();
         formData.append('document', file);
+        if (targetDocKey) {
+          formData.append('document_type', targetDocKey);
+        }
 
         try {
           const res = await fetch('/api/process', {
@@ -1938,7 +2058,21 @@
                 mappedType = 'marksheet_10';
               }
             }
+            
+            if (targetDocKey) {
+              mappedType = targetDocKey; // Override with the specific target slot
+            }
+            
             sessionData.uploadedDocs[mappedType] = true;
+
+            // Save file data for full size review
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              try {
+                await dbPut("files", { id: activeProfile + "_" + mappedType, fileData: e.target.result, fileType: file.type });
+              } catch(err) { console.error("Failed to save file to DB:", err); }
+            };
+            reader.readAsDataURL(file);
 
             // Merge parsed fields
             for (const [key, value] of Object.entries(data.fields)) {
@@ -1965,6 +2099,10 @@
         renderDataGrid();
         updateBadges();
         toast(`Successfully processed ${successCount} document(s)`, 'success');
+      }
+      
+      if (targetDocKey) {
+        document.getElementById('targeted-upload-input').value = "";
       }
     }
 
@@ -2041,12 +2179,28 @@
 
         let html = '';
         for (const [groupName, fields] of Object.entries(groups)) {
-          const cells = fields.map(f => `
-            <div class="edit-form-cell">
-              <label>${f.label}</label>
-              <input type="text" id="edit-${f.key}" value="${d[f.key] || ''}">
-            </div>
-          `).join('');
+          const cells = fields.map(f => {
+            if (f.options) {
+              const optionsHtml = f.options.map(opt => 
+                `<option value="${opt}" ${d[f.key] === opt ? 'selected' : ''}>${opt}</option>`
+              ).join('');
+              return `
+                <div class="edit-form-cell">
+                  <label>${f.label}</label>
+                  <select id="edit-${f.key}" style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
+                    <option value="">— Select —</option>
+                    ${optionsHtml}
+                  </select>
+                </div>
+              `;
+            }
+            return `
+              <div class="edit-form-cell">
+                <label>${f.label}</label>
+                <input type="text" id="edit-${f.key}" value="${d[f.key] || ''}">
+              </div>
+            `;
+          }).join('');
 
           html += `
             <details class="profile-group" open>
@@ -2383,6 +2537,7 @@
       selectedColor = 'purple';
       selectedAvatar = '🪪';
       document.getElementById('new-name').value = '';
+      document.getElementById('new-official-name').value = '';
       document.getElementById('new-email').value = '';
       
       // Render colors and emojis builders
@@ -2445,9 +2600,11 @@
     // Save new profile encrypted locally
     async function saveNewProfile() {
       const name = document.getElementById('new-name').value.trim();
+      const officialName = document.getElementById('new-official-name').value.trim();
       const email = document.getElementById('new-email').value.trim();
       
-      if (!name) { toast('Please enter a name', 'error'); return; }
+      if (!name) { toast('Please enter a profile nickname', 'error'); return; }
+      if (!officialName) { toast('Please enter your official legal name', 'error'); return; }
       if (!email) { toast('Please enter an email', 'error'); return; }
       if (addPinEntered.length < 6) { toast('Please set a 6-digit PIN', 'error'); return; }
 
@@ -2456,7 +2613,7 @@
 
       // Clean blueprint initialization for all 30 fields
       const initialVault = {
-        name: name, dob: null, gender: null, caste: null, nationality: null, religion: null, blood_group: null, marital_status: null,
+        name: officialName, dob: null, gender: null, caste: null, nationality: null, religion: null, blood_group: null, marital_status: null,
         phone: null, alt_phone: null, email: email, address: null, city: null, state: null, pincode: null,
         roll_10: null, roll_12: null, board_10: null, board_12: null, marks_10: null, marks_12: null, college: null, degree: null, grad_year: null,
         aadhaar: null, pan: null, dl: null, bank_name: null, account_no: null, ifsc: null,
@@ -2508,7 +2665,7 @@
         }
       } else if (activeScreen.id === 'screen-add') {
         const activeEl = document.activeElement;
-        if (activeEl && (activeEl.id === 'new-name' || activeEl.id === 'new-email')) {
+        if (activeEl && (activeEl.id === 'new-name' || activeEl.id === 'new-official-name' || activeEl.id === 'new-email')) {
           return; // Ignore key capture during name/email text entry
         }
         if (key >= '0' && key <= '9') {

@@ -162,15 +162,34 @@ function parseAadhaar(t) {
   const dob = genericExtractors.dob(t);
   const gender = genericExtractors.gender(t);
   let address = null;
+  let state = null;
+  let city = null;
   const addrMatch = t.match(/(?:Address|S\/O|W\/O|D\/O)[:\s]+([\s\S]{10,200}?)(?=\d{4}\s\d{4}|\n\n|$)/i);
   if (addrMatch) {
-    address = addrMatch[1].replace(/\n/g, ", ").trim();
+    // Clean up Devanagari (Hindi) characters and standardize formatting
+    address = addrMatch[1]
+      .replace(/[\u0900-\u097F]+/g, "")
+      .replace(/[^\w\s\-,./]/gi, "")
+      .replace(/\s+/g, " ")
+      .replace(/\s*,\s*/g, ", ")
+      .trim();
+    if (address.startsWith("/ ")) address = address.substring(2);
+    if (address.startsWith(",")) address = address.substring(1).trim();
+    
+    // Extract state
+    const states = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar", "Chandigarh", "Dadra and Nagar Haveli", "Daman and Diu", "Delhi", "Lakshadweep", "Puducherry"];
+    for (const s of states) {
+      if (address.toUpperCase().includes(s.toUpperCase())) {
+        state = s;
+        break;
+      }
+    }
   }
   const pincode = address ? genericExtractors.pincode(address) : genericExtractors.pincode(t);
   const aadhaar = genericExtractors.aadhaar(t);
   const phone = genericExtractors.phone(t);
 
-  return { name, dob, gender, address, pincode, aadhaar, phone, nationality: "Indian" };
+  return { name, dob, gender, address, city, state, pincode, aadhaar, phone, nationality: "Indian" };
 }
 
 // 2. PAN Card
@@ -214,37 +233,83 @@ function parseDL(t) {
 }
 
 // 4. Marksheet (Class 10/12)
-function parseMarksheet(t) {
+function parseMarksheet(t, forceType = null) {
   const lines = t.split("\n").map(l => l.trim()).filter(Boolean);
+  
+  // ── Roll Number extraction (comprehensive Indian marksheet patterns) ──
   const rollNo = tryPatterns(t, [
-    /(?:roll no|roll number|seat no|roll_no)[:\s]+([A-Z0-9\s.]{4,15})\b/i,
-    /\b(\d{7,10})\b/
+    // Exact label matches (most reliable)
+    /(?:roll\s*no\.?|roll\s*number|roll\s*#)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:regd\.?\s*no\.?|registration\s*no\.?|registration\s*number)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:reg\.?\s*no\.?|regn\.?\s*no\.?)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:exam\s*roll\s*no\.?|examination\s*roll)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:seat\s*no\.?|seat\s*number)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:enrolment\s*no\.?|enrollment\s*no\.?|enrol\s*no\.?)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:candidate\s*no\.?|cand\.?\s*no\.?)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:admit\s*card\s*no\.?|hall\s*ticket\s*no\.?)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    /(?:index\s*no\.?|index\s*number)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    // Common OCR misreads: "Roli No", "Roi! No", "Rot! No" etc.
+    /(?:ro[li!1|][\s]*no\.?)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+    // Format-based fallbacks (CBSE style: 8-digit, state boards: 6-10 digit)
+    /\b(\d{5,10})\b/,
+    // Alphanumeric roll (e.g., "AB/2024/12345")
+    /\b([A-Z]{1,4}[\/-]\d{4}[\/-]\d{3,7})\b/i,
+    // Alphanumeric roll (e.g., "21A12345")
+    /\b(\d{2}[A-Z]\d{5,7})\b/i,
   ]);
   
   let board = "State Board";
-  if (t.includes("CENTRAL BOARD OF SECONDARY") || t.includes("CBSE")) board = "CBSE";
-  else if (t.includes("COUNCIL FOR THE INDIAN SCHOOL") || t.includes("ICSE") || t.includes("ISC")) board = "CISCE";
+  const tUp = t.toUpperCase();
+  if (tUp.includes("CENTRAL BOARD OF SECONDARY") || tUp.includes("CBSE")) board = "CBSE";
+  else if (tUp.includes("COUNCIL FOR THE INDIAN SCHOOL") || tUp.includes("ICSE") || tUp.includes("ISC")) board = "CISCE";
+  else if (tUp.includes("UP BOARD") || tUp.includes("UTTAR PRADESH")) board = "UP Board";
+  else if (tUp.includes("BIHAR BOARD") || tUp.includes("BSEB")) board = "Bihar Board";
+  else if (tUp.includes("MAHARASHTRA") || tUp.includes("MSBSHSE")) board = "Maharashtra Board";
+  else if (tUp.includes("WEST BENGAL") || tUp.includes("WBBSE") || tUp.includes("WBCHSE")) board = "West Bengal Board";
+  else if (tUp.includes("RAJASTHAN") || tUp.includes("RBSE")) board = "Rajasthan Board";
+  else if (tUp.includes("MADHYA PRADESH") || tUp.includes("MPBSE")) board = "MP Board";
+  else if (tUp.includes("TAMIL NADU") || tUp.includes("TNBSE")) board = "Tamil Nadu Board";
+  else if (tUp.includes("KARNATAKA") || tUp.includes("KSEEB")) board = "Karnataka Board";
 
-  const is12th = t.includes("SENIOR") || t.includes("HIGHER SECONDARY") || t.includes("XII") || t.includes("10+2");
+  let is12th = false;
+  if (forceType === 'marksheet_12') {
+    is12th = true;
+  } else if (forceType === 'marksheet_10') {
+    is12th = false;
+  } else {
+    is12th = tUp.includes("SENIOR") || tUp.includes("HIGHER SECONDARY") || tUp.includes("XII") 
+      || tUp.includes("10+2") || tUp.includes("CLASS 12") || tUp.includes("CLASS XII") || tUp.includes("XLL") || tUp.includes("X11")
+      || tUp.includes("HSC") || tUp.includes("INTERMEDIATE") || tUp.includes("PLUS TWO");
+  }
 
   const marks = tryPatterns(t, [
     /(?:cgpa|percentage|gpa|percent)[:\s]+([\d\.]{2,5}%?)/i,
-    /(?:marks obtained|total marks)[:\s]+(\d{3}\/\d{3})/i,
+    /(?:marks obtained|total marks|aggregate)[:\s]+(\d{3}\/\d{3})/i,
+    /(?:total|grand total|aggregate marks)[:\s]+(\d{2,4})/i,
     /\b(\d{2}\.\d{1,2}%)\b/,
     /\b(\d{1}\.\d{1,2})\b/
   ]);
 
   const year = tryPatterns(t, [
-    /(?:year|session|passing year)[:\s]+(20\d{2})\b/i,
+    /(?:year|session|passing year|year of passing|exam year)[:\s]+(20\d{2})\b/i,
     /\b(20\d{2})\b/
   ]);
 
   let name = null;
-  const nameIdx = lines.findIndex(l => /name of candidate|candidate name|student's name/i.test(l));
+  const nameIdx = lines.findIndex(l => /name of (?:the )?candidate|candidate(?:'s)? name|student(?:'s)? name|name of student/i.test(l));
   if (nameIdx >= 0) {
     const match = lines[nameIdx].match(/(?:name)[:\s]+([A-Za-z\s.]{4,40})/i);
     if (match) name = match[1].trim();
+    // If name is on the next line
+    else if (nameIdx + 1 < lines.length && /^[A-Za-z\s.]{4,40}$/.test(lines[nameIdx + 1])) {
+      name = lines[nameIdx + 1].trim();
+    }
   }
+
+  // Also try father's name / mother's name for context
+  const fatherName = tryPatterns(t, [
+    /(?:father(?:'s)?\s*name|s\/o|son of|daughter of)[:\s]+([A-Za-z\s.]{4,40})/i,
+  ]);
 
   const result = {};
   if (is12th) {
@@ -257,6 +322,7 @@ function parseMarksheet(t) {
     result.marks_10 = marks;
   }
   if (name) result.name = name;
+  if (year) result.grad_year = year;
   return result;
 }
 
@@ -336,7 +402,9 @@ function extractFields(rawText, docTypeInput = null) {
     case "aadhaar":       result = parseAadhaar(t); break;
     case "pan":           result = parsePAN(t); break;
     case "dl":            result = parseDL(t); break;
-    case "marksheet":     result = parseMarksheet(t); break;
+    case "marksheet":
+    case "marksheet_10":
+    case "marksheet_12":  result = parseMarksheet(t, docType); break;
     case "passport":      result = parsePassport(t); break;
     case "bank_passbook": result = parseBank(t); break;
     case "resume":        result = parseResume(t); break;
