@@ -1307,8 +1307,7 @@
                 <!-- Editable form segments generated dynamically -->
               </div>
               <div style="display:flex; gap:10px; margin-top:20px; justify-content: flex-end">
-                <button class="btn outline" onclick="toggleEditProfile(false)">Cancel</button>
-                <button class="btn" onclick="saveProfileEdits()">Save Vault Changes</button>
+                <button class="btn" onclick="toggleEditProfile(false)">Done Editing</button>
               </div>
             </div>
           </div>
@@ -2187,7 +2186,7 @@
               return `
                 <div class="edit-form-cell">
                   <label>${f.label}</label>
-                  <select id="edit-${f.key}" style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
+                  <select id="edit-${f.key}" onchange="autoSaveProfileField('${f.key}', this.value)" style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
                     <option value="">— Select —</option>
                     ${optionsHtml}
                   </select>
@@ -2197,7 +2196,7 @@
             return `
               <div class="edit-form-cell">
                 <label>${f.label}</label>
-                <input type="text" id="edit-${f.key}" value="${d[f.key] || ''}">
+                <input type="text" id="edit-${f.key}" onchange="autoSaveProfileField('${f.key}', this.value)" value="${d[f.key] || ''}">
               </div>
             `;
           }).join('');
@@ -2226,20 +2225,14 @@
       }
     }
 
-    async function saveProfileEdits() {
+    async function autoSaveProfileField(key, value) {
       if (!sessionData) sessionData = {};
-      
-      PROFILE_FIELDS.forEach(f => {
-        const val = document.getElementById(`edit-${f.key}`).value.trim();
-        sessionData[f.key] = val || null;
-      });
-
+      sessionData[key] = value.trim() || null;
       await saveLocalVault();
-      renderDataGrid();
+      renderDataGrid(); // updates the view mode in the background
       renderDocSlots();
       updateBadges();
-      toggleEditProfile(false);
-      toast("Vault updated manually", "success");
+      // Optional: a very subtle toast can be added if needed, but usually autosave is silent.
     }
 
     async function deleteProfile() {
