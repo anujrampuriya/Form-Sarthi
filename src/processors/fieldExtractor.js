@@ -38,22 +38,21 @@ const genericExtractors = {
   },
   dob(text) {
     return tryPatterns(text, [
-      /(?:DOB|Date of Birth|D\.O\.B|Birth Date|Date of Birth)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/i,
+      /(?:DOB|Date of Birth|D\.O\.B|Birth Date|Year of Birth|YOB)[:\s]+(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{4})/i,
       /\b(\d{2}[\/\-]\d{2}[\/\-]\d{4})\b/,
       /\b(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4})\b/i,
+      /\b(19\d{2}|20[0-2]\d)\b/ // Fallback to just year if YOB is present
     ]);
   },
   aadhaar(text) {
     const match = tryPatterns(text, [
-      /\b(\d{4}\s\d{4}\s\d{4})\b/,
-      /\b(\d{4}-\d{4}-\d{4})\b/,
-      /\b(\d{12})\b/
+      /(?:Aadhaar|VID|No\.)?[\s:]*\b([2-9]\d{3}[-\s]?\d{4}[-\s]?\d{4})\b/i
     ]);
     return match ? match.replace(/[-\s]/g, "") : null;
   },
   pan(text) {
     return tryPatterns(text, [
-      /\b([A-Z]{5}\d{4}[A-Z])\b/i
+      /\b([A-Z]{3}[PCHABGJLFT][A-Z]\d{4}[A-Z])\b/i
     ]);
   },
   dl(text) {
@@ -148,11 +147,11 @@ function classifyDocument(text) {
 function parseAadhaar(t) {
   const lines = t.split("\n").map(l => l.trim()).filter(Boolean);
   let name = null;
-  const dobLineIdx = lines.findIndex(l => /DOB|Date of Birth|Birth/i.test(l));
+  const dobLineIdx = lines.findIndex(l => /DOB|Date of Birth|Birth|YOB|Year of Birth/i.test(l));
   if (dobLineIdx > 0) {
     for (let i = dobLineIdx - 1; i >= 0; i--) {
       const l = lines[i];
-      if (!/[\u0900-\u097F]/.test(l) && /^[A-Za-z\s.]{4,}$/.test(l)) {
+      if (!/[\u0900-\u097F]/.test(l) && /^[A-Za-z\s.]{3,}$/.test(l) && !/Government|India|Aadhaar/i.test(l)) {
         name = l.trim();
         break;
       }
@@ -362,24 +361,31 @@ function parseBank(t) {
 
 // 7. Resume
 function parseResume(t) {
-  const lines = t.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-  let name = null;
-  for (const line of lines.slice(0, 5)) {
-    if (/^[A-Za-z\s.]{4,50}$/.test(line) && !/resume|curriculum|vitae|cv\b/i.test(line)) {
-      name = line;
-      break;
-    }
+  const lines = t.split("\n").map(l => l.trim()).filter(Boolean);
+  let name = lines.length > 0 ? lines[0] : null; // Usually first line is name
+
+  // If first line has email or phone, it's not the name, keep looking
+  if (name && (name.includes("@") || /\d{10}/.test(name))) {
+    name = lines.find(l => !l.includes("@") && !/\d{10}/.test(l) && /^[A-Za-z\s.]{3,30}$/.test(l));
   }
-  const email = genericExtractors.email(t);
+
   const phone = genericExtractors.phone(t);
+  const email = genericExtractors.email(t);
   const dob = genericExtractors.dob(t);
   const address = tryPatterns(t, [
     /(?:address|location)[:\s]+([^\n]{10,100})/i
   ]);
   const pincode = address ? genericExtractors.pincode(address) : genericExtractors.pincode(t);
   let college = tryPatterns(t, [
-    /(?:university|institute|college|school)[^\n]{0,60}/i
+    /(?:University|College|Institute)[:\s]+([A-Za-z\s.]{5,50})/i
   ]);
+  
+  if (!college) {
+    // Try to find any line with University or College
+    const lines = t.split("\n").map(l => l.trim()).filter(Boolean);
+    const colLine = lines.find(l => /University|College|Institute|Academy/i.test(l));
+    if (colLine) college = colLine;
+  }
   return { name, email, phone, dob, address, pincode, college };
 }
 
