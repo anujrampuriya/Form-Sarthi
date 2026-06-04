@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: formsarthi-backend
+    env: docker
+    plan: free
+    dockerCommand: npm start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: GEMINI_API_KEY
+        sync: false # You must provide this in the Render Dashboard

@@ -1264,22 +1264,23 @@
             </div>
 
             <div id="meter-section" style="display:none">
-              <div class="meter-card">
-                <div class="meter-row">
-                  <span class="meter-label">Form Completeness Rating</span>
-                  <span class="meter-pct" id="meter-pct">0%</span>
+              <div class="meter-card" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;">
+                <div>
+                  <div class="meter-label" style="font-size: 14px; margin-bottom: 4px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Form Completeness</div>
+                  <div class="meter-pct" id="meter-pct" style="font-size: 28px; font-weight: 800; color: var(--text); transition: color 0.5s;">0%</div>
                 </div>
-                <div class="speedometer-container" style="position: relative; width: 220px; height: 110px; margin: 15px auto; overflow: hidden;">
-                  <svg viewBox="0 0 200 100" style="width: 100%; height: 100%;">
-                    <!-- Background arc -->
-                    <path d="M 15 90 A 75 75 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="14" stroke-linecap="round"/>
+                
+                <div class="speedometer-container" style="position: relative; width: 140px; height: 70px; overflow: hidden;">
+                  <svg viewBox="0 0 200 100" style="width: 100%; height: 100%; display: block;">
+                    <!-- Background arc (perfect semicircle r=85) -->
+                    <path d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="20" stroke-linecap="round"/>
                     <!-- Fill arc -->
-                    <path id="speedo-fill" d="M 15 90 A 75 75 0 0 1 185 90" fill="none" stroke="var(--green)" stroke-width="14" stroke-linecap="round" stroke-dasharray="235.6" stroke-dashoffset="235.6" style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);"/>
+                    <path id="speedo-fill" d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--green)" stroke-width="20" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04" style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;"/>
                   </svg>
                   <!-- Needle -->
-                  <div id="speedo-needle" style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 75px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>
+                  <div id="speedo-needle" style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 60px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>
                   <!-- Center Pivot -->
-                  <div style="position: absolute; bottom: 0px; left: 50%; width: 20px; height: 20px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+                  <div style="position: absolute; bottom: 0px; left: 50%; width: 16px; height: 16px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
                 </div>
               </div>
 
@@ -1879,8 +1880,7 @@
       sessionData = null;
       activeProfile = null;
       sessionStorage.removeItem("fs_active_session");
-      show('who');
-      loadProfiles();
+      window.location.reload();
     }
 
     // ── Tabs controller ──
@@ -2304,11 +2304,22 @@
 
       document.getElementById('meter-pct').textContent  = pct + '%';
       
-      const dashOffset = 235.6 - (235.6 * pct / 100);
+      const dashOffset = 267.04 - (267.04 * pct / 100);
       const needleRot = -90 + (180 * pct / 100);
+      
+      let meterColor = 'var(--green)';
+      if (pct < 30) meterColor = '#ef4444'; // Red
+      else if (pct <= 50) meterColor = '#f97316'; // Orange
+      else if (pct <= 80) meterColor = '#eab308'; // Yellow
+
+      document.getElementById('meter-pct').style.color = meterColor;
+
       const speedoFill = document.getElementById('speedo-fill');
       const speedoNeedle = document.getElementById('speedo-needle');
-      if (speedoFill) speedoFill.style.strokeDashoffset = dashOffset;
+      if (speedoFill) {
+        speedoFill.style.strokeDashoffset = dashOffset;
+        speedoFill.style.stroke = meterColor;
+      }
       if (speedoNeedle) speedoNeedle.style.transform = `translateX(-50%) rotate(${needleRot}deg)`;
       
       document.getElementById('field-list').innerHTML = mapping.map(m => `
