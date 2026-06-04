@@ -46,7 +46,7 @@ const genericExtractors = {
   },
   aadhaar(text) {
     const match = tryPatterns(text, [
-      /(?:Aadhaar|VID|No\.)?[\s:]*\b([2-9]\d{3}[-\s]?\d{4}[-\s]?\d{4})\b/i
+      /(?:Aadhaar|VID|No\.)?[\s:]*\b(\d{4}[-\s]?\d{4}[-\s]?\d{4})\b/i
     ]);
     return match ? match.replace(/[-\s]/g, "") : null;
   },
@@ -389,6 +389,22 @@ function parseResume(t) {
   return { name, email, phone, dob, address, pincode, college };
 }
 
+const PINCODE_MAP = {
+  "mumbai": "400001", "delhi": "110001", "new delhi": "110001",
+  "bangalore": "560001", "bengaluru": "560001", "chennai": "600001",
+  "kolkata": "700001", "hyderabad": "500001", "pune": "411001",
+  "ahmedabad": "380001", "jaipur": "302001", "lucknow": "226001",
+  "patna": "800001", "bhopal": "462001", "chandigarh": "160001"
+};
+
+function guessPincode(address, city, state) {
+  const t = (address + " " + (city || "") + " " + (state || "")).toLowerCase();
+  for (const [c, pin] of Object.entries(PINCODE_MAP)) {
+    if (t.includes(c)) return pin;
+  }
+  return null;
+}
+
 // ── Main Entry Point ──────────────────────────────────────────
 function extractFields(rawText, docTypeInput = null) {
   const t = rawText || "";
@@ -432,6 +448,11 @@ function extractFields(rawText, docTypeInput = null) {
     if (result[key] !== undefined && result[key] !== null) {
       parsedFields[key] = result[key];
     }
+  }
+
+  // Guess pincode if missing
+  if (!parsedFields.pincode && (parsedFields.address || parsedFields.city || parsedFields.state)) {
+    parsedFields.pincode = guessPincode(parsedFields.address || "", parsedFields.city, parsedFields.state);
   }
 
   return {

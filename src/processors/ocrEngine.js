@@ -212,6 +212,11 @@ async function runTesseractOCR(imageBuffer) {
 // ── Main OCR Function (Priority: Paddle → Google Vision → Tesseract) ──
 
 async function runOCR(imageBuffer, mode = "default") {
+  // 0. Fast mode (force Tesseract for quick classification)
+  if (mode === "fast") {
+    return runTesseractOCR(imageBuffer);
+  }
+
   // 1. Try PaddleOCR first
   const hasPaddle = await checkPaddleAvailable();
   if (hasPaddle) {

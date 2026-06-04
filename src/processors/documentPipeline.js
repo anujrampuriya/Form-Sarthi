@@ -92,15 +92,21 @@ async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
   }
 
   // Step 3: Quick classification on lightly-enhanced image to pick the right mode
-  console.log("  🔤 Quick OCR pass for classification...");
-  const quickEnhanced = await enhanceImages(imageBuffers, "standard");
-  const quickOcr = await runOCROnAll(quickEnhanced, "default");
-  const quickType = documentTypeInput || classifyDocument(quickOcr.text);
-  console.log(`  🏷️  Quick classification: ${quickType}`);
+  let quickType = documentTypeInput;
+
+  if (!quickType) {
+    console.log("  🔤 Quick OCR pass for classification (First page only)...");
+    const quickEnhanced = await enhanceImages([imageBuffers[0]], "standard");
+    const quickOcr = await runOCROnAll(quickEnhanced, "fast");
+    quickType = classifyDocument(quickOcr.text);
+    console.log(`  🏷️  Quick classification: ${quickType}`);
+  } else {
+    console.log(`  🏷️  Using provided classification: ${quickType}`);
+  }
 
   const isDocumentType = DOCUMENT_TYPES.has(quickType);
 
-  // Step 3: Full OCR with appropriate mode
+  // Step 4: Full OCR with appropriate mode
   let ocrResult;
   let enhancedBuffers;
 

@@ -1269,7 +1269,18 @@
                   <span class="meter-label">Form Completeness Rating</span>
                   <span class="meter-pct" id="meter-pct">0%</span>
                 </div>
-                <div class="meter-bar"><div class="meter-fill" id="meter-fill"></div></div>
+                <div class="speedometer-container" style="position: relative; width: 220px; height: 110px; margin: 15px auto; overflow: hidden;">
+                  <svg viewBox="0 0 200 100" style="width: 100%; height: 100%;">
+                    <!-- Background arc -->
+                    <path d="M 15 90 A 75 75 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="14" stroke-linecap="round"/>
+                    <!-- Fill arc -->
+                    <path id="speedo-fill" d="M 15 90 A 75 75 0 0 1 185 90" fill="none" stroke="var(--green)" stroke-width="14" stroke-linecap="round" stroke-dasharray="235.6" stroke-dashoffset="235.6" style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);"/>
+                  </svg>
+                  <!-- Needle -->
+                  <div id="speedo-needle" style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 75px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>
+                  <!-- Center Pivot -->
+                  <div style="position: absolute; bottom: 0px; left: 50%; width: 20px; height: 20px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+                </div>
               </div>
 
               <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Detected Fields Map</div>
@@ -2248,7 +2259,7 @@
     }
 
     // ── Autofill Tab & Completeness Meter ──
-    function analyzeForm() {
+    async function analyzeForm() {
       const url = document.getElementById('form-url').value.trim();
       if (!url) { toast('Please enter a form URL', 'error'); return; }
 
@@ -2257,13 +2268,48 @@
         return;
       }
 
-      const mapping = FS_Autofill.mapFields(sessionData);
-      const filled  = mapping.filter(m => m.value).length;
-      const pct     = Math.round((filled / mapping.length) * 100);
-
       document.getElementById('meter-section').style.display = 'block';
+      document.getElementById('meter-pct').textContent  = '...';
+      
+      let mapping = FS_Autofill.mapFields(sessionData);
+
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const inputs = doc.querySelectorAll('input:not([type=hidden]):not([type=submit]), textarea, select');
+        
+        let requiredKeys = new Set();
+        inputs.forEach(input => {
+          const hint = ((input.name || '') + (input.id || '') + (input.placeholder || '') + (input.getAttribute('aria-label') || '')).toLowerCase();
+          for (const field of FS_Autofill._fieldMap) {
+            if (field.hints.some(h => hint.includes(h))) {
+              requiredKeys.add(field.key);
+              break;
+            }
+          }
+        });
+        
+        if (requiredKeys.size > 0) {
+          mapping = mapping.filter(m => requiredKeys.has(m.key));
+        }
+      } catch (e) {
+        console.warn("Could not fetch form HTML. Falling back to full parameters.");
+      }
+
+      const filled  = mapping.filter(m => m.value).length;
+      const total   = mapping.length || 1;
+      const pct     = Math.round((filled / total) * 100);
+
       document.getElementById('meter-pct').textContent  = pct + '%';
-      document.getElementById('meter-fill').style.width = pct + '%';
+      
+      const dashOffset = 235.6 - (235.6 * pct / 100);
+      const needleRot = -90 + (180 * pct / 100);
+      const speedoFill = document.getElementById('speedo-fill');
+      const speedoNeedle = document.getElementById('speedo-needle');
+      if (speedoFill) speedoFill.style.strokeDashoffset = dashOffset;
+      if (speedoNeedle) speedoNeedle.style.transform = `translateX(-50%) rotate(${needleRot}deg)`;
       
       document.getElementById('field-list').innerHTML = mapping.map(m => `
         <div class="field-row">
