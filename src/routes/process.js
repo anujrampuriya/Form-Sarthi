@@ -56,8 +56,16 @@ router.post("/", upload.single("document"), async (req, res) => {
     }
 
     const docTypeInput = req.body.document_type || null;
+    let currentProfileInput = null;
+    try {
+      if (req.body.current_profile) {
+        currentProfileInput = JSON.parse(req.body.current_profile);
+      }
+    } catch (e) {
+      console.warn("Could not parse current_profile JSON");
+    }
 
-    const result = await processDocument(file.buffer, file.mimetype, docTypeInput);
+    const result = await processDocument(file.buffer, file.mimetype, docTypeInput, currentProfileInput);
 
     return res.status(200).json({
       success: true,

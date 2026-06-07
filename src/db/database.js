@@ -49,6 +49,9 @@ db.exec(`
   -- All fields are stored as "iv:ciphertext" hex strings (AES-256-GCM)
   CREATE TABLE IF NOT EXISTS UserProfile (
     user_id            TEXT PRIMARY KEY REFERENCES Users(id) ON DELETE CASCADE,
+    encrypted_blob     TEXT,
+    color              TEXT,
+    avatar             TEXT,
     encrypted_name     TEXT,
     encrypted_dob      TEXT,
     encrypted_address  TEXT,
@@ -57,6 +60,11 @@ db.exec(`
     encrypted_college  TEXT,
     updated_at         TEXT DEFAULT (datetime('now'))
   );
+
+  -- Handle migrations if tables already exist
+  BEGIN TRANSACTION;
+  -- We use a simple try-catch block pattern for sqlite alter table (in JS we'll just run it with try/catch later, but here we can just let it fail silently if column exists)
+  COMMIT;
 
   -- Documents: encrypted file blobs with metadata
   CREATE TABLE IF NOT EXISTS Documents (

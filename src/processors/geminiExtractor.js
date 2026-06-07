@@ -71,42 +71,34 @@ const GEMINI_SCHEMA = {
  * @param {string|null} docTypeInput Optional expected document type hint
  * @returns {Promise<{docType: string, fields: Object}>}
  */
-function extractFieldsWithGemini(rawText, docTypeInput = null) {
+function extractFieldsWithGemini(rawText, docTypeInput = null, currentProfileInput = null) {
   return new Promise((resolve, reject) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return reject(new Error("GEMINI_API_KEY environment variable is not set."));
     }
 
-    const prompt = `You are an expert document parser. Your task is to analyze the OCR text extracted from a document, classify its type, and extract relevant fields.
+    const prompt = `You are an expert Indian document data extraction assistant.
+I am providing you with raw OCR text extracted from an uploaded document.
+The document type might be: ${docTypeInput || "unknown"}.
 
-Available document types:
-- "aadhaar": Indian Aadhaar Card
-- "pan": Indian PAN Card
-- "dl": Indian Driving License
-- "marksheet_10": Class 10 Marksheet/Certificate
-- "marksheet_12": Class 12 Marksheet/Certificate
-- "passport": Passport
-- "bank_passbook": Bank Passbook or Statement Header
-- "resume": Resume / CV
-- "college_id": Student/College ID Card
-- "certificate": Course or Achievement Certificate
-- "other": Any other document type
+CRITICAL EXTRACTION RULES:
+1. For 'dob': You MUST extract the Date of Birth. It is almost always present on Aadhaar/PAN/Marksheets. Format it exactly as DD/MM/YYYY.
+2. For 'pincode': Extract the 6-digit postal code. IF it is missing from the text, but you know the City/State (e.g. "Jabalpur, MP"), you MUST use your world knowledge to infer and provide a valid 6-digit pincode for that region!
+3. For 'address': Extract the FULL address. Combine house number, street, locality, village/town, city, and state into one complete string. Do not include Hindi text.
 
-User-specified expected document type (optional hint): ${docTypeInput || "none"}
+If a field is strictly not present in the OCR text (and cannot be confidently inferred like the pincode), output null.
 
-Instructions:
-1. Identify the document type ("docType"). If user-specified hint is provided, prioritize it unless it is clearly incorrect.
-2. Extract values for the 30 fields in the "fields" object.
-3. Clean and normalize the values:
-   - Names: clean up formatting and OCR errors (e.g., restore spacing, remove odd characters).
-   - Dates: format as DD/MM/YYYY or YYYY-MM-DD if possible.
-   - Aadhaar: 12 digits (remove spaces/dashes).
-   - PAN: 10 chars uppercase.
-   - Driving License (dl): remove spaces/dashes.
-   - Phone numbers: 10 digits.
-   - Bank Account Number / IFSC: extract digits and standard code format.
-4. DO NOT hallucinate. If a field is not present in the document, keep it as null.
+CROSS-CHECKING INSTRUCTIONS:
+The user has previously extracted data. Their CURRENT profile is:
+${currentProfileInput ? JSON.stringify(currentProfileInput, null, 2) : "{}"}
+
+Your task is to extract the details from the NEW OCR text and CROSS-CHECK them against the CURRENT profile.
+If the NEW OCR text provides a more accurate version of a field, output the improved field.
+If the CURRENT profile's field is highly authoritative and the NEW OCR text is lower quality, output the CURRENT profile's field to preserve it.
+Return the FINAL most accurate merged profile fields.
+
+Also classify the document type strictly as one of: "aadhaar", "pan", "marksheet_12", "marksheet_10", "college_id", "resume", "passport", "certificate", "bank_passbook", "dl", "other".
 
 Raw OCR text to analyze:
 ---------------------------------------------

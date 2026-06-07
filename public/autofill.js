@@ -8,7 +8,7 @@ const FS_Autofill = {
   // All known field mappings — label shown to user → key in sessionData
   _fieldMap: [
     // Personal Info
-    { label: 'Full Name',         key: 'name',          hints: ['name', 'fullname', 'full_name', 'applicant', 'candidate'] },
+    { label: 'Full Name',         key: 'name',          hints: ['fullname', 'full_name', 'applicant', 'candidate', 'first_name', 'student_name', 'your_name'], exact: ['name', 'fname'] },
     { label: 'Date of Birth',     key: 'dob',           hints: ['dob', 'birth', 'dateofbirth', 'date_of_birth', 'born'] },
     { label: 'Gender',            key: 'gender',        hints: ['gender', 'sex', 'gender_type'] },
     { label: 'Caste / Category',  key: 'caste',         hints: ['caste', 'category', 'social_status', 'community', 'reservation'] },
@@ -18,30 +18,30 @@ const FS_Autofill = {
     { label: 'Marital Status',    key: 'marital_status',hints: ['marital', 'marriage', 'married', 'marital_status'] },
 
     // Contact Details
-    { label: 'Mobile Number',     key: 'phone',         hints: ['phone', 'mobile', 'contact', 'cell', 'number', 'telephone'] },
+    { label: 'Mobile Number',     key: 'phone',         hints: ['phone', 'mobile', 'contact', 'cell', 'telephone', 'mobileno', 'phoneno'], exact: ['tel', 'phone_no', 'mobile_no'] },
     { label: 'Alternate Mobile',  key: 'alt_phone',     hints: ['alt_phone', 'altphone', 'alternate', 'emergency_contact', 'alt_mobile'] },
     { label: 'Email Address',     key: 'email',         hints: ['email', 'mail', 'emailid', 'e-mail'] },
     { label: 'Address',           key: 'address',       hints: ['address', 'addr', 'residence', 'location', 'permanent_address', 'corr_address'] },
     { label: 'City',              key: 'city',          hints: ['city', 'town', 'district'] },
     { label: 'State',             key: 'state',         hints: ['state', 'province', 'region'] },
-    { label: 'Pincode',           key: 'pincode',       hints: ['pincode', 'pin', 'zip', 'postal', 'zipcode'] },
+    { label: 'Pincode',           key: 'pincode',       hints: ['pincode', 'pin', 'zip', 'postal', 'zipcode', 'zip_code', 'postal_code'] },
 
     // Academic Records
-    { label: 'Class 10 Roll No',  key: 'roll_10',       hints: ['roll_10', 'roll10', 'class_10_roll', 'ssc_roll', 'roll_no_10', 'matric_roll'] },
-    { label: 'Class 10 Board',    key: 'board_10',      hints: ['board_10', 'board10', 'ssc_board', 'class_10_board', 'matric_board'] },
+    { label: 'Class 10 Roll No',  key: 'roll_10',       hints: ['roll_10', 'roll10', 'class_10_roll', 'ssc_roll', 'roll_no_10', 'matric_roll', '10th_roll'] },
+    { label: 'Class 10 Board',    key: 'board_10',      hints: ['board_10', 'board10', 'ssc_board', 'class_10_board', 'matric_board', '10th_board'] },
     { label: 'Class 10 Marks',    key: 'marks_10',      hints: ['marks_10', 'marks10', 'ssc_marks', 'class_10_marks', 'ssc_percent', 'matric_percent', 'percentage_10'] },
-    { label: 'Class 12 Roll No',  key: 'roll_12',       hints: ['roll_12', 'roll12', 'class_12_roll', 'hsc_roll', 'roll_no_12', 'inter_roll'] },
-    { label: 'Class 12 Board',    key: 'board_12',      hints: ['board_12', 'board12', 'hsc_board', 'class_12_board', 'inter_board'] },
+    { label: 'Class 12 Roll No',  key: 'roll_12',       hints: ['roll_12', 'roll12', 'class_12_roll', 'hsc_roll', 'roll_no_12', 'inter_roll', '12th_roll'] },
+    { label: 'Class 12 Board',    key: 'board_12',      hints: ['board_12', 'board12', 'hsc_board', 'class_12_board', 'inter_board', '12th_board'] },
     { label: 'Class 12 Marks',    key: 'marks_12',      hints: ['marks_12', 'marks12', 'hsc_marks', 'class_12_marks', 'hsc_percent', 'inter_percent', 'percentage_12'] },
     { label: 'College / Institute',key: 'college',      hints: ['college', 'institute', 'university', 'school', 'inst_name'] },
     { label: 'Degree',            key: 'degree',        hints: ['degree', 'course', 'qualification', 'program', 'stream', 'graduation'] },
     { label: 'Graduation Year',   key: 'grad_year',     hints: ['grad_year', 'gradyear', 'year_of_passing', 'passing_year', 'grad_date'] },
 
     // Identity & Finance
-    { label: 'Aadhaar Number',    key: 'aadhaar',       hints: ['aadhaar', 'aadhar', 'uid', 'uidai'] },
+    { label: 'Aadhaar Number',    key: 'aadhaar',       hints: ['aadhaar', 'aadhar', 'uid', 'uidai', 'adhaar'] },
     { label: 'PAN Number',        key: 'pan',           hints: ['pan', 'panno', 'pan_number', 'permanent_account'] },
     { label: 'DL / Passport',     key: 'dl',            hints: ['driving', 'licence', 'license', 'dl', 'passport', 'passport_no', 'passport_number'] },
-    { label: 'Bank Name',         key: 'bank_name',     hints: ['bank_name', 'bankname', 'bank_title', 'bankname'] },
+    { label: 'Bank Name',         key: 'bank_name',     hints: ['bank_name', 'bankname', 'bank_title'] },
     { label: 'Bank Account No',   key: 'account_no',    hints: ['account_no', 'accountno', 'account_number', 'acc_no', 'ac_no', 'ac_num', 'bank_account'] },
     { label: 'IFSC Code',         key: 'ifsc',          hints: ['ifsc', 'ifsccode', 'ifsc_code', 'bank_ifsc'] }
   ],
@@ -63,14 +63,56 @@ const FS_Autofill = {
 
     inputs.forEach(input => {
       const hint = (
-        (input.name || '') +
-        (input.id   || '') +
-        (input.placeholder || '') +
+        (input.name || '') + ' ' +
+        (input.id   || '') + ' ' +
+        (input.placeholder || '') + ' ' +
         (input.getAttribute('aria-label') || '')
       ).toLowerCase();
 
+      // Guard rails based on input types
+      if (input.type === 'email') {
+        if (sessionData.email) {
+          input.value = sessionData.email;
+          input.dispatchEvent(new Event('input',  { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          filled++;
+        }
+        return;
+      }
+      
+      if (input.type === 'date') {
+        // Only allow date fields like dob
+        if (sessionData.dob && (hint.includes('dob') || hint.includes('birth'))) {
+          // Format from DD/MM/YYYY to YYYY-MM-DD for native date inputs
+          let dobVal = sessionData.dob;
+          if (dobVal.includes('/')) {
+            const parts = dobVal.split('/');
+            if (parts.length === 3) {
+              dobVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+          }
+          input.value = dobVal;
+          input.dispatchEvent(new Event('input',  { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          filled++;
+        }
+        return;
+      }
+
       for (const field of this._fieldMap) {
-        const matched = field.hints.some(h => hint.includes(h));
+        // 1. Exact matches (if provided)
+        let matched = false;
+        if (field.exact) {
+          const rawName = (input.name || '').toLowerCase();
+          const rawId = (input.id || '').toLowerCase();
+          matched = field.exact.some(e => e === rawName || e === rawId || e === input.type);
+        }
+
+        // 2. Hint matches using word boundaries
+        if (!matched) {
+          matched = field.hints.some(h => new RegExp(`\\b${h}\\b`, 'i').test(hint));
+        }
+
         if (matched && sessionData[field.key]) {
           input.value = sessionData[field.key];
           // Trigger React/Vue/Angular change detection

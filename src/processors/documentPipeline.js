@@ -24,7 +24,7 @@ const IMAGE_MIMES = new Set([
 // Document types that benefit from gentler enhancement + document OCR mode
 const DOCUMENT_TYPES = new Set(["marksheet", "bank_passbook", "resume", "certificate", "passport"]);
 
-async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
+async function processDocument(fileBuffer, mimeType, documentTypeInput = null, currentProfileInput = null) {
   console.log(`\n🔍 Processing document (${mimeType})`);
 
   // Step 1: Get image Buffers
@@ -41,16 +41,47 @@ async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
     throw new Error(`Unsupported file type: ${mimeType}`);
   }
 
-  // Step 2: Try Gemini API first (if enabled)
+  // Step 2: Try Google Vision API first for OCR (better text extraction accuracy)
+  if (process.env.GOOGLE_VISION_API_KEY) {
+    console.log("  👁️ GOOGLE_VISION_API_KEY detected. Routing to Google Vision API...");
+    try {
+      const { extractWithVisionAPI } = require("./visionClient");
+      const visionOcr = await extractWithVisionAPI(imageBuffers);
+      
+      console.log(`  ✅ Vision API complete — ${visionOcr.text.length} chars extracted`);
+      require("fs").writeFileSync("latest_ocr_text.txt", visionOcr.text);
+      
+      let extraction;
+      if (process.env.GEMINI_API_KEY) {
+        console.log("  🤖 Routing Google Vision text to Gemini for structured extraction...");
+        extraction = await extractFieldsWithGemini(visionOcr.text, documentTypeInput, currentProfileInput);
+      } else {
+        const { extractFields, classifyDocument } = require("./fieldExtractor");
+        const quickType = documentTypeInput || classifyDocument(visionOcr.text);
+        extraction = extractFields(visionOcr.text, quickType);
+      }
+      
+      return {
+        docType: extraction.docType,
+        fields: extraction.fields,
+        confidence: visionOcr.confidence,
+        text: visionOcr.text
+      };
+    } catch (e) {
+      console.warn("  ⚠️ Google Vision API failed:", e.message);
+      console.warn("  ⚠️ Falling back to Gemini Multimodal / local OCR pipeline...");
+    }
+  }
+
+  // Step 2.5: Try Gemini API fallback for Multimodal OCR
   if (process.env.GEMINI_API_KEY) {
-    console.log("  🧠 GEMINI_API_KEY detected. Routing to Gemini OCR...");
+    console.log("  🧠 Routing to Gemini Multimodal OCR...");
     try {
       const { extractWithGemini } = require("./geminiProcessor");
-      const geminiResult = await extractWithGemini(imageBuffers, documentTypeInput);
+      const geminiResult = await extractWithGemini(imageBuffers, documentTypeInput, currentProfileInput);
       console.log(`  ✅ Gemini classification: ${geminiResult.docType}`);
       console.log(`  ✅ Gemini extracted ${Object.keys(geminiResult.fields).length} fields`);
       
-      // Save dummy text for logging compatibility
       require("fs").writeFileSync("latest_ocr_text.txt", geminiResult.text);
 
       return {
@@ -61,33 +92,6 @@ async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
       };
     } catch (e) {
       console.warn("  ⚠️ Gemini API failed:", e.message);
-      console.warn("  ⚠️ Falling back to Google Vision / local OCR pipeline...");
-    }
-  }
-
-  // Step 2.5: Try Google Vision API (if enabled)
-  if (process.env.GOOGLE_VISION_API_KEY) {
-    console.log("  👁️ GOOGLE_VISION_API_KEY detected. Routing to Google Vision API...");
-    try {
-      const { extractWithVisionAPI } = require("./visionClient");
-      // Use original imageBuffers for Vision API (it handles its own enhancement natively, or we can use lightly enhanced ones)
-      const visionOcr = await extractWithVisionAPI(imageBuffers);
-      
-      console.log(`  ✅ Vision API complete — ${visionOcr.text.length} chars extracted`);
-      require("fs").writeFileSync("latest_ocr_text.txt", visionOcr.text);
-      
-      const { extractFields, classifyDocument } = require("./fieldExtractor");
-      const quickType = documentTypeInput || classifyDocument(visionOcr.text);
-      const extraction = extractFields(visionOcr.text, quickType);
-      
-      return {
-        docType: extraction.docType,
-        fields: extraction.fields,
-        confidence: visionOcr.confidence,
-        text: visionOcr.text
-      };
-    } catch (e) {
-      console.warn("  ⚠️ Google Vision API failed:", e.message);
       console.warn("  ⚠️ Falling back to local offline OCR pipeline...");
     }
   }
@@ -137,7 +141,7 @@ async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
   if (process.env.GEMINI_API_KEY) {
     try {
       console.log("  🤖 Running Gemini structured field extraction...");
-      extraction = await extractFieldsWithGemini(ocrResult.text, documentTypeInput || quickType);
+      extraction = await extractFieldsWithGemini(ocrResult.text, documentTypeInput || quickType, currentProfileInput);
       console.log(`  ✅ Gemini classified document as: ${extraction.docType}`);
     } catch (err) {
       console.warn(`  ⚠️ Gemini extraction failed: ${err.message}. Falling back to regex extraction.`);

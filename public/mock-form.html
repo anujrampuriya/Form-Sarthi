@@ -163,18 +163,18 @@
       <div class="grid-row">
         <div class="form-group">
           <label>Candidate's Full Name</label>
-          <input type="text" name="name" class="form-input" placeholder="As per official documents">
+          <input required type="text" name="name" class="form-input" placeholder="As per official documents">
         </div>
         <div class="form-group">
           <label>Date of Birth</label>
-          <input type="date" name="dob" class="form-input">
+          <input required type="date" name="dob" class="form-input">
         </div>
       </div>
 
       <div class="grid-row">
         <div class="form-group">
           <label>Gender</label>
-          <select name="gender" class="form-input">
+          <select required name="gender" class="form-input">
             <option value="">Select Gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
@@ -183,7 +183,7 @@
         </div>
         <div class="form-group">
           <label>Category / Caste</label>
-          <select name="caste" class="form-input">
+          <select required name="caste" class="form-input">
             <option value="">Select Category</option>
             <option value="General">General</option>
             <option value="OBC">OBC</option>
@@ -197,11 +197,11 @@
       <div class="grid-row">
         <div class="form-group">
           <label>Nationality</label>
-          <input type="text" name="nationality" class="form-input" placeholder="e.g. Indian">
+          <input required type="text" name="nationality" class="form-input" placeholder="e.g. Indian">
         </div>
         <div class="form-group">
           <label>Religion</label>
-          <input type="text" name="religion" class="form-input" placeholder="e.g. Hinduism">
+          <input required type="text" name="religion" class="form-input" placeholder="e.g. Hinduism">
         </div>
       </div>
 
@@ -211,28 +211,28 @@
       <div class="grid-row">
         <div class="form-group">
           <label>Primary Mobile Number</label>
-          <input type="tel" name="phone" class="form-input" placeholder="10-digit number">
+          <input required type="tel" name="phone" class="form-input" placeholder="10-digit number">
         </div>
         <div class="form-group">
           <label>Alternate Mobile Number</label>
-          <input type="tel" name="altphone" class="form-input" placeholder="Alternate contact">
+          <input required type="tel" name="altphone" class="form-input" placeholder="Alternate contact">
         </div>
       </div>
 
       <div class="grid-row">
         <div class="form-group">
           <label>Email Address</label>
-          <input type="email" name="email" class="form-input" placeholder="name@example.com">
+          <input required type="email" name="email" class="form-input" placeholder="name@example.com">
         </div>
         <div class="form-group">
           <label>Pincode / Postal Code</label>
-          <input type="text" name="pincode" class="form-input" placeholder="6-digit pin">
+          <input required type="text" name="pincode" class="form-input" placeholder="6-digit pin">
         </div>
       </div>
 
       <div class="form-group" style="margin-bottom: 18px">
         <label>Permanent Residential Address</label>
-        <textarea name="address" class="form-input" rows="3" placeholder="Full residential details"></textarea>
+        <textarea required name="address" class="form-input" rows="3" placeholder="Full residential details"></textarea>
       </div>
 
       <!-- Section 3 -->
@@ -241,33 +241,33 @@
       <div class="grid-row">
         <div class="form-group">
           <label>Class 10 Roll Number</label>
-          <input type="text" name="ssc_roll" class="form-input" placeholder="Matric roll number">
+          <input required type="text" name="ssc_roll" class="form-input" placeholder="Matric roll number">
         </div>
         <div class="form-group">
           <label>Class 10 Board</label>
-          <input type="text" name="ssc_board" class="form-input" placeholder="e.g. CBSE / ICSE / State Board">
+          <input required type="text" name="ssc_board" class="form-input" placeholder="e.g. CBSE / ICSE / State Board">
         </div>
       </div>
 
       <div class="grid-row">
         <div class="form-group">
           <label>Class 12 Roll Number</label>
-          <input type="text" name="hsc_roll" class="form-input" placeholder="Intermediate roll number">
+          <input required type="text" name="hsc_roll" class="form-input" placeholder="Intermediate roll number">
         </div>
         <div class="form-group">
           <label>Class 12 Board</label>
-          <input type="text" name="hsc_board" class="form-input" placeholder="e.g. CBSE / ICSE">
+          <input required type="text" name="hsc_board" class="form-input" placeholder="e.g. CBSE / ICSE">
         </div>
       </div>
 
       <div class="grid-row">
         <div class="form-group">
           <label>Current College / School</label>
-          <input type="text" name="college" class="form-input" placeholder="Name of last attended school">
+          <input required type="text" name="college" class="form-input" placeholder="Name of last attended school">
         </div>
         <div class="form-group">
           <label>Degree / Class</label>
-          <input type="text" name="qualification" class="form-input" placeholder="e.g. Intermediate Science">
+          <input required type="text" name="qualification" class="form-input" placeholder="e.g. Intermediate Science">
         </div>
       </div>
 
@@ -277,28 +277,28 @@
       <div class="grid-row">
         <div class="form-group">
           <label>Aadhaar Card Number</label>
-          <input type="text" name="aadhaar" class="form-input" placeholder="12-digit UID">
+          <input required type="text" name="aadhaar" class="form-input" placeholder="12-digit UID">
         </div>
         <div class="form-group">
           <label>PAN Card Number</label>
-          <input type="text" name="pan" class="form-input" placeholder="10-digit alpha-numeric">
+          <input required type="text" name="pan" class="form-input" placeholder="10-digit alpha-numeric">
         </div>
       </div>
 
       <div class="grid-row">
         <div class="form-group">
           <label>Bank Name</label>
-          <input type="text" name="bank_name" class="form-input" placeholder="e.g. State Bank of India">
+          <input required type="text" name="bank_name" class="form-input" placeholder="e.g. State Bank of India">
         </div>
         <div class="form-group">
           <label>Account Number</label>
-          <input type="text" name="account_number" class="form-input" placeholder="Bank savings account">
+          <input required type="text" name="account_number" class="form-input" placeholder="Bank savings account">
         </div>
       </div>
 
       <div class="form-group">
         <label>IFSC Code</label>
-        <input type="text" name="ifsc" class="form-input" placeholder="11-digit branch code">
+        <input required type="text" name="ifsc" class="form-input" placeholder="11-digit branch code">
       </div>
 
       <button type="submit" class="btn-submit">Submit Registration Application</button>
@@ -306,5 +306,47 @@
     </form>
   </div>
 
+  <script src="/autofill.js"></script>
+  <script src="/autofill.js"></script>
+  <script>
+    (function autoFillNow() {
+      const pendingData = localStorage.getItem('fs_autofill_pending_data');
+      if (pendingData) {
+        try {
+          const sessionData = JSON.parse(pendingData);
+          
+          // Small delay to ensure DOM is fully interactive
+          setTimeout(() => {
+            const fieldsFilled = FS_Autofill.injectIntoForm(sessionData);
+            console.log(`Auto-filled ${fieldsFilled} fields automatically.`);
+            
+            // Show a visual toast so the user knows it worked
+            if (fieldsFilled > 0) {
+              const toast = document.createElement('div');
+              toast.textContent = `⚡ Auto-filled ${fieldsFilled} fields successfully!`;
+              toast.style.position = 'fixed';
+              toast.style.top = '20px';
+              toast.style.right = '20px';
+              toast.style.background = '#10b981';
+              toast.style.color = '#fff';
+              toast.style.padding = '12px 24px';
+              toast.style.borderRadius = '8px';
+              toast.style.fontWeight = 'bold';
+              toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+              toast.style.zIndex = '9999';
+              document.body.appendChild(toast);
+              
+              setTimeout(() => toast.remove(), 4000);
+            }
+            
+            // Clear it so it only runs once per click
+            localStorage.removeItem('fs_autofill_pending_data');
+          }, 150);
+        } catch (e) {
+          console.error("Failed to parse autofill data", e);
+        }
+      }
+    })();
+  </script>
 </body>
 </html>

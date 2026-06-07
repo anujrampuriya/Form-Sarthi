@@ -7,6 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+  <!-- Flatpickr for custom date/time picker with OK/Set button -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -314,6 +322,45 @@
     .emoji-option.selected { background: rgba(255,255,255,0.15); }
 
     /* ── SCREEN: PIN ── */
+    body.pin-active {
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
+      padding: 12px 16px;
+      justify-content: stretch;
+    }
+    body.pin-active .app {
+      max-width: 600px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    body.pin-active #logo-container {
+      margin-bottom: 12px;
+      flex-shrink: 1;
+      min-height: 0;
+      overflow: hidden;
+      display: flex !important;
+      justify-content: center;
+    }
+    body.pin-active #logo-image {
+      width: auto;
+      max-width: 300px; /* Made the logo much bigger and prominent */
+      max-height: 18vh;
+      object-fit: contain;
+    }
+
+    #screen-pin {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-height: 0;
+      padding: 12px 20px;
+    }
+    #screen-pin.active { display: flex; }
+
     .pin-header {
       display: flex; flex-direction: column; align-items: center;
       gap: 10px; margin-bottom: 24px;
@@ -368,7 +415,7 @@
       border-radius: 50%;
       width: 56px; height: 56px;
       font-family: inherit;
-      font-size: 22px; font-weight: 600;
+      font-size: 26px; font-weight: 700;
       color: var(--text);
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
@@ -399,6 +446,36 @@
       transition: color 0.2s;
     }
     .back-link:hover { color: var(--text); }
+
+    /* ── PIN screen responsive scaling ── */
+    @media (max-height: 700px) {
+      body.pin-active #logo-image { max-width: 250px; }
+      #screen-pin .pin-header { gap: 4px; margin-bottom: 10px; }
+      #screen-pin .pin-header .avatar { width: 48px !important; height: 48px !important; font-size: 20px !important; }
+      #screen-pin .pin-name { font-size: 16px; }
+      #screen-pin .pin-sub { font-size: 12px; }
+      #screen-pin .pin-dots { gap: 10px; margin-bottom: 4px; }
+      #screen-pin .dot { width: 11px; height: 11px; }
+      #screen-pin .err-msg { min-height: 14px; margin-bottom: 6px; font-size: 11px; }
+      #screen-pin .numpad { gap: 6px; max-width: 200px; margin-bottom: 8px; }
+      #screen-pin .num { width: 44px; height: 44px; font-size: 20px; font-weight: 700; }
+      #screen-pin .num.sm { height: 44px; font-size: 11px; }
+      #screen-pin .back-link { font-size: 12px; }
+    }
+    @media (max-height: 550px) {
+      body.pin-active #logo-image { max-width: 180px; }
+      #screen-pin .pin-header { gap: 2px; margin-bottom: 6px; }
+      #screen-pin .pin-header .avatar { width: 36px !important; height: 36px !important; font-size: 16px !important; }
+      #screen-pin .pin-name { font-size: 14px; }
+      #screen-pin .pin-sub { font-size: 11px; }
+      #screen-pin .pin-dots { gap: 8px; margin-bottom: 2px; }
+      #screen-pin .dot { width: 9px; height: 9px; }
+      #screen-pin .err-msg { min-height: 12px; margin-bottom: 4px; font-size: 10px; }
+      #screen-pin .numpad { gap: 4px; max-width: 170px; margin-bottom: 6px; }
+      #screen-pin .num { width: 36px; height: 36px; font-size: 16px; font-weight: 700; }
+      #screen-pin .num.sm { height: 36px; font-size: 10px; }
+      #screen-pin .back-link { font-size: 11px; }
+    }
 
     /* ── UNLOCKED DASHBOARD STYLING ── */
     .main-header {
@@ -1080,11 +1157,11 @@
 
     /* ── TOAST ── */
     .toast {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
       background: var(--surface2); border: 1px solid var(--border2);
       border-radius: var(--radius-sm); padding: 14px 24px;
       font-size: 14px; color: var(--text); font-weight: 600;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 999;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999;
       box-shadow: 0 5px 25px rgba(0,0,0,0.3);
       white-space: nowrap;
     }
@@ -1155,8 +1232,8 @@
         </svg>
         <div class="scanner-line"></div>
       </div>
-      <p class="who-title">Smart AI Form Filler</p>
-      <p class="who-sub" style="margin-bottom: 24px">Local, secure, and blazing fast. Select your profile to unlock the vault.</p>
+      <p class="who-title">Form<span style="color: var(--accent);">Sarthi</span></p>
+      <p class="who-sub" style="margin-bottom: 24px">Your privacy-first, AI-powered form filling companion. Select your profile to unlock the vault.</p>
 
       <div class="profile-grid" id="profile-grid">
         <!-- Injected dynamically -->
@@ -1508,11 +1585,28 @@
                 </div>
                 <div style="display:flex; flex-direction:column; gap:4px">
                   <label style="font-size:11px; font-weight:700">Closing Date & Time</label>
-                  <input type="datetime-local" id="deadline-time" class="form-input" style="padding:10px">
+                  <input type="text" id="deadline-time" class="form-input" placeholder="Select Date & Time..." style="padding:10px">
                 </div>
                 <button class="btn" onclick="addDeadline()" style="padding: 10px 20px">Add</button>
               </div>
             </div>
+
+            <script>
+              document.addEventListener('DOMContentLoaded', function() {
+                flatpickr("#deadline-time", {
+                  enableTime: true,
+                  dateFormat: "Y-m-d H:i",
+                  plugins: [
+                    new confirmDatePlugin({
+                      confirmIcon: "", // no icon
+                      confirmText: "SET / OK",
+                      showAlways: true,
+                      theme: "dark"
+                    })
+                  ]
+                });
+              });
+            </script>
 
             <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Tracked Portals</div>
             <div class="list-group" id="deadline-list-render">
@@ -1646,11 +1740,40 @@
       
       // Check if profile exists locally
       const allProfiles = await dbGetAll("profiles");
-      const existing = allProfiles.find(p => p.email === email);
+      let existing = allProfiles.find(p => p.email === email);
       
+      // NEW: Check if profile exists on the backend
+      try {
+        const res = await fetch('/api/auth/check?email=' + encodeURIComponent(email));
+        if (res.ok) {
+           const data = await res.json();
+           if (data.exists && !existing) {
+              // Add them to local profiles so they can enter their PIN
+              const newLocal = { 
+                email: email, 
+                name: name, 
+                color: data.color || 'purple', 
+                avatar: data.avatar || '🪪', 
+                encryptedProfile: data.encrypted_blob || '' 
+              };
+              await dbPut("profiles", newLocal);
+              profiles.push(newLocal);
+              existing = newLocal;
+           } else if (data.exists && existing) {
+              // Update local blob if backend has one
+              if (data.encrypted_blob) {
+                existing.encryptedProfile = data.encrypted_blob;
+                existing.color = data.color || existing.color;
+                existing.avatar = data.avatar || existing.avatar;
+                await dbPut("profiles", existing);
+              }
+           }
+        }
+      } catch(e) { console.error("Backend sync check failed", e); }
+
       if(existing) {
         // User exists, go to PIN screen
-        const index = allProfiles.indexOf(existing);
+        const index = profiles.indexOf(existing);
         selectProfile(index);
         toast("Google Profile found. Enter your secure PIN.", "success");
       } else {
@@ -1877,6 +2000,9 @@
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById('screen-' + screenId).classList.add('active');
       
+      // Toggle pin-active class for responsive logo hiding
+      document.body.classList.toggle('pin-active', screenId === 'pin');
+      
       // Control body class based on locked / unlocked screen
       if (screenId === 'main') {
         document.body.classList.add('unlocked-layout');
@@ -1887,6 +2013,7 @@
         document.getElementById('theme-toggle-locked').style.display = 'flex';
         document.getElementById('logo-container').style.display = 'block';
       }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function goBack() { show('who'); loadProfiles(); }
@@ -1966,6 +2093,28 @@
       // Derive cryptographic key from user PIN + email salt
       const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
       const derivedKey = CryptoJS.PBKDF2(pinEntered, salt, { keySize: 256 / 32, iterations: 1000 });
+
+      // NEW: Pull latest encrypted blob from backend before decrypting!
+      try {
+        const res = await fetch('/api/auth/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'pull',
+            email: p.email,
+            pin_hash_client: derivedKey.toString()
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.profile && data.profile.encrypted_blob) {
+             p.encryptedProfile = data.profile.encrypted_blob;
+             p.color = data.profile.color || p.color;
+             p.avatar = data.profile.avatar || p.avatar;
+             await dbPut("profiles", p);
+          }
+        }
+      } catch(e) { console.error("Backend pull failed", e); }
 
       try {
         const decryptedBytes = CryptoJS.AES.decrypt(p.encryptedProfile, derivedKey.toString());
@@ -2053,6 +2202,7 @@
       document.querySelectorAll('.tab-panel').forEach(t => t.classList.remove('active'));
       el.classList.add('active');
       document.getElementById('tab-' + name).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ── Render Document Slots (8 slots) ──
@@ -2248,10 +2398,34 @@
             };
             reader.readAsDataURL(file);
 
-            // Merge parsed fields
+            // Merge parsed fields with cross-document validation
             for (const [key, value] of Object.entries(data.fields)) {
               if (value !== undefined && value !== null && value !== '') {
-                sessionData[key] = value;
+                if (key === 'name') {
+                  // Cross-validate name: clean it client-side too
+                  const JUNK = /\b(DL|PHOTO|PHOTOGRAPH|SIGNATURE|SIGN|THUMB|IMPRESSION|SPECIMEN|HOLDER|CARD|FRONT|BACK|AADHAAR|AADHAR|PAN|INCOME|TAX|DEPARTMENT|GOVERNMENT|INDIA|UNION|REPUBLIC|DRIVING|LICENSE|LICENCE|TRANSPORT|AUTHORITY|PASSPORT|UIDAI|UNIQUE|IDENTIFICATION|PERMANENT|ACCOUNT|NUMBER|VALID|VALIDITY|ISSUE|ISSUED|DATE|EXPIRY|CLASS|COV|MCWG|LMV|HMV|BADGE|BLOOD|GROUP|ADDRESS|STATE|COUNTRY|DISTRICT|MALE|FEMALE|DOB|BIRTH|FATHER|MOTHER|HUSBAND|WIFE|GUARDIAN|S\/O|D\/O|W\/O|C\/O|SON|DAUGHTER)\b/gi;
+                  let cleanedName = value.replace(JUNK, '').replace(/[^A-Za-z\s.'\-]/g, '').replace(/\s{2,}/g, ' ').trim();
+                  if (cleanedName.replace(/[\s.]/g, '').length < 3) continue; // skip garbage name
+                  
+                  const existingName = sessionData[key];
+                  if (existingName) {
+                    // If existing name is a subset of or same length as new name, keep the shorter cleaner one
+                    const existClean = existingName.replace(/\s+/g, '').toLowerCase();
+                    const newClean = cleanedName.replace(/\s+/g, '').toLowerCase();
+                    // Keep existing if it's already clean and shorter or same
+                    if (existClean.length <= newClean.length && newClean.includes(existClean)) {
+                      continue; // existing name is cleaner, skip
+                    }
+                    // Keep new if it's a cleaner subset
+                    if (newClean.length < existClean.length && existClean.includes(newClean)) {
+                      sessionData[key] = cleanedName;
+                      continue;
+                    }
+                  }
+                  sessionData[key] = cleanedName;
+                } else {
+                  sessionData[key] = value;
+                }
               }
             }
           } else {
@@ -2271,6 +2445,7 @@
         await saveLocalVault();
         renderDocSlots();
         renderDataGrid();
+        toggleEditProfile(true); // REFRESH EDIT INPUTS WITH NEW PARSED DATA
         updateBadges();
         toast(`Successfully processed ${successCount} document(s)`, 'success');
       }
@@ -2292,6 +2467,22 @@
         
         // Update session storage for Chrome extension
         sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
+        
+        // NEW: Push to backend for cross-browser sync
+        try {
+          await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'push',
+              email: p.email,
+              pin_hash_client: activeKey.toString(),
+              color: p.color,
+              avatar: p.avatar,
+              encrypted_blob: ciphertext
+            })
+          });
+        } catch(e) { console.error("Backend sync push failed", e); }
       }
     }
 
@@ -2503,6 +2694,9 @@
       const data = FS_Autofill.mapFields(sessionData || {});
       const text = data.filter(d => d.value).map(d => `${d.label}: ${d.value}`).join('\n');
       navigator.clipboard.writeText(text).catch(() => {});
+
+      // Pass session data to mock-form for automatic autofill simulation
+      localStorage.setItem('fs_autofill_pending_data', JSON.stringify(sessionData || {}));
 
       // Save history logs
       let history = JSON.parse(localStorage.getItem(`fs_history_${activeProfile}`) || '[]');
@@ -2855,6 +3049,23 @@
 
       try {
         await dbPut("profiles", newProfile);
+        
+        // NEW: Push to backend for cross-browser sync
+        try {
+          await fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'push',
+              email: email,
+              pin_hash_client: key.toString(),
+              color: selectedColor,
+              avatar: selectedAvatar,
+              encrypted_blob: ciphertext
+            })
+          });
+        } catch(e) { console.error("Backend sync push failed", e); }
+
         toast("Secure profile created!", "success");
         goBack();
       } catch (e) {
@@ -3205,6 +3416,34 @@
     if (window.Notification && Notification.permission === "default") {
       Notification.requestPermission();
     }
+
+    // ── Auto-Logout / Privacy Lock ──
+    function lockApp() {
+      // Clear sensitive memory
+      sessionData = null;
+      activeKey = null;
+      activeProfile = null;
+      pinEntered = '';
+      addPinEntered = '';
+      
+      // Clear localStorage pending autofill data
+      localStorage.removeItem('fs_autofill_pending_data');
+      
+      // Return to profile selection
+      show('who');
+      loadProfiles();
+    }
+
+    // Lock the app whenever the user switches tabs, minimizes the window, or leaves
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        lockApp();
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      lockApp();
+    });
 
     // ── Init ──
     loadProfiles();

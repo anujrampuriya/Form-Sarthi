@@ -5,6 +5,42 @@
 // Supports 30 fields across multiple domains (JEE, NEET, Bank, Hospital).
 // =============================================================
 
+// ── Known junk words that OCR picks up from document labels ──
+const NAME_JUNK_WORDS = [
+  "DL", "PHOTO", "PHOTOGRAPH", "SIGNATURE", "SIGN", "THUMB",
+  "IMPRESSION", "SPECIMEN", "HOLDER", "CARD", "FRONT", "BACK",
+  "AADHAAR", "AADHAR", "PAN", "INCOME", "TAX", "DEPARTMENT",
+  "GOVERNMENT", "INDIA", "UNION", "REPUBLIC", "DRIVING",
+  "LICENSE", "LICENCE", "TRANSPORT", "AUTHORITY", "PASSPORT",
+  "UIDAI", "UNIQUE", "IDENTIFICATION", "PERMANENT", "ACCOUNT",
+  "NUMBER", "VALID", "VALIDITY", "ISSUE", "ISSUED", "DATE",
+  "EXPIRY", "CLASS", "COV", "MCWG", "LMV", "HMV", "HGMV",
+  "NON-TRANSPORT", "NONTRANSPORT", "NT", "TR", "BADGE",
+  "BLOOD", "GROUP", "ADDRESS", "STATE", "COUNTRY", "DISTRICT",
+  "TEHSIL", "PIN", "PINCODE", "MALE", "FEMALE", "DOB",
+  "BIRTH", "FATHER", "MOTHER", "HUSBAND", "WIFE", "GUARDIAN",
+  "S/O", "D/O", "W/O", "C/O", "SON", "DAUGHTER"
+];
+const NAME_JUNK_RE = new RegExp(
+  '\\b(' + NAME_JUNK_WORDS.join('|') + ')\\b', 'gi'
+);
+
+/**
+ * Sanitize an extracted name by removing document junk words,
+ * non-name characters, and excessive whitespace.
+ */
+function sanitizeName(rawName) {
+  if (!rawName) return null;
+  let name = rawName
+    .replace(NAME_JUNK_RE, '')      // strip junk words
+    .replace(/[^A-Za-z\s.'\-]/g, '') // only letters, spaces, dots, apostrophes, hyphens
+    .replace(/\s{2,}/g, ' ')         // collapse whitespace
+    .trim();
+  // If after cleaning, less than 3 meaningful chars remain, discard
+  if (name.replace(/[\s.]/g, '').length < 3) return null;
+  return name;
+}
+
 function cleanText(text) {
   return text
     .replace(/\r\n/g, "\n")
@@ -152,7 +188,7 @@ function parseAadhaar(t) {
     for (let i = dobLineIdx - 1; i >= 0; i--) {
       const l = lines[i];
       if (!/[\u0900-\u097F]/.test(l) && /^[A-Za-z\s.]{3,}$/.test(l) && !/Government|India|Aadhaar/i.test(l)) {
-        name = l.trim();
+        name = sanitizeName(l);
         break;
       }
     }
@@ -199,7 +235,7 @@ function parsePAN(t) {
   if (itdIdx >= 0) {
     for (let i = itdIdx + 1; i < Math.min(itdIdx + 5, lines.length); i++) {
       if (/^[A-Z\s.]{4,}$/.test(lines[i]) && !/DEPARTMENT|GOVERNMENT|INDIA/i.test(lines[i])) {
-        name = lines[i];
+        name = sanitizeName(lines[i]);
         break;
       }
     }
@@ -216,8 +252,8 @@ function parseDL(t) {
   const nameIdx = lines.findIndex(l => /\bName\b/i.test(l));
   if (nameIdx >= 0) {
     const match = lines[nameIdx].match(/(?:Name|NAME)[:\s]+([A-Za-z\s.]{4,50})/i);
-    if (match) name = match[1].trim();
-    else if (nameIdx + 1 < lines.length) name = lines[nameIdx + 1].trim();
+    if (match) name = sanitizeName(match[1]);
+    else if (nameIdx + 1 < lines.length) name = sanitizeName(lines[nameIdx + 1]);
   }
   const dob = genericExtractors.dob(t);
   const dl = genericExtractors.dl(t);
@@ -298,10 +334,10 @@ function parseMarksheet(t, forceType = null) {
   const nameIdx = lines.findIndex(l => /name of (?:the )?candidate|candidate(?:'s)? name|student(?:'s)? name|name of student/i.test(l));
   if (nameIdx >= 0) {
     const match = lines[nameIdx].match(/(?:name)[:\s]+([A-Za-z\s.]{4,40})/i);
-    if (match) name = match[1].trim();
+    if (match) name = sanitizeName(match[1]);
     // If name is on the next line
     else if (nameIdx + 1 < lines.length && /^[A-Za-z\s.]{4,40}$/.test(lines[nameIdx + 1])) {
-      name = lines[nameIdx + 1].trim();
+      name = sanitizeName(lines[nameIdx + 1]);
     }
   }
 
@@ -368,6 +404,7 @@ function parseResume(t) {
   if (name && (name.includes("@") || /\d{10}/.test(name))) {
     name = lines.find(l => !l.includes("@") && !/\d{10}/.test(l) && /^[A-Za-z\s.]{3,30}$/.test(l));
   }
+  name = sanitizeName(name);
 
   const phone = genericExtractors.phone(t);
   const email = genericExtractors.email(t);
@@ -390,11 +427,50 @@ function parseResume(t) {
 }
 
 const PINCODE_MAP = {
-  "mumbai": "400001", "delhi": "110001", "new delhi": "110001",
-  "bangalore": "560001", "bengaluru": "560001", "chennai": "600001",
-  "kolkata": "700001", "hyderabad": "500001", "pune": "411001",
-  "ahmedabad": "380001", "jaipur": "302001", "lucknow": "226001",
-  "patna": "800001", "bhopal": "462001", "chandigarh": "160001"
+  // Metro Cities
+  "mumbai": "400001", "delhi": "110001", "new delhi": "110001", "bangalore": "560001", "bengaluru": "560001",
+  "chennai": "600001", "kolkata": "700001", "hyderabad": "500001", "pune": "411001", "ahmedabad": "380001",
+  
+  // Madhya Pradesh
+  "jabalpur": "482001", "indore": "452001", "bhopal": "462001", "gwalior": "474001", "ujjain": "456001",
+
+  // Uttar Pradesh
+  "lucknow": "226001", "kanpur": "208001", "agra": "282001", "varanasi": "221001", "allahabad": "211001",
+  "prayagraj": "211001", "meerut": "250001", "bareilly": "243001", "aligarh": "202001", "moradabad": "244001",
+  "saharanpur": "247001", "gorakhpur": "273001", "jhansi": "284001", "noida": "201301", "ghaziabad": "201001",
+
+  // Rajasthan
+  "jaipur": "302001", "jodhpur": "342001", "udaipur": "313001", "kota": "324001", "ajmer": "305001", "bikaner": "334001",
+
+  // Gujarat
+  "surat": "395001", "vadodara": "390001", "rajkot": "360001", "bhavnagar": "364001", "jamnagar": "361001",
+
+  // Maharashtra
+  "nashik": "422001", "aurangabad": "431001", "solapur": "413001", "thane": "400601", "navi mumbai": "400703", "nagpur": "440001",
+
+  // Punjab & Haryana
+  "chandigarh": "160001", "ludhiana": "141001", "amritsar": "143001", "jalandhar": "144001", "patiala": "147001",
+  "faridabad": "121001", "gurgaon": "122001", "gurugram": "122001", "panipat": "132103", "ambala": "133001", "rohtak": "124001",
+
+  // Bihar & Jharkhand
+  "patna": "800001", "ranchi": "834001", "jamshedpur": "831001", "dhanbad": "826001", "bokaro": "827001",
+
+  // South India
+  "kochi": "682001", "ernakulam": "682001", "thiruvananthapuram": "695001", "trivandrum": "695001", "kozhikode": "673001", "calicut": "673001",
+  "thrissur": "680001", "madurai": "625001", "coimbatore": "641001", "tiruchirappalli": "620001", "trichy": "620001",
+  "salem": "636001", "tirunelveli": "627001", "mysore": "570001", "mangalore": "575001", "hubli": "580020", "belgaum": "590001",
+  "visakhapatnam": "530001", "vizag": "530001", "vijayawada": "520001", "guntur": "522001", "nellore": "524001", "tirupati": "517501",
+  "warangal": "506001", "nizamabad": "503001", "karimnagar": "505001",
+
+  // East & North East
+  "bhubaneswar": "751001", "cuttack": "753001", "rourkela": "769001", "guwahati": "781001", "shillong": "793001",
+  "imphal": "795001", "agartala": "799001", "kohima": "797001", "aizawl": "796001", "itanagar": "791111",
+
+  // Central
+  "raipur": "492001", "bhilai": "490006", "bilaspur": "495001",
+
+  // North
+  "dehradun": "248001", "haridwar": "249401", "roorkee": "247667", "shimla": "171001", "jammu": "180001", "srinagar": "190001"
 };
 
 function guessPincode(address, city, state) {

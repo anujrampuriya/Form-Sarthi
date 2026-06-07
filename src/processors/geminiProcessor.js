@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
 
-async function extractWithGemini(imageBuffers, documentTypeInput) {
+async function extractWithGemini(imageBuffers, documentTypeInput, currentProfileInput = null) {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not set.");
   }
@@ -16,13 +16,27 @@ async function extractWithGemini(imageBuffers, documentTypeInput) {
     }
   }));
 
-  const prompt = `
+const prompt = `
 You are a high-accuracy Indian document extraction AI.
 Analyze the provided document image(s) and extract all the relevant details.
 The document might be of type: ${documentTypeInput || "unknown"}.
 Please extract the information strictly according to the provided JSON schema.
-For 'address', do not include Hindi (Devanagari) characters.
-If a field is not present or cannot be determined, output null.
+
+CRITICAL EXTRACTION RULES:
+1. For 'dob': You MUST extract the Date of Birth. It is almost always present on Aadhaar/PAN/Marksheets. Format it exactly as DD/MM/YYYY.
+2. For 'pincode': Extract the 6-digit postal code. IF it is missing from the text, but you know the City/State (e.g. "Jabalpur, MP"), you MUST use your world knowledge to infer and provide a valid 6-digit pincode for that region!
+3. For 'address': Extract the FULL address. Combine house number, street, locality, village/town, city, and state into one complete string. Do not include Hindi text.
+
+If a field is strictly not present in the document (and cannot be confidently inferred like the pincode), output null.
+
+CROSS-CHECKING INSTRUCTIONS:
+The user has previously extracted data from other documents. Their CURRENT profile is:
+${currentProfileInput ? JSON.stringify(currentProfileInput, null, 2) : "{}"}
+
+Your task is to extract the details from the NEW document and CROSS-CHECK them against the CURRENT profile.
+If the NEW document provides a more accurate or authoritative version of a field (e.g. Passport/Aadhaar > College ID for Name and DOB), output the improved field.
+If the CURRENT profile's field is already highly authoritative and the NEW document is lower quality, output the CURRENT profile's field to preserve it.
+Basically, return the FINAL most accurate merged profile fields.
 
 Also classify the document type strictly as one of:
 "aadhaar", "pan", "marksheet_12", "marksheet_10", "college_id", "resume", "passport", "certificate", "bank_passbook", "dl", "other".
