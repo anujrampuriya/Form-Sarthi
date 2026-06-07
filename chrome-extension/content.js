@@ -12,21 +12,118 @@ if (window.hasFormSarthiContentScript) {
 } else {
   window.hasFormSarthiContentScript = true;
 
+  const isDashboard = !!document.getElementById('screen-main');
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "FILL_PAGE") {
       const count = fillForm(message.profile);
       sendResponse({ success: true, count });
     } else if (message.type === "GET_DECRYPTED_SESSION") {
       try {
-        const sessionStr = document.body.getAttribute("data-fs-session");
+        const sessionStr = sessionStorage.getItem("fs_active_session") || document.body.getAttribute("data-fs-session");
         const profile = sessionStr ? JSON.parse(sessionStr) : null;
         sendResponse({ success: !!profile, profile });
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    } else if (isDashboard && message.type === "SAVE_DRAFT_DATA") {
+      try {
+        const activeProfile = sessionStorage.getItem("fs_active_profile");
+        if (!activeProfile) {
+          sendResponse({ success: false, error: "No active profile session" });
+          return true;
+        }
+        let drafts = JSON.parse(localStorage.getItem(`fs_drafts_${activeProfile}`) || '{}');
+        drafts[message.draft.url] = message.draft;
+        localStorage.setItem(`fs_drafts_${activeProfile}`, JSON.stringify(drafts));
+        
+        // Notify dashboard page context
+        window.postMessage({ type: "FS_DRAFT_UPDATED", url: message.draft.url }, "*");
+        sendResponse({ success: true });
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
+    } else if (isDashboard && message.type === "GET_DRAFT_VALUES") {
+      try {
+        const activeProfile = sessionStorage.getItem("fs_active_profile");
+        if (!activeProfile) {
+          sendResponse({ success: true, values: null });
+          return true;
+        }
+        let drafts = JSON.parse(localStorage.getItem(`fs_drafts_${activeProfile}`) || '{}');
+        const draft = drafts[message.url];
+        sendResponse({ success: true, values: draft ? draft.values : null });
       } catch (e) {
         sendResponse({ success: false, error: e.message });
       }
     }
     return true;
   });
+
+  // Target page logic (runs on non-dashboard form pages)
+  if (!isDashboard) {
+    chrome.runtime.sendMessage({ type: "GET_PROFILE" }, (response) => {
+      if (response && response.success && response.profile) {
+        // Retrieve and restore draft values if any
+        chrome.runtime.sendMessage({ type: "CHECK_DRAFT_RESTORE", url: window.location.href }, (restoreRes) => {
+          if (restoreRes && restoreRes.success && restoreRes.values) {
+            restoreDraftValues(restoreRes.values);
+          }
+        });
+        // Start auto-save progress loop
+        startAutoSave();
+      }
+    });
+  }
+}
+
+function restoreDraftValues(values) {
+  if (!values) return;
+  const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+  inputs.forEach((input, index) => {
+    const key = input.name || input.id || `input_idx_${index}`;
+    if (values[key] !== undefined) {
+      input.value = values[key];
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+}
+
+let autoSaveInterval = null;
+function startAutoSave() {
+  if (autoSaveInterval) clearInterval(autoSaveInterval);
+  autoSaveInterval = setInterval(() => {
+    const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+    if (inputs.length === 0) return;
+    
+    const values = {};
+    let filledCount = 0;
+    inputs.forEach((input, index) => {
+      const val = input.value.trim();
+      if (val) {
+        filledCount++;
+        const key = input.name || input.id || `input_idx_${index}`;
+        values[key] = val;
+      }
+    });
+    
+    const pct = Math.round((filledCount / inputs.length) * 100);
+    
+    if (filledCount > 0) {
+      const draft = {
+        url: window.location.href,
+        title: document.title || window.location.hostname,
+        percent: pct,
+        values: values,
+        timestamp: Date.now()
+      };
+      chrome.runtime.sendMessage({
+        type: "AUTO_SAVE_DRAFT",
+        draft: draft
+      });
+    }
+  }, 30000);
 }
 
 function fillForm(profile) {

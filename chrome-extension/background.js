@@ -43,6 +43,29 @@ async function getDecryptedSession() {
   throw new Error("FormSarthi vault is locked. Please unlock it on the dashboard first.");
 }
 
+async function getDashboardTab() {
+  const tabs = await chrome.tabs.query({ 
+    url: [
+      "*://localhost/*",
+      "*://127.0.0.1/*"
+    ] 
+  });
+  
+  const validTabs = tabs.filter(tab => {
+    try {
+      const parsedUrl = new URL(tab.url);
+      return parsedUrl.port === "3000" || parsedUrl.port === "4000";
+    } catch (e) {
+      return false;
+    }
+  });
+
+  if (validTabs.length === 0) {
+    throw new Error("FormSarthi dashboard tab not found.");
+  }
+  return validTabs[0];
+}
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handleMessage(message, sender).then(sendResponse).catch(err => {
     sendResponse({ success: false, error: err.message });
@@ -94,6 +117,32 @@ async function handleMessage(message, sender) {
         
         const filledCount = results && results[0] ? results[0].result : 0;
         return { success: true, fielledCount: filledCount };
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+
+    case "CHECK_DRAFT_RESTORE": {
+      try {
+        const dashboardTab = await getDashboardTab();
+        const response = await chrome.tabs.sendMessage(dashboardTab.id, { 
+          type: "GET_DRAFT_VALUES", 
+          url: message.url 
+        });
+        return response;
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+
+    case "AUTO_SAVE_DRAFT": {
+      try {
+        const dashboardTab = await getDashboardTab();
+        const response = await chrome.tabs.sendMessage(dashboardTab.id, {
+          type: "SAVE_DRAFT_DATA",
+          draft: message.draft
+        });
+        return response;
       } catch (err) {
         return { success: false, error: err.message };
       }

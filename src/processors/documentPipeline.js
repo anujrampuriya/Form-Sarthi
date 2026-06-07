@@ -14,6 +14,7 @@ const { convertPdfToImages }   = require("./pdfConverter");
 const { enhanceImages }        = require("./imageEnhancer");
 const { runOCROnAll }          = require("./ocrEngine");
 const { extractFields, classifyDocument } = require("./fieldExtractor");
+const { extractFieldsWithGemini } = require("./geminiExtractor");
 
 const IMAGE_MIMES = new Set([
   "image/jpeg", "image/jpg", "image/png",
@@ -132,8 +133,21 @@ async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
   // DEBUG: Save raw OCR text to a file so we can inspect it
   require("fs").writeFileSync("latest_ocr_text.txt", ocrResult.text);
   
-  let extraction = extractFields(ocrResult.text, documentTypeInput || quickType);
-  console.log(`  ✅ Document classified as: ${extraction.docType}`);
+  let extraction;
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      console.log("  🤖 Running Gemini structured field extraction...");
+      extraction = await extractFieldsWithGemini(ocrResult.text, documentTypeInput || quickType);
+      console.log(`  ✅ Gemini classified document as: ${extraction.docType}`);
+    } catch (err) {
+      console.warn(`  ⚠️ Gemini extraction failed: ${err.message}. Falling back to regex extraction.`);
+      extraction = extractFields(ocrResult.text, documentTypeInput || quickType);
+      console.log(`  ✅ Regex classified document as: ${extraction.docType}`);
+    }
+  } else {
+    extraction = extractFields(ocrResult.text, documentTypeInput || quickType);
+    console.log(`  ✅ Regex classified document as: ${extraction.docType}`);
+  }
 
   // Step 5: FALLBACK — if this is a marksheet and we're missing roll number,
   // retry OCR on the ORIGINAL unenhanced image (enhancement may have destroyed it)
