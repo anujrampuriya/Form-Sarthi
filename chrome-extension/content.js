@@ -5,212 +5,193 @@
 // Supports 30 fields across wide domains.
 // =============================================================
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "FILL_PAGE") {
-    const count = fillForm(message.profile);
-    sendResponse({ success: true, count });
-  } else if (message.type === "GET_DECRYPTED_SESSION") {
-    try {
-      const sessionStr = sessionStorage.getItem("fs_active_session");
-      const profile = sessionStr ? JSON.parse(sessionStr) : null;
-      sendResponse({ success: !!profile, profile });
-    } catch (e) {
-      sendResponse({ success: false, error: e.message });
+console.log("[FormSarthi Content Script] Injected on: " + window.location.href);
+
+if (window.hasFormSarthiContentScript) {
+  console.log("[FormSarthi] Content script already initialized on this tab.");
+} else {
+  window.hasFormSarthiContentScript = true;
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "FILL_PAGE") {
+      const count = fillForm(message.profile);
+      sendResponse({ success: true, count });
+    } else if (message.type === "GET_DECRYPTED_SESSION") {
+      try {
+        const sessionStr = document.body.getAttribute("data-fs-session");
+        const profile = sessionStr ? JSON.parse(sessionStr) : null;
+        sendResponse({ success: !!profile, profile });
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
+      }
     }
-  }
-  return true;
-});
+    return true;
+  });
+}
 
 function fillForm(profile) {
   if (!profile) return 0;
 
-  const fieldSelectors = {
-    name: [
-      'input[name*="name" i]:not([name*="user" i])',
-      'input[id*="fullname" i]',
-      'input[placeholder*="full name" i]',
-      'input[autocomplete="name"]',
-      'input[name*="candidate" i]',
-      'input[name*="applicant" i]'
-    ],
-    dob: [
-      'input[name*="dob" i]',
-      'input[name*="birth" i]',
-      'input[type="date"]',
-      'input[placeholder*="dd/mm/yyyy" i]',
-      'input[placeholder*="dob" i]'
-    ],
-    gender: [
-      'select[name*="gender" i]',
-      'select[name*="sex" i]',
-      'input[name*="gender" i]'
-    ],
-    caste: [
-      'select[name*="caste" i]',
-      'select[name*="category" i]',
-      'input[name*="caste" i]',
-      'input[name*="category" i]'
-    ],
-    nationality: [
-      'input[name*="nationality" i]',
-      'select[name*="nationality" i]',
-      'input[name*="citizen" i]'
-    ],
-    religion: [
-      'input[name*="religion" i]',
-      'select[name*="religion" i]'
-    ],
-    blood_group: [
-      'input[name*="blood" i]',
-      'select[name*="blood" i]',
-      'input[name*="bg" i]'
-    ],
-    marital_status: [
-      'select[name*="marital" i]',
-      'select[name*="marriage" i]',
-      'input[name*="marital" i]'
-    ],
-    phone: [
-      'input[type="tel"]',
-      'input[name*="phone" i]:not([name*="alt" i])',
-      'input[name*="mobile" i]:not([name*="alt" i])',
-      'input[placeholder*="phone" i]',
-      'input[placeholder*="mobile" i]'
-    ],
-    alt_phone: [
-      'input[name*="alt_phone" i]',
-      'input[name*="altphone" i]',
-      'input[name*="alternate" i]',
-      'input[placeholder*="alternate" i]'
-    ],
-    email: [
-      'input[type="email"]',
-      'input[name*="email" i]',
-      'input[autocomplete="email"]',
-      'input[placeholder*="email" i]'
-    ],
-    address: [
-      'textarea[name*="address" i]',
-      'input[name*="address" i]',
-      'input[autocomplete="street-address"]',
-      'textarea[placeholder*="address" i]'
-    ],
-    city: [
-      'input[name*="city" i]',
-      'input[id*="city" i]',
-      'input[placeholder*="city" i]'
-    ],
-    state: [
-      'input[name*="state" i]',
-      'select[name*="state" i]',
-      'input[placeholder*="state" i]'
-    ],
-    pincode: [
-      'input[name*="pincode" i]',
-      'input[name*="pin" i]',
-      'input[id*="pincode" i]',
-      'input[placeholder*="pincode" i]',
-      'input[placeholder*="pin code" i]',
-      'input[autocomplete="postal-code"]'
-    ],
-    roll_10: [
-      'input[name*="roll_10" i]',
-      'input[name*="roll10" i]',
-      'input[name*="ssc_roll" i]',
-      'input[placeholder*="10th roll" i]',
-      'input[placeholder*="class 10 roll" i]'
-    ],
-    board_10: [
-      'input[name*="board_10" i]',
-      'input[name*="board10" i]',
-      'select[name*="ssc_board" i]',
-      'input[placeholder*="10th board" i]'
-    ],
-    marks_10: [
-      'input[name*="marks_10" i]',
-      'input[name*="marks10" i]',
-      'input[name*="ssc_percent" i]',
-      'input[placeholder*="10th marks" i]',
-      'input[placeholder*="10th percentage" i]'
-    ],
-    roll_12: [
-      'input[name*="roll_12" i]',
-      'input[name*="roll12" i]',
-      'input[name*="hsc_roll" i]',
-      'input[placeholder*="12th roll" i]',
-      'input[placeholder*="class 12 roll" i]'
-    ],
-    board_12: [
-      'input[name*="board_12" i]',
-      'input[name*="board12" i]',
-      'select[name*="hsc_board" i]',
-      'input[placeholder*="12th board" i]'
-    ],
-    marks_12: [
-      'input[name*="marks_12" i]',
-      'input[name*="marks12" i]',
-      'input[name*="hsc_percent" i]',
-      'input[placeholder*="12th marks" i]',
-      'input[placeholder*="12th percentage" i]'
-    ],
-    college: [
-      'input[name*="college" i]',
-      'input[name*="institute" i]',
-      'input[name*="university" i]',
-      'input[placeholder*="college" i]'
-    ],
-    degree: [
-      'input[name*="degree" i]',
-      'input[name*="course" i]',
-      'select[name*="qualification" i]'
-    ],
-    grad_year: [
-      'input[name*="grad_year" i]',
-      'input[name*="gradyear" i]',
-      'select[name*="passing_year" i]'
-    ],
-    aadhaar: [
-      'input[name*="aadhaar" i]', 'input[name*="aadhar" i]',
-      'input[id*="aadhaar" i]', 'input[id*="aadhar" i]',
-      'input[placeholder*="aadhaar" i]', 'input[placeholder*="aadhar" i]'
-    ],
-    pan: [
-      'input[name*="pan" i]', 'input[id*="pan" i]',
-      'input[placeholder*="pan" i]', 'input[name*="permanent account" i]'
-    ],
-    dl: [
-      'input[name*="dl" i]', 'input[name*="driving license" i]',
-      'input[name*="driving licence" i]', 'input[id*="dl" i]',
-      'input[name*="passport" i]', 'input[placeholder*="passport" i]'
-    ],
-    bank_name: [
-      'input[name*="bank_name" i]', 'input[name*="bankname" i]',
-      'input[placeholder*="bank name" i]'
-    ],
-    account_no: [
-      'input[name*="account" i]', 'input[name*="acc_no" i]',
-      'input[placeholder*="account number" i]'
-    ],
-    ifsc: [
-      'input[name*="ifsc" i]', 'input[id*="ifsc" i]',
-      'input[placeholder*="ifsc" i]'
-    ]
-  };
+  const fieldMap = [
+    { key: 'name',          hints: ['name', 'fullname', 'full_name', 'applicant', 'candidate'] },
+    { key: 'dob',           hints: ['dob', 'birth', 'dateofbirth', 'date_of_birth', 'born'] },
+    { key: 'gender',        hints: ['gender', 'sex', 'gender_type'] },
+    { key: 'caste',         hints: ['caste', 'category', 'social_status', 'community', 'reservation'] },
+    { key: 'nationality',   hints: ['nationality', 'citizenship', 'citizen'] },
+    { key: 'religion',      hints: ['religion', 'faith'] },
+    { key: 'blood_group',   hints: ['blood', 'bloodgroup', 'blood_group', 'bg'] },
+    { key: 'marital_status',hints: ['marital', 'marriage', 'married', 'marital_status'] },
+    { key: 'phone',         hints: ['phone', 'mobile', 'contact', 'cell', 'number', 'telephone'] },
+    { key: 'alt_phone',     hints: ['alt_phone', 'altphone', 'alternate', 'emergency_contact', 'alt_mobile'] },
+    { key: 'email',         hints: ['email', 'mail', 'emailid', 'e-mail'] },
+    { key: 'address',       hints: ['address', 'addr', 'residence', 'location', 'permanent_address', 'corr_address'] },
+    { key: 'city',          hints: ['city', 'town', 'district'] },
+    { key: 'state',         hints: ['state', 'province', 'region'] },
+    { key: 'pincode',       hints: ['pincode', 'pin', 'zip', 'postal', 'zipcode'] },
+    { key: 'roll_10',       hints: ['roll_10', 'roll10', 'class_10_roll', 'ssc_roll', 'roll_no_10', 'matric_roll'] },
+    { key: 'board_10',      hints: ['board_10', 'board10', 'ssc_board', 'class_10_board', 'matric_board'] },
+    { key: 'marks_10',      hints: ['marks_10', 'marks10', 'ssc_marks', 'class_10_marks', 'ssc_percent', 'matric_percent', 'percentage_10'] },
+    { key: 'roll_12',       hints: ['roll_12', 'roll12', 'class_12_roll', 'hsc_roll', 'roll_no_12', 'inter_roll'] },
+    { key: 'board_12',      hints: ['board_12', 'board12', 'hsc_board', 'class_12_board', 'inter_board'] },
+    { key: 'marks_12',      hints: ['marks_12', 'marks12', 'hsc_marks', 'class_12_marks', 'hsc_percent', 'inter_percent', 'percentage_12'] },
+    { key: 'college',       hints: ['college', 'institute', 'university', 'school', 'inst_name'] },
+    { key: 'degree',        hints: ['degree', 'course', 'qualification', 'program', 'stream', 'graduation'] },
+    { key: 'grad_year',     hints: ['grad_year', 'gradyear', 'year_of_passing', 'passing_year', 'grad_date'] },
+    { key: 'aadhaar',       hints: ['aadhaar', 'aadhar', 'uid', 'uidai'] },
+    { key: 'pan',           hints: ['pan', 'panno', 'pan_number', 'permanent_account'] },
+    { key: 'dl',            hints: ['driving', 'licence', 'license', 'dl', 'passport', 'passport_no', 'passport_number'] },
+    { key: 'bank_name',     hints: ['bank_name', 'bankname', 'bank_title', 'bankname'] },
+    { key: 'account_no',    hints: ['account_no', 'accountno', 'account_number', 'acc_no', 'ac_no', 'ac_num', 'bank_account'] },
+    { key: 'ifsc',          hints: ['ifsc', 'ifsccode', 'ifsc_code', 'bank_ifsc'] }
+  ];
 
-  let count = 0;
-  for (const [field, selectors] of Object.entries(fieldSelectors)) {
-    const value = profile[field];
-    if (!value) continue;
-    for (const selector of selectors) {
-      const el = document.querySelector(selector);
-      if (el && !el.value) {
-        el.value = value;
-        el.dispatchEvent(new Event("input",  { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-        count++;
+  let filled = 0;
+
+  // 1. Process standard input, textarea, and select elements
+  const textInputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+  
+  textInputs.forEach(input => {
+    // Collect direct attributes
+    const hintAttr = (
+      (input.name || '') + ' ' +
+      (input.id || '') + ' ' +
+      (input.placeholder || '') + ' ' +
+      (input.getAttribute('aria-label') || '') + ' ' +
+      (input.getAttribute('placeholder') || '')
+    ).toLowerCase();
+
+    let labelText = '';
+
+    // A. Check aria-labelledby (Crucial for Google Forms)
+    const ariaLabelledby = input.getAttribute('aria-labelledby');
+    if (ariaLabelledby) {
+      ariaLabelledby.split(/\s+/).forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.textContent) {
+          labelText += ' ' + el.textContent;
+        }
+      });
+    }
+
+    // B. Check standard labels
+    if (input.id) {
+      const label = document.querySelector(`label[for="${input.id}"]`);
+      if (label && label.textContent) labelText += ' ' + label.textContent;
+    }
+    const parentLabel = input.closest('label');
+    if (parentLabel && parentLabel.textContent) labelText += ' ' + parentLabel.textContent;
+
+    // C. Parent Traversal with Bleeding Prevention
+    let parent = input.parentElement;
+    for (let i = 0; i < 6 && parent; i++) {
+      if (parent.tagName === 'FORM' || parent.tagName === 'BODY') break;
+      
+      // If parent element has other text/number fields, stop to avoid matching siblings
+      const siblingInputs = parent.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+      if (siblingInputs.length > 1) break;
+
+      if (parent.textContent) {
+        labelText += ' ' + parent.textContent;
+      }
+      parent = parent.parentElement;
+    }
+
+    const combinedHint = (hintAttr + labelText).toLowerCase().replace(/\s+/g, ' ');
+    console.log("[FormSarthi Debug] Text Element:", input, "Combined Hint:", combinedHint);
+
+    for (const field of fieldMap) {
+      const value = profile[field.key];
+      if (!value) continue;
+
+      const matched = field.hints.some(h => combinedHint.includes(h));
+      if (matched) {
+        console.log(`[FormSarthi Match] Text Field: ${field.key} -> Value: ${value}`);
+        
+        if (input.tagName === 'SELECT') {
+          // Select option matching value
+          const option = Array.from(input.options).find(opt => 
+            opt.value.toLowerCase() === value.toLowerCase() || 
+            opt.text.toLowerCase().includes(value.toLowerCase())
+          );
+          if (option) {
+            input.value = option.value;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            filled++;
+          }
+        } else {
+          // Standard text inputs
+          input.value = value;
+          input.dispatchEvent(new Event('input',  { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+          // Focus and blur to trigger floating label transitions on Google Forms
+          input.dispatchEvent(new Event('focus',  { bubbles: true }));
+          input.dispatchEvent(new Event('blur',   { bubbles: true }));
+          filled++;
+        }
         break;
       }
     }
-  }
-  return count;
+  });
+
+  // 2. Process Radio Button Groups (Google Forms role="radio" and standard input[type=radio])
+  const radioButtons = document.querySelectorAll('[role="radio"], input[type="radio"]');
+  radioButtons.forEach(radio => {
+    // Find the closest question block/card to match field hints
+    const questionCard = radio.closest('[role="listitem"], .Qr7Oae, .form-group');
+    if (!questionCard) return;
+
+    let questionText = '';
+    // Look for heading or title inside the card
+    const headingEl = questionCard.querySelector('[role="heading"], .Ho3o3e, .z12as, .vR13fe, label');
+    if (headingEl) {
+      questionText = headingEl.textContent;
+    } else {
+      questionText = questionCard.textContent || '';
+    }
+
+    // Get the radio option label
+    const optionText = (radio.getAttribute('aria-label') || radio.getAttribute('value') || radio.textContent || '').trim().toLowerCase();
+    const cleanQuestion = questionText.toLowerCase().replace(/\s+/g, ' ');
+
+    for (const field of fieldMap) {
+      const value = profile[field.key];
+      if (!value) continue;
+
+      const matched = field.hints.some(h => cleanQuestion.includes(h));
+      if (matched) {
+        // Check if this option corresponds to the profile value (e.g. profile gender is "Male" and option is "male")
+        if (optionText === value.toLowerCase() || optionText.includes(value.toLowerCase()) || value.toLowerCase().includes(optionText)) {
+          console.log(`[FormSarthi Match] Radio Group matched: ${field.key} -> Option: ${optionText}`);
+          if (radio.getAttribute('aria-checked') !== 'true' && !radio.checked) {
+            radio.click();
+            radio.dispatchEvent(new Event('change', { bubbles: true }));
+            filled++;
+          }
+          break;
+        }
+      }
+    }
+  });
+
+  return filled;
 }
