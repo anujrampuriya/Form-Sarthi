@@ -13,7 +13,10 @@
   "host_permissions": [
     "http://localhost:3000/*",
     "http://localhost:4000/*",
-    "https://your-deployed-domain.com/*"
+    "http://127.0.0.1:3000/*",
+    "http://127.0.0.1:4000/*",
+    "https://your-deployed-domain.com/*",
+    "<all_urls>"
   ],
 
   "action": {

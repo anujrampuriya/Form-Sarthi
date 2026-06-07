@@ -412,6 +412,110 @@
     }
     .brand { display: flex; align-items: center; gap: 10px; }
     .header-actions { display: flex; align-items: center; gap: 12px; }
+
+    /* ── REMINDERS & NOTIFICATIONS DROP-DOWN ── */
+    .notification-container {
+      user-select: none;
+    }
+    #notification-dropdown {
+      animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes dropdownFadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .notification-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      position: relative;
+      transition: all 0.2s;
+    }
+    .notification-item:hover {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: var(--border2);
+    }
+    .notification-item.unread {
+      background: rgba(94, 234, 212, 0.03);
+    }
+    .notification-item.unread::after {
+      content: '';
+      position: absolute;
+      top: 14px;
+      right: 28px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    .notification-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      padding-right: 24px; /* space for close button */
+    }
+    .notification-message {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .notification-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+    .notification-time {
+      color: var(--muted);
+    }
+    .notification-action {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-size: 10px;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .notification-action:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(94, 234, 212, 0.04);
+    }
+    .notification-item.type-incomplete_form { border-left: 3px solid var(--accent); }
+    .notification-item.type-deadline { border-left: 3px solid var(--amber); }
+    .notification-item.type-missing_document { border-left: 3px solid var(--red); }
+    .notification-item.type-new_form { border-left: 3px solid var(--green); }
+    
+    .notification-close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      transition: background 0.2s, color 0.2s;
+    }
+    .notification-close-btn:hover {
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--red);
+    }
     
     .pill {
       background: rgba(94, 234, 212, 0.1);
@@ -1173,6 +1277,25 @@
           <img id="header-logo-image" src="themes/dark%20theme%20logo.png" alt="FormSarthi Logo" />
         </div>
         <div class="header-actions">
+          <!-- Notification Bell -->
+          <div class="notification-container" style="position: relative; display: inline-block;">
+            <button class="btn-theme" id="notification-bell-btn" onclick="toggleNotificationsDropdown()" style="position: relative; padding: 8px 12px; font-size: 16px; display: flex; align-items: center; justify-content: center;">
+              🔔
+              <span id="notification-badge" class="badge" style="position: absolute; top: -5px; right: -5px; background: var(--red); color: #fff; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; display: none;">0</span>
+            </button>
+            
+            <!-- Notifications Dropdown -->
+            <div id="notification-dropdown" class="card" style="display: none; position: absolute; right: 0; top: 45px; width: 350px; max-height: 400px; overflow-y: auto; z-index: 1000; padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+                <h3 style="font-size: 14px; font-weight: 700;">Reminders</h3>
+                <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer;">Mark all as read</button>
+              </div>
+              <div id="notification-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Notifications list rendered dynamically -->
+              </div>
+            </div>
+          </div>
+
           <span class="pill" id="session-badge">🔓 Vault Unlocked</span>
           <button class="btn-theme" onclick="toggleTheme()">☀️ Theme Toggle</button>
           <button class="lock-btn" onclick="lockAndGoBack()">🔒 Lock Vault</button>
@@ -1261,12 +1384,24 @@
             </div>
 
             <div id="meter-section" style="display:none">
-              <div class="meter-card">
-                <div class="meter-row">
-                  <span class="meter-label">Form Completeness Rating</span>
-                  <span class="meter-pct" id="meter-pct">0%</span>
+              <div class="meter-card" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;">
+                <div>
+                  <div class="meter-label" style="font-size: 14px; margin-bottom: 4px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Form Completeness</div>
+                  <div class="meter-pct" id="meter-pct" style="font-size: 28px; font-weight: 800; color: var(--text); transition: color 0.5s;">0%</div>
                 </div>
-                <div class="meter-bar"><div class="meter-fill" id="meter-fill"></div></div>
+                
+                <div class="speedometer-container" style="position: relative; width: 140px; height: 70px; overflow: hidden;">
+                  <svg viewBox="0 0 200 100" style="width: 100%; height: 100%; display: block;">
+                    <!-- Background arc (perfect semicircle r=85) -->
+                    <path d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="20" stroke-linecap="round"/>
+                    <!-- Fill arc -->
+                    <path id="speedo-fill" d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--green)" stroke-width="20" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04" style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;"/>
+                  </svg>
+                  <!-- Needle -->
+                  <div id="speedo-needle" style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 60px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>
+                  <!-- Center Pivot -->
+                  <div style="position: absolute; bottom: 0px; left: 50%; width: 16px; height: 16px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+                </div>
               </div>
 
               <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Detected Fields Map</div>
@@ -1823,7 +1958,7 @@
       if (pinEntered.length === 6) setTimeout(verifyPin, 120);
     }
 
-    // Verify PIN locally via Decryption
+     // Verify PIN locally via Decryption
     async function verifyPin() {
       const p = profiles.find(pr => pr.email === activeProfile);
       if (!p) return;
@@ -1845,6 +1980,8 @@
 
         // Save decrypted profile into sessionStorage for extension access
         sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
+        sessionStorage.setItem("fs_active_profile", activeProfile);
+        document.body.setAttribute("data-fs-session", decryptedText);
 
         openMainScreen(p);
       } catch (e) {
@@ -1870,6 +2007,8 @@
       toggleEditProfile(true);
       renderDeadlines();
       renderHistory();
+      checkAndGenerateReminders();
+      renderReminders();
       updateBadges();
       show('main');
     }
@@ -1887,6 +2026,15 @@
       const filledCount = allKeys.filter(k => data[k] !== undefined && data[k] !== null && data[k] !== '').length;
       const pct = Math.round((filledCount / allKeys.length) * 100);
       document.getElementById('profile-pct-badge').textContent = `${pct}%`;
+
+      // Update unread notification count
+      const reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
+      const unreadCount = reminders.filter(r => r.readStatus === 'unread').length;
+      const badge = document.getElementById('notification-badge');
+      if (badge) {
+        badge.textContent = unreadCount;
+        badge.style.display = unreadCount > 0 ? 'block' : 'none';
+      }
     }
 
     function lockAndGoBack() {
@@ -1894,8 +2042,9 @@
       sessionData = null;
       activeProfile = null;
       sessionStorage.removeItem("fs_active_session");
-      show('who');
-      loadProfiles();
+      sessionStorage.removeItem("fs_active_profile");
+      document.body.removeAttribute("data-fs-session");
+      window.location.reload();
     }
 
     // ── Tabs controller ──
@@ -2274,7 +2423,7 @@
     }
 
     // ── Autofill Tab & Completeness Meter ──
-    function analyzeForm() {
+    async function analyzeForm() {
       const url = document.getElementById('form-url').value.trim();
       if (!url) { toast('Please enter a form URL', 'error'); return; }
 
@@ -2283,13 +2432,59 @@
         return;
       }
 
-      const mapping = FS_Autofill.mapFields(sessionData);
-      const filled  = mapping.filter(m => m.value).length;
-      const pct     = Math.round((filled / mapping.length) * 100);
-
       document.getElementById('meter-section').style.display = 'block';
+      document.getElementById('meter-pct').textContent  = '...';
+      
+      let mapping = FS_Autofill.mapFields(sessionData);
+
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const inputs = doc.querySelectorAll('input:not([type=hidden]):not([type=submit]), textarea, select');
+        
+        let requiredKeys = new Set();
+        inputs.forEach(input => {
+          const hint = ((input.name || '') + (input.id || '') + (input.placeholder || '') + (input.getAttribute('aria-label') || '')).toLowerCase();
+          for (const field of FS_Autofill._fieldMap) {
+            if (field.hints.some(h => hint.includes(h))) {
+              requiredKeys.add(field.key);
+              break;
+            }
+          }
+        });
+        
+        if (requiredKeys.size > 0) {
+          mapping = mapping.filter(m => requiredKeys.has(m.key));
+        }
+      } catch (e) {
+        console.warn("Could not fetch form HTML. Falling back to full parameters.");
+      }
+
+      const filled  = mapping.filter(m => m.value).length;
+      const total   = mapping.length || 1;
+      const pct     = Math.round((filled / total) * 100);
+
       document.getElementById('meter-pct').textContent  = pct + '%';
-      document.getElementById('meter-fill').style.width = pct + '%';
+      
+      const dashOffset = 267.04 - (267.04 * pct / 100);
+      const needleRot = -90 + (180 * pct / 100);
+      
+      let meterColor = 'var(--green)';
+      if (pct < 30) meterColor = '#ef4444'; // Red
+      else if (pct <= 50) meterColor = '#f97316'; // Orange
+      else if (pct <= 80) meterColor = '#eab308'; // Yellow
+
+      document.getElementById('meter-pct').style.color = meterColor;
+
+      const speedoFill = document.getElementById('speedo-fill');
+      const speedoNeedle = document.getElementById('speedo-needle');
+      if (speedoFill) {
+        speedoFill.style.strokeDashoffset = dashOffset;
+        speedoFill.style.stroke = meterColor;
+      }
+      if (speedoNeedle) speedoNeedle.style.transform = `translateX(-50%) rotate(${needleRot}deg)`;
       
       document.getElementById('field-list').innerHTML = mapping.map(m => `
         <div class="field-row">
@@ -2695,6 +2890,299 @@
       }
     });
 
+    // ── Reminders & Notifications Engine ──
+    function toggleNotificationsDropdown() {
+      const dropdown = document.getElementById('notification-dropdown');
+      if (dropdown) {
+        if (dropdown.style.display === 'block') {
+          dropdown.style.display = 'none';
+        } else {
+          dropdown.style.display = 'block';
+          checkAndGenerateReminders();
+          renderReminders();
+        }
+      }
+    }
+
+    // Close notifications dropdown when clicking outside
+    window.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('notification-dropdown');
+      const container = document.querySelector('.notification-container');
+      if (dropdown && dropdown.style.display === 'block' && container && !container.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    });
+
+    function getRequiredDocsForForm(name) {
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes("jee") || lowerName.includes("neet")) {
+        return ["aadhaar", "marksheet_10", "marksheet_12"];
+      } else if (lowerName.includes("job") || lowerName.includes("tcs") || lowerName.includes("resume") || lowerName.includes("cv") || lowerName.includes("intern")) {
+        return ["resume", "marksheet_10", "marksheet_12", "pan"];
+      } else if (lowerName.includes("passport")) {
+        return ["aadhaar", "pan", "bank_passbook"];
+      } else if (lowerName.includes("driving") || lowerName.includes("license") || lowerName.includes("dl")) {
+        return ["aadhaar", "pan"];
+      }
+      return ["aadhaar"];
+    }
+
+    function checkAndGenerateReminders() {
+      if (!activeProfile) return;
+      
+      const now = Date.now();
+      let reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
+      const drafts = JSON.parse(localStorage.getItem(`fs_drafts_${activeProfile}`) || '{}');
+      const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
+      
+      const newRemindersMap = {};
+      
+      // 1. Process Drafts (Incomplete forms)
+      Object.keys(drafts).forEach(url => {
+        const draft = drafts[url];
+        if (draft.percent < 100) {
+          const id = `draft_${url}`;
+          const existing = reminders.find(r => r.id === id);
+          const readStatus = (existing && existing.percent === draft.percent) ? existing.readStatus : 'unread';
+          
+          newRemindersMap[id] = {
+            id,
+            type: 'incomplete_form',
+            title: `Incomplete Form: ${draft.title}`,
+            message: `Your progress on "${draft.title}" is at ${draft.percent}%. Click Continue to restore and complete.`,
+            createdAt: existing ? existing.createdAt : new Date().toISOString(),
+            readStatus,
+            relatedUrl: url,
+            percent: draft.percent
+          };
+        }
+      });
+      
+      // 2. Process Deadlines (Closing date within 7 days)
+      deadlines.forEach(d => {
+        const diff = new Date(d.time).getTime() - now;
+        const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+        
+        if (diff > 0 && diff <= sevenDaysMs) {
+          const id = `deadline_${d.name}_${d.time}`;
+          const existing = reminders.find(r => r.id === id);
+          newRemindersMap[id] = {
+            id,
+            type: 'deadline',
+            title: `Upcoming Deadline: ${d.name}`,
+            message: `"${d.name}" closes on ${new Date(d.time).toLocaleString()}. Complete your application now!`,
+            createdAt: existing ? existing.createdAt : new Date().toISOString(),
+            readStatus: existing ? existing.readStatus : 'unread',
+            relatedUrl: d.url
+          };
+        }
+      });
+      
+      // 3. Process Missing Required Documents
+      const activeForms = [];
+      Object.keys(drafts).forEach(url => activeForms.push({ name: drafts[url].title, url }));
+      deadlines.forEach(d => {
+        if (!activeForms.some(f => f.url === d.url)) {
+          activeForms.push({ name: d.name, url: d.url });
+        }
+      });
+      
+      const docsObj = (sessionData && sessionData.uploadedDocs) || {};
+      
+      activeForms.forEach(f => {
+        const reqDocs = getRequiredDocsForForm(f.name);
+        reqDocs.forEach(docKey => {
+          const isUploaded = !!docsObj[docKey];
+          if (!isUploaded) {
+            const id = `missing_doc_${f.name}_${docKey}`;
+            const existing = reminders.find(r => r.id === id);
+            const docLabel = DOC_TYPES.find(d => d.key === docKey)?.label || docKey;
+            
+            newRemindersMap[id] = {
+              id,
+              type: 'missing_document',
+              title: `Missing Document: ${docLabel}`,
+              message: `Please upload your ${docLabel} in the Documents tab to complete the application for "${f.name}".`,
+              createdAt: existing ? existing.createdAt : new Date().toISOString(),
+              readStatus: existing ? existing.readStatus : 'unread',
+              relatedUrl: '#docs'
+            };
+          }
+        });
+      });
+      
+      // 4. Process New Eligible Forms
+      const SYSTEM_NEW_FORMS = [
+        { id: 'sys_gate_2026', name: "GATE 2026 Registration", url: "https://gate2026.iitr.ac.in", requiredDegree: "B.Tech" },
+        { id: 'sys_cat_2026', name: "CAT 2026 Registration", url: "https://iimcat.ac.in", requiredDegree: "Graduate" },
+        { id: 'sys_upsc_2026', name: "UPSC Civil Services 2026", url: "https://upsc.gov.in", requiredDegree: "Graduate" }
+      ];
+      
+      const userDegree = (sessionData && sessionData.degree) || '';
+      
+      SYSTEM_NEW_FORMS.forEach(sys => {
+        let eligible = false;
+        if (sys.requiredDegree === "Graduate") {
+          eligible = !!userDegree;
+        } else {
+          eligible = userDegree.toLowerCase().includes(sys.requiredDegree.toLowerCase());
+        }
+        
+        if (eligible) {
+          const id = `new_form_${sys.id}`;
+          const existing = reminders.find(r => r.id === id);
+          newRemindersMap[id] = {
+            id,
+            type: 'new_form',
+            title: `New Form Matching Profile`,
+            message: `You are eligible for "${sys.name}". Registration portal is open. Click here to check.`,
+            createdAt: existing ? existing.createdAt : new Date().toISOString(),
+            readStatus: existing ? existing.readStatus : 'unread',
+            relatedUrl: sys.url
+          };
+        }
+      });
+      
+      // Merge into a list
+      let mergedReminders = Object.values(newRemindersMap);
+      
+      // 5. Demo Mode: Seed sample reminders if the list is empty
+      if (mergedReminders.length === 0) {
+        const demoReminders = [
+          {
+            id: 'demo_incomplete',
+            type: 'incomplete_form',
+            title: 'Incomplete Form: NEET UG Registration 2026',
+            message: 'Your progress on "NEET UG Registration 2026" is at 45%. Click Continue to restore and complete.',
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'http://localhost:4000/mock-form.html'
+          },
+          {
+            id: 'demo_deadline',
+            type: 'deadline',
+            title: 'Upcoming Deadline: JEE Main 2026 Registration',
+            message: 'JEE Main 2026 Registration closes soon. Complete your application now!',
+            createdAt: new Date(Date.now() - 7200000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://jeemain.nta.nic.in'
+          },
+          {
+            id: 'demo_missing',
+            type: 'missing_document',
+            title: 'Missing Document: Resume / CV',
+            message: 'Please upload your Resume / CV in the Documents tab to complete the application for "Google Software Engineer Intern".',
+            createdAt: new Date(Date.now() - 14400000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: '#docs'
+          }
+        ];
+        mergedReminders = demoReminders;
+      }
+      
+      localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(mergedReminders));
+    }
+
+    function renderReminders() {
+      const listDiv = document.getElementById('notification-list');
+      if (!listDiv) return;
+      
+      const reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
+      
+      if (reminders.length === 0) {
+        listDiv.innerHTML = `<p style="font-size:12px; color:var(--muted); text-align:center; padding:12px 0;">No active reminders.</p>`;
+        return;
+      }
+      
+      listDiv.innerHTML = reminders.map(r => {
+        let actionBtnHtml = '';
+        if (r.relatedUrl) {
+          if (r.type === 'incomplete_form') {
+            actionBtnHtml = `<button class="notification-action" onclick="continueIncompleteForm('${r.relatedUrl}', '${r.id}')">Continue</button>`;
+          } else if (r.relatedUrl === '#docs') {
+            actionBtnHtml = `<button class="notification-action" onclick="goToDocsTab('${r.id}')">Upload Document</button>`;
+          } else {
+            actionBtnHtml = `<button class="notification-action" onclick="openPortalUrl('${r.relatedUrl}', '${r.id}')">Open Portal</button>`;
+          }
+        }
+        
+        const timeText = formatTimeAgo(new Date(r.createdAt));
+        const unreadClass = r.readStatus === 'unread' ? 'unread' : '';
+        
+        return `
+          <div class="notification-item ${unreadClass} type-${r.type}">
+            <button class="notification-close-btn" onclick="deleteNotification('${r.id}', event)">✕</button>
+            <div class="notification-title">${r.title}</div>
+            <div class="notification-message">${r.message}</div>
+            <div class="notification-meta">
+              <span class="notification-time">${timeText}</span>
+              ${actionBtnHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatTimeAgo(date) {
+      if (isNaN(date.getTime())) return 'Some time ago';
+      const seconds = Math.floor((new Date() - date) / 1000);
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return date.toLocaleDateString();
+    }
+
+    function continueIncompleteForm(url, reminderId) {
+      markNotificationAsRead(reminderId);
+      document.getElementById('notification-dropdown').style.display = 'none';
+      document.getElementById('form-url').value = url;
+      switchTab('autofill', document.getElementById('nav-autofill'));
+      analyzeForm();
+      window.open(url, '_blank');
+    }
+
+    function goToDocsTab(reminderId) {
+      markNotificationAsRead(reminderId);
+      document.getElementById('notification-dropdown').style.display = 'none';
+      switchTab('docs', document.getElementById('nav-docs'));
+    }
+
+    function openPortalUrl(url, reminderId) {
+      markNotificationAsRead(reminderId);
+      document.getElementById('notification-dropdown').style.display = 'none';
+      window.open(url, '_blank');
+    }
+
+    function markNotificationAsRead(id) {
+      const reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
+      const item = reminders.find(r => r.id === id);
+      if (item) {
+        item.readStatus = 'read';
+        localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(reminders));
+        updateBadges();
+        renderReminders();
+      }
+    }
+
+    function markAllNotificationsAsRead() {
+      const reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
+      reminders.forEach(r => r.readStatus = 'read');
+      localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(reminders));
+      updateBadges();
+      renderReminders();
+    }
+
+    function deleteNotification(id, event) {
+      if (event) event.stopPropagation();
+      const reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
+      const filtered = reminders.filter(r => r.id !== id);
+      localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(filtered));
+      updateBadges();
+      renderReminders();
+    }
+
     // ── Communication with Extension ──
     // Listen to messages from content script to share decrypted session data
     window.addEventListener("message", (event) => {
@@ -2706,6 +3194,10 @@
             percent: sessionData ? Math.round(Object.values(sessionData).filter(Boolean).length / PROFILE_FIELDS.length * 100) : 0
           }
         }, event.origin);
+      } else if (event.data && event.data.type === "FS_DRAFT_UPDATED") {
+        checkAndGenerateReminders();
+        renderReminders();
+        updateBadges();
       }
     });
 

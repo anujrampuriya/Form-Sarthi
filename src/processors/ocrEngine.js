@@ -190,28 +190,52 @@ function callGoogleVision(imageBuffer) {
 
 // ── Tesseract Fallback ─────────────────────────────────────────
 
+let workerPromise = null;
+let tesseractChain = Promise.resolve();
+
 async function getTesseractWorker() {
-  if (workerReady) return worker;
-  worker = await Tesseract.createWorker(["eng", "hin"], 1, {
-    logger: process.env.NODE_ENV === "development"
-      ? (m) => { if (m.status === "recognizing text") process.stdout.write("."); }
-      : () => {},
-  });
-  await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
-  workerReady = true;
-  console.log("✅ Tesseract OCR worker ready (eng + hin)");
-  return worker;
+  if (workerPromise) return workerPromise;
+
+  workerPromise = (async () => {
+    console.log("⏳ Initializing Tesseract OCR worker (eng + hin)...");
+    const w = await Tesseract.createWorker(["eng", "hin"], 1, {
+      logger: process.env.NODE_ENV === "development"
+        ? (m) => { if (m.status === "recognizing text") process.stdout.write("."); }
+        : () => {},
+    });
+    await w.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
+    workerReady = true;
+    console.log("✅ Tesseract OCR worker ready (eng + hin)");
+    return w;
+  })();
+
+  return workerPromise;
 }
 
 async function runTesseractOCR(imageBuffer) {
-  const w = await getTesseractWorker();
-  const { data } = await w.recognize(imageBuffer);
-  return { text: data.text || "", confidence: data.confidence || 0 };
+  // Use a global queue to serialize Tesseract recognition tasks,
+  // preventing concurrent/busy worker crashes.
+  return new Promise((resolve, reject) => {
+    tesseractChain = tesseractChain
+      .then(async () => {
+        const w = await getTesseractWorker();
+        const { data } = await w.recognize(imageBuffer);
+        resolve({ text: data.text || "", confidence: data.confidence || 0 });
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  });
 }
 
 // ── Main OCR Function (Priority: Paddle → Google Vision → Tesseract) ──
 
 async function runOCR(imageBuffer, mode = "default") {
+  // 0. Fast mode (force Tesseract for quick classification)
+  if (mode === "fast") {
+    return runTesseractOCR(imageBuffer);
+  }
+
   // 1. Try PaddleOCR first
   const hasPaddle = await checkPaddleAvailable();
   if (hasPaddle) {

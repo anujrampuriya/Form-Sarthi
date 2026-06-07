@@ -23,10 +23,9 @@ async function enhanceStandard(imageBuffer) {
       withoutEnlargement: false,
     })
     .greyscale()
-    .normalise()
-    .linear(1.4, -(1.4 * 128 - 128))
-    .sharpen({ sigma: 2, m1: 0, m2: 3 })
-    .threshold(128)
+    .normalize()
+    .clahe({ width: 200, height: 200 })
+    .sharpen({ sigma: 1.5, m1: 0, m2: 2 })
     .png()
     .toBuffer();
 }

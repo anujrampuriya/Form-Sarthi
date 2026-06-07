@@ -14,6 +14,7 @@ const { convertPdfToImages }   = require("./pdfConverter");
 const { enhanceImages }        = require("./imageEnhancer");
 const { runOCROnAll }          = require("./ocrEngine");
 const { extractFields, classifyDocument } = require("./fieldExtractor");
+const { extractFieldsWithGemini } = require("./geminiExtractor");
 
 const IMAGE_MIMES = new Set([
   "image/jpeg", "image/jpg", "image/png",
@@ -40,16 +41,73 @@ async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
     throw new Error(`Unsupported file type: ${mimeType}`);
   }
 
-  // Step 2: Quick classification on lightly-enhanced image to pick the right mode
-  console.log("  🔤 Quick OCR pass for classification...");
-  const quickEnhanced = await enhanceImages(imageBuffers, "standard");
-  const quickOcr = await runOCROnAll(quickEnhanced, "default");
-  const quickType = documentTypeInput || classifyDocument(quickOcr.text);
-  console.log(`  🏷️  Quick classification: ${quickType}`);
+  // Step 2: Try Gemini API first (if enabled)
+  if (process.env.GEMINI_API_KEY) {
+    console.log("  🧠 GEMINI_API_KEY detected. Routing to Gemini OCR...");
+    try {
+      const { extractWithGemini } = require("./geminiProcessor");
+      const geminiResult = await extractWithGemini(imageBuffers, documentTypeInput);
+      console.log(`  ✅ Gemini classification: ${geminiResult.docType}`);
+      console.log(`  ✅ Gemini extracted ${Object.keys(geminiResult.fields).length} fields`);
+      
+      // Save dummy text for logging compatibility
+      require("fs").writeFileSync("latest_ocr_text.txt", geminiResult.text);
+
+      return {
+        docType: geminiResult.docType,
+        fields: geminiResult.fields,
+        confidence: geminiResult.confidence,
+        text: geminiResult.text
+      };
+    } catch (e) {
+      console.warn("  ⚠️ Gemini API failed:", e.message);
+      console.warn("  ⚠️ Falling back to Google Vision / local OCR pipeline...");
+    }
+  }
+
+  // Step 2.5: Try Google Vision API (if enabled)
+  if (process.env.GOOGLE_VISION_API_KEY) {
+    console.log("  👁️ GOOGLE_VISION_API_KEY detected. Routing to Google Vision API...");
+    try {
+      const { extractWithVisionAPI } = require("./visionClient");
+      // Use original imageBuffers for Vision API (it handles its own enhancement natively, or we can use lightly enhanced ones)
+      const visionOcr = await extractWithVisionAPI(imageBuffers);
+      
+      console.log(`  ✅ Vision API complete — ${visionOcr.text.length} chars extracted`);
+      require("fs").writeFileSync("latest_ocr_text.txt", visionOcr.text);
+      
+      const { extractFields, classifyDocument } = require("./fieldExtractor");
+      const quickType = documentTypeInput || classifyDocument(visionOcr.text);
+      const extraction = extractFields(visionOcr.text, quickType);
+      
+      return {
+        docType: extraction.docType,
+        fields: extraction.fields,
+        confidence: visionOcr.confidence,
+        text: visionOcr.text
+      };
+    } catch (e) {
+      console.warn("  ⚠️ Google Vision API failed:", e.message);
+      console.warn("  ⚠️ Falling back to local offline OCR pipeline...");
+    }
+  }
+
+  // Step 3: Quick classification on lightly-enhanced image to pick the right mode
+  let quickType = documentTypeInput;
+
+  if (!quickType) {
+    console.log("  🔤 Quick OCR pass for classification (First page only)...");
+    const quickEnhanced = await enhanceImages([imageBuffers[0]], "standard");
+    const quickOcr = await runOCROnAll(quickEnhanced, "fast");
+    quickType = classifyDocument(quickOcr.text);
+    console.log(`  🏷️  Quick classification: ${quickType}`);
+  } else {
+    console.log(`  🏷️  Using provided classification: ${quickType}`);
+  }
 
   const isDocumentType = DOCUMENT_TYPES.has(quickType);
 
-  // Step 3: Full OCR with appropriate mode
+  // Step 4: Full OCR with appropriate mode
   let ocrResult;
   let enhancedBuffers;
 
@@ -75,8 +133,21 @@ async function processDocument(fileBuffer, mimeType, documentTypeInput = null) {
   // DEBUG: Save raw OCR text to a file so we can inspect it
   require("fs").writeFileSync("latest_ocr_text.txt", ocrResult.text);
   
-  let extraction = extractFields(ocrResult.text, documentTypeInput || quickType);
-  console.log(`  ✅ Document classified as: ${extraction.docType}`);
+  let extraction;
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      console.log("  🤖 Running Gemini structured field extraction...");
+      extraction = await extractFieldsWithGemini(ocrResult.text, documentTypeInput || quickType);
+      console.log(`  ✅ Gemini classified document as: ${extraction.docType}`);
+    } catch (err) {
+      console.warn(`  ⚠️ Gemini extraction failed: ${err.message}. Falling back to regex extraction.`);
+      extraction = extractFields(ocrResult.text, documentTypeInput || quickType);
+      console.log(`  ✅ Regex classified document as: ${extraction.docType}`);
+    }
+  } else {
+    extraction = extractFields(ocrResult.text, documentTypeInput || quickType);
+    console.log(`  ✅ Regex classified document as: ${extraction.docType}`);
+  }
 
   // Step 5: FALLBACK — if this is a marksheet and we're missing roll number,
   // retry OCR on the ORIGINAL unenhanced image (enhancement may have destroyed it)

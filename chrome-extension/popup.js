@@ -14,7 +14,22 @@ const profileGrid      = document.getElementById("profileGrid");
 const progressFill     = document.getElementById("progressFill");
 const pctText          = document.getElementById("pctText");
 
-function showLocked() { lockedView.classList.add("active"); mainView.classList.remove("active"); }
+function showLocked(errMsg) {
+  lockedView.classList.add("active");
+  mainView.classList.remove("active");
+  
+  let errText = document.getElementById("lockedErrorText");
+  if (!errText) {
+    errText = document.createElement("p");
+    errText.id = "lockedErrorText";
+    errText.style.color = "#f87171";
+    errText.style.fontSize = "11px";
+    errText.style.marginTop = "10px";
+    errText.style.lineHeight = "1.4";
+    lockedView.querySelector(".section").appendChild(errText);
+  }
+  errText.textContent = errMsg ? `Reason: ${errMsg}` : "";
+}
 function showMain()   { mainView.classList.add("active");   lockedView.classList.remove("active"); }
 
 function showMsg(el, text, type) {
@@ -36,7 +51,7 @@ async function loadSession() {
     const response = await chrome.runtime.sendMessage({ type: "GET_PROFILE" });
     
     if (!response || !response.success) {
-      showLocked();
+      showLocked(response?.error || "Failed to retrieve profile");
       return;
     }
 
@@ -71,7 +86,7 @@ async function loadSession() {
     }).join("");
 
   } catch (err) {
-    showLocked();
+    showLocked(err.message || err);
   }
 }
 
@@ -92,7 +107,10 @@ fillBtn.addEventListener("click", async () => {
   fillBtn.disabled    = true;
 
   try {
-    const result = await chrome.runtime.sendMessage({ type: "FILL_FORM" });
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tabId = activeTab ? activeTab.id : null;
+
+    const result = await chrome.runtime.sendMessage({ type: "FILL_FORM", tabId });
     if (result && result.success) {
       showMsg(fillMsg, `✅ Filled ${result.fielledCount} field(s) on this page!`, "success");
     } else {
