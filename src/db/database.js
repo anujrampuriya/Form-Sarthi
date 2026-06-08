@@ -72,6 +72,26 @@ db.exec(`
     encrypted_document_data  TEXT NOT NULL,       -- AES-encrypted file bytes as hex
     uploaded_at              TEXT DEFAULT (datetime('now'))
   );
+
+  -- SyncedProfiles: client-side encrypted profiles for multi-device sync
+  CREATE TABLE IF NOT EXISTS SyncedProfiles (
+    email             TEXT PRIMARY KEY,
+    name              TEXT NOT NULL,
+    avatar            TEXT,
+    color             TEXT,
+    encrypted_profile TEXT NOT NULL,
+    updated_at        TEXT DEFAULT (datetime('now'))
+  );
+
+  -- SyncedFiles: client-side encrypted files for multi-device sync
+  CREATE TABLE IF NOT EXISTS SyncedFiles (
+    email       TEXT NOT NULL,
+    doc_key     TEXT NOT NULL,
+    file_data   TEXT NOT NULL,
+    file_type   TEXT NOT NULL,
+    uploaded_at TEXT DEFAULT (datetime('now')),
+    PRIMARY KEY (email, doc_key)
+  );
 `);
 
 try {
