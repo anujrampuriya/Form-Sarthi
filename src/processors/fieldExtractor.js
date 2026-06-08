@@ -231,7 +231,7 @@ function parseAadhaar(t) {
 function parsePAN(t) {
   const lines = t.split("\n").map(l => l.trim()).filter(Boolean);
   let name = null;
-  const itdIdx = lines.findIndex(l => /income tax/i.test(l));
+  const itdIdx = lines.findIndex(l => /income|tax|permanent/i.test(l));
   if (itdIdx >= 0) {
     for (let i = itdIdx + 1; i < Math.min(itdIdx + 5, lines.length); i++) {
       if (/^[A-Z\s.]{4,}$/.test(lines[i]) && !/DEPARTMENT|GOVERNMENT|INDIA/i.test(lines[i])) {
@@ -346,6 +346,16 @@ function parseMarksheet(t, forceType = null) {
     /(?:father(?:'s)?\s*name|s\/o|son of|daughter of)[:\s]+([A-Za-z\s.]{4,40})/i,
   ]);
 
+  // Extract DOB
+  const dob = genericExtractors.dob(t);
+
+  // Extract School/College
+  let college = null;
+  const schoolMatch = t.match(/(?:School|Vidyalaya|Institution|College|Institute)[:\s]+([A-Za-z0-9\s.,]{4,60})/i);
+  if (schoolMatch) {
+    college = schoolMatch[1].trim();
+  }
+
   const result = {};
   if (is12th) {
     result.roll_12 = rollNo;
@@ -358,6 +368,8 @@ function parseMarksheet(t, forceType = null) {
   }
   if (name) result.name = name;
   if (year) result.grad_year = year;
+  if (dob) result.dob = dob;
+  if (college) result.college = college;
   return result;
 }
 
@@ -375,7 +387,17 @@ function parsePassport(t) {
     /\bINDIAN\b/i
   ]) || "Indian";
 
-  return { dl: passportNo, dob: genericExtractors.dob(t), nationality }; // we map passport to DL or store it locally
+  let name = null;
+  const givenNameMatch = t.match(/(?:Given Names|Given Name|Name)[:\s]+([A-Za-z\s.]{3,30})/i);
+  const surnameMatch = t.match(/(?:Surname|Last Name)[:\s]+([A-Za-z\s.]{3,30})/i);
+  if (givenNameMatch) {
+    name = givenNameMatch[1].trim();
+    if (surnameMatch) {
+      name = name + ' ' + surnameMatch[1].trim();
+    }
+  }
+
+  return { name, dl: passportNo, dob: genericExtractors.dob(t), nationality }; // we map passport to DL or store it locally
 }
 
 // 6. Bank Passbook
@@ -392,7 +414,14 @@ function parseBank(t) {
     else if (ifsc && ifsc.startsWith("HDFC")) bankName = "HDFC Bank";
     else if (ifsc && ifsc.startsWith("ICIC")) bankName = "ICICI Bank";
   }
-  return { account_no: accountNo, ifsc, bank_name: bankName };
+
+  let address = null;
+  const addrMatch = t.match(/(?:Address)[:\s]+([\s\S]{10,200}?)(?=\n\n|\n[A-Z]{3,}|$)/i);
+  if (addrMatch) {
+    address = addrMatch[1].replace(/\n/g, ", ").trim();
+  }
+
+  return { account_no: accountNo, ifsc, bank_name: bankName, address };
 }
 
 // 7. Resume
@@ -481,6 +510,74 @@ function guessPincode(address, city, state) {
   return null;
 }
 
+function extractCityStatePinFromAddress(address) {
+  let city = null;
+  let state = null;
+  let pincode = null;
+
+  if (!address) return { city, state, pincode };
+
+  // 1. Try to find pincode
+  const pinMatch = address.match(/\b([1-9]\d{5})\b/);
+  if (pinMatch) {
+    pincode = pinMatch[1];
+  }
+
+  // 2. Try to find state
+  const states = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar", "Chandigarh", "Dadra and Nagar Haveli", "Daman and Diu", "Delhi", "Lakshadweep", "Puducherry"];
+  const stateCodes = {
+    "MP": "Madhya Pradesh", "UP": "Uttar Pradesh", "MH": "Maharashtra", "DL": "Delhi",
+    "KA": "Karnataka", "TN": "Tamil Nadu", "AP": "Andhra Pradesh", "GJ": "Gujarat",
+    "RJ": "Rajasthan", "HR": "Haryana", "PB": "Punjab", "WB": "West Bengal",
+    "JH": "Jharkhand", "BR": "Bihar", "CG": "Chhattisgarh", "KL": "Kerala",
+    "OD": "Odisha", "TS": "Telangana", "UK": "Uttarakhand", "UA": "Uttarakhand",
+    "AS": "Assam", "HP": "Himachal Pradesh"
+  };
+
+  const upperAddr = address.toUpperCase();
+  for (const s of states) {
+    if (upperAddr.includes(s.toUpperCase())) {
+      state = s;
+      break;
+    }
+  }
+
+  if (!state) {
+    for (const [code, name] of Object.entries(stateCodes)) {
+      const regex = new RegExp(`\\b${code}\\b`, 'i');
+      if (regex.test(address)) {
+        state = name;
+        break;
+      }
+    }
+  }
+
+  // 3. Try to extract city
+  let cleanAddr = address;
+  if (pincode) cleanAddr = cleanAddr.replace(pincode, "");
+  if (state) {
+    cleanAddr = cleanAddr.replace(new RegExp(state, "gi"), "");
+  }
+  for (const code of Object.keys(stateCodes)) {
+    cleanAddr = cleanAddr.replace(new RegExp(`\\b${code}\\b`, "gi"), "");
+  }
+
+  // Split by comma and clean up
+  const parts = cleanAddr.split(",").map(p => p.trim().replace(/[^\w\s]/g, "")).filter(Boolean);
+  if (parts.length > 0) {
+    const lastPart = parts[parts.length - 1];
+    if (lastPart && lastPart.length > 2 && !/^\d+$/.test(lastPart)) {
+      const words = lastPart.split(/\s+/).filter(Boolean);
+      if (words.length > 0) {
+        city = words[words.length - 1];
+        city = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+      }
+    }
+  }
+
+  return { city, state, pincode };
+}
+
 // ── Main Entry Point ──────────────────────────────────────────
 function extractFields(rawText, docTypeInput = null) {
   const t = rawText || "";
@@ -524,6 +621,14 @@ function extractFields(rawText, docTypeInput = null) {
     if (result[key] !== undefined && result[key] !== null) {
       parsedFields[key] = result[key];
     }
+  }
+
+  // Global post-processing: Extract City, State, Pincode from Address if present
+  if (parsedFields.address) {
+    const geo = extractCityStatePinFromAddress(parsedFields.address);
+    if (!parsedFields.city && geo.city) parsedFields.city = geo.city;
+    if (!parsedFields.state && geo.state) parsedFields.state = geo.state;
+    if (!parsedFields.pincode && geo.pincode) parsedFields.pincode = geo.pincode;
   }
 
   // Guess pincode if missing
