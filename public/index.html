@@ -571,6 +571,7 @@
     .notification-item.type-deadline { border-left: 3px solid var(--amber); }
     .notification-item.type-missing_document { border-left: 3px solid var(--red); }
     .notification-item.type-new_form { border-left: 3px solid var(--green); }
+    .notification-item.type-customization_prompt { border-left: 3px solid #a855f7; }
     
     .notification-close-btn {
       position: absolute;
@@ -3231,6 +3232,9 @@
       const prefs = { interests, qualification };
       localStorage.setItem(`fs_survey_prefs_${activeProfile}`, JSON.stringify(prefs));
       
+      // Auto-dismiss the customization prompt once preferences are saved
+      localStorage.setItem(`fs_survey_prompt_dismissed_${activeProfile}`, 'true');
+      
       closeSurveyModal();
       toast("Preferences saved successfully!", "success");
       
@@ -3464,6 +3468,22 @@
         }
         return true;
       });
+
+      // Prepend customization prompt if preferences do not exist and the prompt was not dismissed
+      const hasPrefs = !!localStorage.getItem(`fs_survey_prefs_${activeProfile}`);
+      const isDismissed = !!localStorage.getItem(`fs_survey_prompt_dismissed_${activeProfile}`);
+      if (!hasPrefs && !isDismissed) {
+        const promptReminder = {
+          id: 'sys_customization_prompt',
+          type: 'customization_prompt',
+          title: '⚙️ Personalize Your Reminders',
+          message: 'Tell us your target exams and qualifications to customize your alerts.',
+          createdAt: new Date().toISOString(),
+          readStatus: 'unread',
+          relatedUrl: 'customise'
+        };
+        mergedReminders.unshift(promptReminder);
+      }
       
       localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(mergedReminders));
     }
@@ -3486,6 +3506,8 @@
             actionBtnHtml = `<button class="notification-action" onclick="continueIncompleteForm('${r.relatedUrl}', '${r.id}')">Continue</button>`;
           } else if (r.relatedUrl === '#docs') {
             actionBtnHtml = `<button class="notification-action" onclick="goToDocsTab('${r.id}')">Upload Document</button>`;
+          } else if (r.relatedUrl === 'customise') {
+            actionBtnHtml = `<button class="notification-action" onclick="openSurveyModal()">Customize</button>`;
           } else {
             actionBtnHtml = `<button class="notification-action" onclick="openPortalUrl('${r.relatedUrl}', '${r.id}')">Open Portal</button>`;
           }
@@ -3561,6 +3583,9 @@
 
     function deleteNotification(id, event) {
       if (event) event.stopPropagation();
+      if (id === 'sys_customization_prompt') {
+        localStorage.setItem(`fs_survey_prompt_dismissed_${activeProfile}`, 'true');
+      }
       const reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
       const filtered = reminders.filter(r => r.id !== id);
       localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(filtered));
