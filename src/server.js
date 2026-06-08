@@ -23,7 +23,7 @@ const express = require("express");
 const cors    = require("cors");
 const path    = require("path");
 
-// ── Initialize database (disabled for stateless local-first storage) ────────
+// ── Initialize database ────────
 require("./db/database");
 
 // ── Import route files ────────────────────────────────────────
@@ -34,6 +34,7 @@ const autofillRoutes   = require("./routes/autofill");
 const extensionRoutes  = require("./routes/extension");
 const processRoutes    = require("./routes/process");
 const toolRoutes       = require("./routes/tools");
+const syncRoutes       = require("./routes/sync");
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +79,7 @@ app.use("/api/autofill",   autofillRoutes);  // get decrypted profile for fillin
 app.use("/api/extension",  extensionRoutes); // Chrome extension endpoints
 app.use("/api/process",    processRoutes);   // stateless document processing
 app.use("/api/tools",      toolRoutes);      // stateless document tools (resize, etc.)
+app.use("/api/sync",       syncRoutes);      // zero-knowledge sync endpoints
 
 // =============================================================
 // CATCH-ALL: serve index.html for any unknown route

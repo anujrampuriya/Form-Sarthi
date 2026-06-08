@@ -1977,7 +1977,6 @@
       } catch(e) {
         console.error("Failed to update profile during secure Google Login", e);
       }
-
       if(existing) {
         // User exists, go to PIN screen
         const index = profiles.indexOf(existing);
@@ -2238,6 +2237,19 @@
       try {
         profiles = await dbGetAll("profiles");
         renderProfileGrid();
+        
+        // Background sync: push all local profiles to the server
+        for (const p of profiles) {
+          try {
+            fetch('/api/sync/profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(p)
+            });
+          } catch (err) {
+            console.error("Background sync failed for profile:", p.email, err);
+          }
+        }
       } catch (e) {
         console.error(e);
         toast("Error loading local profiles", "error");
@@ -2338,6 +2350,9 @@
         sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
         sessionStorage.setItem("fs_active_profile", activeProfile);
         document.body.setAttribute("data-fs-session", decryptedText);
+
+        // Sync profile to backend immediately on login to guarantee it is saved
+        await saveLocalVault();
 
         openMainScreen(p);
       } catch (e) {
@@ -2489,9 +2504,31 @@
     async function viewDocument(docKey, docLabel) {
       if (!activeProfile) return;
       try {
-        const fileObj = await dbGet("files", activeProfile + "_" + docKey);
+        let fileObj = await dbGet("files", activeProfile + "_" + docKey);
+        
         if (!fileObj) {
-          toast("Document file not found in local storage.", "error");
+          // Attempt to fetch from backend sync server
+          try {
+            const res = await fetch(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`);
+            if (res.ok) {
+              const syncedFile = await res.json();
+              if (syncedFile && syncedFile.fileData) {
+                fileObj = {
+                  id: activeProfile + "_" + docKey,
+                  fileData: syncedFile.fileData,
+                  fileType: syncedFile.fileType
+                };
+                // Store in local IndexedDB so it's cached
+                await dbPut("files", fileObj);
+              }
+            }
+          } catch (err) {
+            console.error("Failed to fetch synced file from server:", err);
+          }
+        }
+
+        if (!fileObj) {
+          toast("Document file not found in local storage or sync server.", "error");
           return;
         }
         document.getElementById('doc-modal-title').textContent = docLabel + " Review";
@@ -2521,6 +2558,15 @@
       try {
         // Delete from files store
         await dbDelete("files", activeProfile + "_" + docKey);
+        
+        // Delete from backend sync
+        try {
+          await fetch(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`, {
+            method: 'DELETE'
+          });
+        } catch (err) {
+          console.error("Failed to delete synced file from server:", err);
+        }
         
         // Remove from sessionData uploaded flag
         if (sessionData && sessionData.uploadedDocs) {
@@ -2601,6 +2647,22 @@
             reader.onload = async (e) => {
               try {
                 await dbPut("files", { id: activeProfile + "_" + mappedType, fileData: e.target.result, fileType: file.type });
+                
+                // Sync file upload to server
+                try {
+                  await fetch('/api/sync/files', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      email: activeProfile,
+                      docKey: mappedType,
+                      fileData: e.target.result,
+                      fileType: file.type
+                    })
+                  });
+                } catch (err) {
+                  console.error("Failed to sync uploaded file to server:", err);
+                }
               } catch(err) { console.error("Failed to save file to DB:", err); }
             };
             reader.readAsDataURL(file);
@@ -2671,6 +2733,17 @@
       if (p) {
         p.encryptedProfile = ciphertext;
         await dbPut("profiles", p);
+        
+        // Sync profile to server
+        try {
+          await fetch('/api/sync/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(p)
+          });
+        } catch (err) {
+          console.error("Failed to sync updated profile to server:", err);
+        }
         
         // Update session storage for Chrome extension
         sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
@@ -2809,12 +2882,22 @@
     }
 
     async function deleteProfile() {
-      if (!confirm(`Are you sure you want to delete this profile? All local data will be permanently wiped.`)) return;
+      if (!confirm(`Are you sure you want to delete this profile? All local and synced data will be permanently wiped.`)) return;
       
-      await dbDelete("profiles", activeProfile);
+      const targetEmail = activeProfile;
+      await dbDelete("profiles", targetEmail);
       
-      localStorage.removeItem(`fs_deadlines_${activeProfile}`);
-      localStorage.removeItem(`fs_history_${activeProfile}`);
+      localStorage.removeItem(`fs_deadlines_${targetEmail}`);
+      localStorage.removeItem(`fs_history_${targetEmail}`);
+
+      // Delete from backend sync
+      try {
+        await fetch(`/api/sync/profile?email=${encodeURIComponent(targetEmail)}`, {
+          method: 'DELETE'
+        });
+      } catch (err) {
+        console.error("Failed to delete synced profile from server:", err);
+      }
 
       toast("Profile deleted successfully");
       lockAndGoBack();
@@ -3257,6 +3340,17 @@
       try {
         await dbPut("profiles", newProfile);
         
+        // Sync profile to backend
+        try {
+          await fetch('/api/sync/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newProfile)
+          });
+        } catch (err) {
+          console.error("Failed to sync new profile to server:", err);
+        }
+
         // NEW: Push to backend for cross-browser sync
         try {
           await fetch('/api/auth/sync', {
