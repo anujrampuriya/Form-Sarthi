@@ -1286,27 +1286,9 @@
         </div>
       </div>
 
-      <div style="margin-bottom:20px">
-        <label style="display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:6px">Set 6-digit PIN</label>
-        <div class="pin-dots" id="add-dots" style="justify-content:flex-start; gap:10px; margin-bottom:14px">
-          <div class="dot" id="ad0"></div><div class="dot" id="ad1"></div>
-          <div class="dot" id="ad2"></div><div class="dot" id="ad3"></div>
-          <div class="dot" id="ad4"></div><div class="dot" id="ad5"></div>
-        </div>
-        <div class="numpad">
-          <button class="num" onclick="addPinKey('1')">1</button>
-          <button class="num" onclick="addPinKey('2')">2</button>
-          <button class="num" onclick="addPinKey('3')">3</button>
-          <button class="num" onclick="addPinKey('4')">4</button>
-          <button class="num" onclick="addPinKey('5')">5</button>
-          <button class="num" onclick="addPinKey('6')">6</button>
-          <button class="num" onclick="addPinKey('7')">7</button>
-          <button class="num" onclick="addPinKey('8')">8</button>
-          <button class="num" onclick="addPinKey('9')">9</button>
-          <button class="num sm" onclick="addPinKey('clear')">clear</button>
-          <button class="num" onclick="addPinKey('0')">0</button>
-          <button class="num sm" onclick="addPinKey('back')">⌫</button>
-        </div>
+      <div class="form-group" style="margin-bottom:20px">
+        <label>Master Password</label>
+        <input id="new-password" class="form-input" type="password" placeholder="Choose a secure password (min 4 chars)">
       </div>
 
       <div style="display:flex; gap:10px">
@@ -1323,26 +1305,10 @@
         <p class="pin-sub">Enter your 6-digit PIN to decrypt</p>
       </div>
 
-      <div class="pin-dots">
-        <div class="dot" id="d0"></div><div class="dot" id="d1"></div>
-        <div class="dot" id="d2"></div><div class="dot" id="d3"></div>
-        <div class="dot" id="d4"></div><div class="dot" id="d5"></div>
-      </div>
-      <div class="err-msg" id="pin-error"></div>
-
-      <div class="numpad">
-        <button class="num" onclick="pressKey('1')">1</button>
-        <button class="num" onclick="pressKey('2')">2</button>
-        <button class="num" onclick="pressKey('3')">3</button>
-        <button class="num" onclick="pressKey('4')">4</button>
-        <button class="num" onclick="pressKey('5')">5</button>
-        <button class="num" onclick="pressKey('6')">6</button>
-        <button class="num" onclick="pressKey('7')">7</button>
-        <button class="num" onclick="pressKey('8')">8</button>
-        <button class="num" onclick="pressKey('9')">9</button>
-        <button class="num sm" onclick="pressKey('clear')">clear</button>
-        <button class="num" onclick="pressKey('0')">0</button>
-        <button class="num sm" onclick="pressKey('back')">⌫</button>
+      <div class="form-group" style="margin-bottom:20px; width:100%; max-width:280px; margin-left:auto; margin-right:auto;">
+        <input id="login-password" class="form-input" type="password" placeholder="Enter your password" style="text-align:center;">
+        <div class="err-msg" id="pin-error" style="margin-top:8px;"></div>
+        <button class="btn" style="width:100%; margin-top:12px;" onclick="verifyPin()">Unlock</button>
       </div>
 
       <div class="back-link" onclick="show('who')">← Back to profiles</div>
@@ -1979,16 +1945,44 @@
       }
 
       if(existing) {
-        // User exists, go to PIN screen
-        const index = profiles.indexOf(existing);
-        selectProfile(index);
-        toast("Google Profile found. Enter your secure PIN.", "success");
+        if (data.google_key) {
+           activeProfile = existing.email;
+           verifyPin(data.google_key);
+           toast("Seamless Google Login successful!", "success");
+        } else {
+           const index = profiles.indexOf(existing);
+           selectProfile(index);
+           toast("Profile found. Enter your password.", "success");
+        }
       } else {
-        // New user, go to ADD screen
-        showAddProfile();
-        document.getElementById("new-email").value = email;
-        document.getElementById("new-name").value = name;
-        toast("Create your secure PIN for this Google account.", "success");
+        if (data.exists && data.google_key) {
+           const newLocal = { 
+             email: email, 
+             name: name, 
+             color: data.color || 'purple', 
+             avatar: data.avatar || '🪪', 
+             encryptedProfile: data.encrypted_blob || '' 
+           };
+           profiles.push(newLocal);
+           activeProfile = email;
+           verifyPin(data.google_key);
+           toast("Google profile auto-created seamlessly!", "success");
+        } else {
+           // Fallback if not auto-created
+           const newLocal = { 
+             email: email, 
+             name: name, 
+             color: 'purple', 
+             avatar: '🪪', 
+             encryptedProfile: '',
+             isNewGoogleUser: true
+           };
+           profiles.push(newLocal);
+           const index = profiles.indexOf(newLocal);
+           selectProfile(index);
+           document.getElementById('pin-sub').textContent = "Enter your Google password to create account";
+           toast("Google verified! Enter your Google password to create account.", "success");
+        }
       }
     }
 
@@ -2006,6 +2000,14 @@
     // ── IndexedDB Configuration ──
     const DB_NAME = "FormSarthiLocalDB";
     const DB_VERSION = 2;
+
+    // ONE-TIME WIPE SCRIPT
+    if (!localStorage.getItem('fs_wiped_v2')) {
+      indexedDB.deleteDatabase(DB_NAME);
+      localStorage.clear();
+      localStorage.setItem('fs_wiped_v2', 'true');
+      console.log("Locally cached database wiped for fresh start.");
+    }
 
     function getDB() {
       return new Promise((resolve, reject) => {
@@ -2266,14 +2268,15 @@
     function selectProfile(idx) {
       const p = profiles[idx];
       activeProfile = p.email;
-      pinEntered = '';
       const pinAvatar = document.getElementById('pin-avatar');
       pinAvatar.style.background = getColorValue(p.color);
       pinAvatar.textContent = p.avatar || '🪪';
       document.getElementById('pin-name').textContent = p.name;
+      document.getElementById('pin-sub').textContent = "Enter your password to decrypt";
       document.getElementById('pin-error').textContent = '';
-      updateDots([]);
+      document.getElementById('login-password').value = '';
       show('pin');
+      setTimeout(() => document.getElementById('login-password').focus(), 100);
     }
 
     function updateDots(entered, isError) {
@@ -2293,13 +2296,67 @@
     }
 
      // Verify PIN locally via Decryption
-    async function verifyPin() {
+    async function verifyPin(googleKeyHex = null) {
       const p = profiles.find(pr => pr.email === activeProfile);
       if (!p) return;
 
-      // Derive cryptographic key from user PIN + email salt
-      const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
-      const derivedKey = CryptoJS.PBKDF2(pinEntered, salt, { keySize: 256 / 32, iterations: 1000 });
+      let derivedKey;
+      if (googleKeyHex) {
+         derivedKey = CryptoJS.enc.Hex.parse(googleKeyHex);
+         p.isNewGoogleUser = true; // Auto-create the initial vault locally with this key
+      } else {
+         const pass = document.getElementById('login-password').value;
+         if (!pass || pass.length < 4) {
+            document.getElementById('pin-error').textContent = 'Password must be at least 4 characters';
+            return;
+         }
+         const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
+         derivedKey = CryptoJS.PBKDF2(pass, salt, { keySize: 256 / 32, iterations: 1000 });
+      }
+
+      if (p.isNewGoogleUser) {
+         const initialVault = {
+           name: p.name, dob: null, gender: null, caste: null, nationality: null, religion: null, blood_group: null, marital_status: null,
+           phone: null, alt_phone: null, email: p.email, address: null, city: null, state: null, pincode: null,
+           roll_10: null, roll_12: null, board_10: null, board_12: null, marks_10: null, marks_12: null, college: null, degree: null, grad_year: null,
+           aadhaar: null, pan: null, dl: null, bank_name: null, account_no: null, ifsc: null,
+           uploadedDocs: {
+             aadhaar: false, pan: false, dl: false, resume: false,
+             marksheet_10: false, marksheet_12: false, passport: false, bank_passbook: false
+           }
+         };
+         const jsonStr = JSON.stringify(initialVault);
+         const encryptedData = CryptoJS.AES.encrypt(jsonStr, derivedKey.toString()).toString();
+         p.encryptedProfile = encryptedData;
+         
+         delete p.isNewGoogleUser;
+         await dbPut("profiles", p);
+         
+         try {
+           await fetch('/api/auth/sync', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+               action: 'push',
+               email: p.email,
+               pin_hash_client: CryptoJS.enc.Hex.stringify(derivedKey),
+               encrypted_blob: encryptedData,
+               color: p.color,
+               avatar: p.avatar
+             })
+           });
+         } catch(e) { console.warn("Failed to push initial vault to server", e); }
+         
+         activeKey = derivedKey;
+         sessionData = initialVault;
+         sessionStorage.setItem("fs_active_session", jsonStr);
+         sessionStorage.setItem("fs_active_profile", activeProfile);
+         document.body.setAttribute("data-fs-session", jsonStr);
+         
+         openMainScreen(p);
+         toast("Account auto-created securely!", "success");
+         return;
+      }
 
       // NEW: Pull latest encrypted blob from backend before decrypting!
       try {
@@ -2341,9 +2398,7 @@
 
         openMainScreen(p);
       } catch (e) {
-        updateDots('xxxxxx', true);
-        document.getElementById('pin-error').textContent = 'Wrong PIN. Please try again.';
-        setTimeout(() => { pinEntered = ''; updateDots([]); }, 800);
+        document.getElementById('pin-error').textContent = 'Wrong Password. Please try again.';
       }
     }
 
@@ -3221,10 +3276,11 @@
       if (!name) { toast('Please enter a profile nickname', 'error'); return; }
       if (!officialName) { toast('Please enter your official legal name', 'error'); return; }
       if (!email) { toast('Please enter an email', 'error'); return; }
-      if (addPinEntered.length < 6) { toast('Please set a 6-digit PIN', 'error'); return; }
+      const newPass = document.getElementById('new-password').value;
+      if (newPass.length < 4) { toast('Password must be at least 4 characters', 'error'); return; }
 
       const salt = CryptoJS.enc.Utf8.parse(email + "FormSarthiSalt2026");
-      const key = CryptoJS.PBKDF2(addPinEntered, salt, { keySize: 256 / 32, iterations: 1000 });
+      const key = CryptoJS.PBKDF2(newPass, salt, { keySize: 256 / 32, iterations: 1000 });
 
       // Clean blueprint initialization for all 30 fields
       const initialVault = {
@@ -3280,31 +3336,16 @@
       }
     }
 
-    // Global Keyboard Listeners for PIN inputs
+    // Global Keyboard Listeners for Password inputs
     window.addEventListener('keydown', (e) => {
       const activeScreen = document.querySelector('.screen.active');
       if (!activeScreen) return;
 
-      const key = e.key;
-
-      if (activeScreen.id === 'screen-pin') {
-        if (key >= '0' && key <= '9') {
-          pressKey(key);
-        } else if (key === 'Backspace') {
-          pressKey('back');
-        } else if (key === 'Escape') {
-          show('who');
-        }
-      } else if (activeScreen.id === 'screen-add') {
-        const activeEl = document.activeElement;
-        if (activeEl && (activeEl.id === 'new-name' || activeEl.id === 'new-official-name' || activeEl.id === 'new-email')) {
-          return; // Ignore key capture during name/email text entry
-        }
-        if (key >= '0' && key <= '9') {
-          addPinKey(key);
-        } else if (key === 'Backspace') {
-          addPinKey('back');
-        }
+      if (e.key === 'Escape' && activeScreen.id === 'screen-pin') {
+        show('who');
+      } else if (e.key === 'Enter') {
+        if (activeScreen.id === 'screen-pin') verifyPin();
+        else if (activeScreen.id === 'screen-add') saveNewProfile();
       }
     });
 

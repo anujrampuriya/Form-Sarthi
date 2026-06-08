@@ -30,7 +30,7 @@ function isValidEmail(email) {
 }
 
 function isValidPIN(pin) {
-  return /^\d{6}$/.test(pin);
+  return pin && pin.length >= 4;
 }
 
 function isValidName(name) {
@@ -47,7 +47,7 @@ router.post("/signup", async (req, res) => {
     const errors = [];
     if (!name  || !isValidName(name))   errors.push("Name must be at least 2 characters.");
     if (!email || !isValidEmail(email)) errors.push("A valid email address is required.");
-    if (!pin   || !isValidPIN(pin))     errors.push("PIN must be exactly 6 digits (numbers only).");
+    if (!pin   || !isValidPIN(pin))     errors.push("Password must be at least 4 characters long.");
 
     if (errors.length > 0) {
       return res.status(400).json({ error: "Validation failed.", details: errors });
@@ -119,7 +119,7 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ error: "Email and PIN are required." });
     }
     if (!isValidPIN(pin)) {
-      return res.status(400).json({ error: "PIN must be exactly 6 digits." });
+      return res.status(400).json({ error: "Password must be at least 4 characters long." });
     }
 
     const user = db
@@ -198,16 +198,38 @@ router.post("/google", async (req, res) => {
     const email = payload.email.toLowerCase().trim();
     const name = payload.name;
 
-    const user = db.prepare("SELECT * FROM Users WHERE email = ?").get(email);
+    let user = db.prepare("SELECT * FROM Users WHERE email = ?").get(email);
+    let profile = null;
+
     if (!user) {
-      return res.status(200).json({ exists: false, email, name });
+      // AUTO-CREATE ACCOUNT FOR GOOGLE LOGIN
+      const { v4: uuidv4 } = require('uuid');
+      const crypto = require('crypto');
+      const userId = uuidv4();
+      const googleKey = crypto.randomBytes(32).toString('hex'); // 64 char random key
+      
+      db.prepare(`INSERT INTO Users (id, email, name, pin_hash, google_key) VALUES (?, ?, ?, ?, ?)`).run(
+        userId, email, name, "google_auth", googleKey
+      );
+      db.prepare(`INSERT INTO UserProfile (user_id) VALUES (?)`).run(userId);
+      
+      return res.status(200).json({ 
+        exists: true, 
+        email, 
+        name, 
+        google_key: googleKey,
+        color: 'purple',
+        avatar: '🪪',
+        encrypted_blob: '' 
+      });
     }
 
-    const profile = db.prepare("SELECT encrypted_blob, color, avatar FROM UserProfile WHERE user_id = ?").get(user.id);
+    profile = db.prepare("SELECT encrypted_blob, color, avatar FROM UserProfile WHERE user_id = ?").get(user.id);
     return res.status(200).json({
       exists: true,
       email,
       name,
+      google_key: user.google_key || null,
       color: profile?.color || 'purple',
       avatar: profile?.avatar || '🪪',
       encrypted_blob: profile?.encrypted_blob || ''

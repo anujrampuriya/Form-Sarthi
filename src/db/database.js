@@ -62,9 +62,7 @@ db.exec(`
   );
 
   -- Handle migrations if tables already exist
-  BEGIN TRANSACTION;
-  -- We use a simple try-catch block pattern for sqlite alter table (in JS we'll just run it with try/catch later, but here we can just let it fail silently if column exists)
-  COMMIT;
+  -- We just run ALTER TABLE silently in JS below
 
   -- Documents: encrypted file blobs with metadata
   CREATE TABLE IF NOT EXISTS Documents (
@@ -75,6 +73,12 @@ db.exec(`
     uploaded_at              TEXT DEFAULT (datetime('now'))
   );
 `);
+
+try {
+  db.exec("ALTER TABLE Users ADD COLUMN google_key TEXT;");
+} catch (e) {
+  // column likely exists
+}
 
 console.log(`✅ Database ready at: ${dbPath}`);
 
