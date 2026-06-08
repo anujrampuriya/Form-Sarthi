@@ -125,9 +125,24 @@ const genericExtractors = {
     ]);
   },
   ifsc(text) {
-    return tryPatterns(text, [
-      /\b([A-Z]{4}0[A-Z0-9]{6})\b/i
+    const match = tryPatterns(text, [
+      /\b([A-Z]{4}[A-Z0-9]{7})\b/i
     ]);
+    if (match) {
+      const prefix = match.substring(0, 4).toUpperCase();
+      let suffix = match.substring(4).toUpperCase();
+      
+      // The 5th character (index 0 of suffix) is always '0' in a valid IFSC.
+      // Correct common OCR misreads (G, Q, C, D, O) to '0'
+      if (/^[GQCDO]$/.test(suffix[0])) {
+        suffix = '0' + suffix.substring(1);
+      }
+      
+      // Replace any letter 'O' with digit '0' in the rest of the branch code suffix
+      suffix = suffix.replace(/O/g, '0');
+      return prefix + suffix;
+    }
+    return null;
   },
   accountNo(text) {
     return tryPatterns(text, [

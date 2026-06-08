@@ -1872,8 +1872,7 @@
       }
       
       // Check if profile exists locally
-      const allProfiles = await dbGetAll("profiles");
-      let existing = allProfiles.find(p => p.email === email);
+      let existing = profiles.find(p => p.email === email);
       try {
         if (data.exists && !existing) {
            // Add them to local profiles so they can enter their PIN
