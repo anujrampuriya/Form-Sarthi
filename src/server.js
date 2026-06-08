@@ -16,6 +16,7 @@
 //   This means ONE server, ONE port — no CORS issues.
 // =============================================================
 
+// Load environment variables
 require("dotenv").config();
 
 const express = require("express");

@@ -3602,13 +3602,7 @@
       loadProfiles();
     }
 
-    // Lock the app whenever the user switches tabs, minimizes the window, or leaves
-    window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        lockApp();
-      }
-    });
-
+    // Lock the app only when the user leaves or closes the tab
     window.addEventListener('beforeunload', () => {
       lockApp();
     });
