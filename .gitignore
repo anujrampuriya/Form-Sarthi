@@ -1,0 +1,14 @@
+# Dependency directories
+node_modules/
+
+# Environment variables (Contains JWT_SECRET!)
+.env
+
+# Database files (Contains User Hashes and Encrypted Data!)
+db/*.db
+db/*.db-shm
+db/*.db-wal
+
+# Temporary files
+scratch.js
+.DS_Store
