@@ -1788,44 +1788,50 @@
     }
 
     async function handleGoogleLogin(response) {
-      const payload = parseJwt(response.credential);
-      if(!payload) return toast("Google Login failed to parse", "error");
-      
-      const email = payload.email.toLowerCase().trim();
-      const name = payload.name;
+      let email, name, data;
+      try {
+        const authRes = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: response.credential })
+        });
+        if (!authRes.ok) throw new Error("Backend authentication failed");
+        data = await authRes.json();
+        email = data.email;
+        name = data.name;
+      } catch (err) {
+        console.error("Google secure login failed:", err);
+        return toast("Secure Google Login failed", "error");
+      }
       
       // Check if profile exists locally
       const allProfiles = await dbGetAll("profiles");
       let existing = allProfiles.find(p => p.email === email);
-      
-      // NEW: Check if profile exists on the backend
       try {
-        const res = await fetch('/api/auth/check?email=' + encodeURIComponent(email));
-        if (res.ok) {
-           const data = await res.json();
-           if (data.exists && !existing) {
-              // Add them to local profiles so they can enter their PIN
-              const newLocal = { 
-                email: email, 
-                name: name, 
-                color: data.color || 'purple', 
-                avatar: data.avatar || '🪪', 
-                encryptedProfile: data.encrypted_blob || '' 
-              };
-              await dbPut("profiles", newLocal);
-              profiles.push(newLocal);
-              existing = newLocal;
-           } else if (data.exists && existing) {
-              // Update local blob if backend has one
-              if (data.encrypted_blob) {
-                existing.encryptedProfile = data.encrypted_blob;
-                existing.color = data.color || existing.color;
-                existing.avatar = data.avatar || existing.avatar;
-                await dbPut("profiles", existing);
-              }
+        if (data.exists && !existing) {
+           // Add them to local profiles so they can enter their PIN
+           const newLocal = { 
+             email: email, 
+             name: name, 
+             color: data.color || 'purple', 
+             avatar: data.avatar || '🪪', 
+             encryptedProfile: data.encrypted_blob || '' 
+           };
+           await dbPut("profiles", newLocal);
+           profiles.push(newLocal);
+           existing = newLocal;
+        } else if (data.exists && existing) {
+           // Update local blob if backend has one
+           if (data.encrypted_blob) {
+              existing.encryptedProfile = data.encrypted_blob;
+              existing.color = data.color || existing.color;
+              existing.avatar = data.avatar || existing.avatar;
+              await dbPut("profiles", existing);
            }
         }
-      } catch(e) { console.error("Backend sync check failed", e); }
+      } catch(e) {
+        console.error("Failed to update profile during secure Google Login", e);
+      }
 
       if(existing) {
         // User exists, go to PIN screen

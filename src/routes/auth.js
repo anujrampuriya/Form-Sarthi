@@ -12,6 +12,7 @@ const express = require("express");
 const bcrypt  = require("bcryptjs");
 const jwt     = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
+const { OAuth2Client } = require('google-auth-library');
 
 const db = require("../db/database");
 const { deriveKeyFromPIN, encryptProfileFields } = require("../utils/encrypt");
@@ -174,6 +175,47 @@ router.post("/logout", requireAuth, (req, res) => {
   return res.status(200).json({
     message: "Logged out successfully. Please delete your token on the client.",
   });
+});
+
+// =============================================================
+// POST /api/auth/google
+// Verifies Google JWT token and returns profile data
+// =============================================================
+const googleClient = new OAuth2Client("834929420243-mkqegpisuka6d3t530k47c65ipd266t9.apps.googleusercontent.com");
+
+router.post("/google", async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: "Token required" });
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: "834929420243-mkqegpisuka6d3t530k47c65ipd266t9.apps.googleusercontent.com"
+    });
+    const payload = ticket.getPayload();
+    if (!payload) return res.status(401).json({ error: "Invalid token payload" });
+
+    const email = payload.email.toLowerCase().trim();
+    const name = payload.name;
+
+    const user = db.prepare("SELECT * FROM Users WHERE email = ?").get(email);
+    if (!user) {
+      return res.status(200).json({ exists: false, email, name });
+    }
+
+    const profile = db.prepare("SELECT encrypted_blob, color, avatar FROM UserProfile WHERE user_id = ?").get(user.id);
+    return res.status(200).json({
+      exists: true,
+      email,
+      name,
+      color: profile?.color || 'purple',
+      avatar: profile?.avatar || '🪪',
+      encrypted_blob: profile?.encrypted_blob || ''
+    });
+  } catch (err) {
+    console.error("Google Auth error:", err.message);
+    return res.status(401).json({ error: "Invalid Google token" });
+  }
 });
 
 // =============================================================
