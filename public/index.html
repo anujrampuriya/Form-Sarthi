@@ -1699,50 +1699,116 @@
 
   <!-- SURVEY CUSTOMIZATION MODAL -->
   <div id="survey-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-    <div class="card" style="width:90%; max-width:480px; padding:24px; display:flex; flex-direction:column; gap:18px; position:relative; box-shadow:var(--shadow); border:1px solid var(--border); background:var(--surface);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+    <div class="card" style="width:90%; max-width:500px; max-height:85vh; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px; position:relative; box-shadow:var(--shadow); border:1px solid var(--border); background:var(--surface);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; position:sticky; top:0; background:var(--surface); z-index:1;">
         <h2 style="font-size:18px; font-weight:800; color:var(--text)">⚙️ Customize Notifications</h2>
         <button onclick="closeSurveyModal()" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
       </div>
       
-      <p style="font-size:13px; color:var(--muted); line-height:1.5;">Tell us your interests and qualification to customize your dynamic form reminders and eligibility notifications.</p>
+      <p style="font-size:13px; color:var(--muted); line-height:1.5;">Tell us about yourself to personalize your notifications, dynamic form reminders, and eligibility alerts.</p>
       
       <div style="display:flex; flex-direction:column; gap:14px;">
-        <!-- Categories -->
+        
+        <!-- Age & Caste Row -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Age</label>
+            <input type="number" id="survey-age" min="10" max="60" placeholder="e.g. 20" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Category / Caste</label>
+            <select id="survey-caste" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
+              <option value="general">General (UR)</option>
+              <option value="obc">OBC</option>
+              <option value="sc">SC</option>
+              <option value="st">ST</option>
+              <option value="ews">EWS</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Education Level & 12th Stream Row -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Education Level</label>
+            <select id="survey-qualification" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
+              <option value="school">High School (Class 10th / 12th)</option>
+              <option value="college">College Student (B.Tech / Undergrad)</option>
+              <option value="graduate">Graduate / Post-Graduate</option>
+            </select>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">12th Subject Stream</label>
+            <select id="survey-stream" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
+              <option value="pcm">Science (Physics, Chemistry, Maths)</option>
+              <option value="pcb">Science (Physics, Chemistry, Biology)</option>
+              <option value="commerce">Commerce</option>
+              <option value="arts">Arts / Humanities</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Target Fields -->
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target Exams & Interests</label>
-          <div style="display:flex; flex-direction:column; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
+          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target Fields & Interests</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-engineering" value="engineering" checked style="accent-color:var(--accent); cursor:pointer;">
-              Engineering Exams (GATE, JEE)
+              Engineering
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-medical" value="medical" checked style="accent-color:var(--accent); cursor:pointer;">
-              Medical Entrance (NEET)
+              Medical
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-government" value="government" checked style="accent-color:var(--accent); cursor:pointer;">
-              Civil Services / Government (UPSC)
+              Govt Jobs
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-corporate" value="corporate" checked style="accent-color:var(--accent); cursor:pointer;">
-              Corporate Jobs / Internships (TCS, Google)
+              Corporate Jobs
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text); grid-column: span 2;">
+              <input type="checkbox" id="survey-interest-scholarships" value="scholarships" checked style="accent-color:var(--accent); cursor:pointer;">
+              Scholarships & Financial Aid
             </label>
           </div>
         </div>
-        
-        <!-- Qualification -->
+
+        <!-- Target Exams -->
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Current Education Level</label>
-          <select id="survey-qualification" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
-            <option value="school">High School (Class 10th / 12th)</option>
-            <option value="college" selected>College Student (B.Tech / Undergrad)</option>
-            <option value="graduate">Graduate / Post-Graduate</option>
-          </select>
+          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target Exams & Schemes</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-jee" value="jee" checked style="accent-color:var(--accent); cursor:pointer;">
+              JEE Main / Advanced
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-neet" value="neet" checked style="accent-color:var(--accent); cursor:pointer;">
+              NEET UG
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-gate" value="gate" checked style="accent-color:var(--accent); cursor:pointer;">
+              GATE
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-cat" value="cat" checked style="accent-color:var(--accent); cursor:pointer;">
+              CAT
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-upsc" value="upsc" checked style="accent-color:var(--accent); cursor:pointer;">
+              UPSC Civil Services
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-scholarships" value="scholarships" checked style="accent-color:var(--accent); cursor:pointer;">
+              National Scholarships
+            </label>
+          </div>
         </div>
+
       </div>
       
-      <div style="display:flex; gap:10px; margin-top:8px;">
+      <div style="display:flex; gap:10px; margin-top:8px; position:sticky; bottom:0; background:var(--surface); padding-top:8px; border-top:1px solid var(--border); z-index:1;">
         <button class="btn outline" onclick="closeSurveyModal()" style="flex:1; padding:10px; font-size:13px;">Cancel</button>
         <button class="btn" onclick="saveSurveyPreferences()" style="flex:1; padding:10px; font-size:13px;">Save Preferences</button>
       </div>
@@ -3194,17 +3260,41 @@
 
       let prefs = JSON.parse(localStorage.getItem(`fs_survey_prefs_${activeProfile}`) || 'null');
       if (prefs) {
+        document.getElementById('survey-age').value = prefs.age || '';
+        document.getElementById('survey-caste').value = prefs.caste || 'general';
+        document.getElementById('survey-qualification').value = prefs.qualification || 'college';
+        document.getElementById('survey-stream').value = prefs.stream || 'pcm';
+
         document.getElementById('survey-interest-engineering').checked = prefs.interests.includes('engineering');
         document.getElementById('survey-interest-medical').checked = prefs.interests.includes('medical');
         document.getElementById('survey-interest-government').checked = prefs.interests.includes('government');
         document.getElementById('survey-interest-corporate').checked = prefs.interests.includes('corporate');
-        document.getElementById('survey-qualification').value = prefs.qualification || 'college';
+        document.getElementById('survey-interest-scholarships').checked = prefs.interests.includes('scholarships');
+
+        document.getElementById('survey-exam-jee').checked = prefs.exams.includes('jee');
+        document.getElementById('survey-exam-neet').checked = prefs.exams.includes('neet');
+        document.getElementById('survey-exam-gate').checked = prefs.exams.includes('gate');
+        document.getElementById('survey-exam-cat').checked = prefs.exams.includes('cat');
+        document.getElementById('survey-exam-upsc').checked = prefs.exams.includes('upsc');
+        document.getElementById('survey-exam-scholarships').checked = prefs.exams.includes('scholarships');
       } else {
+        document.getElementById('survey-age').value = '';
+        document.getElementById('survey-caste').value = 'general';
+        document.getElementById('survey-qualification').value = 'college';
+        document.getElementById('survey-stream').value = 'pcm';
+
         document.getElementById('survey-interest-engineering').checked = true;
         document.getElementById('survey-interest-medical').checked = true;
         document.getElementById('survey-interest-government').checked = true;
         document.getElementById('survey-interest-corporate').checked = true;
-        document.getElementById('survey-qualification').value = 'college';
+        document.getElementById('survey-interest-scholarships').checked = true;
+
+        document.getElementById('survey-exam-jee').checked = true;
+        document.getElementById('survey-exam-neet').checked = true;
+        document.getElementById('survey-exam-gate').checked = true;
+        document.getElementById('survey-exam-cat').checked = true;
+        document.getElementById('survey-exam-upsc').checked = true;
+        document.getElementById('survey-exam-scholarships').checked = true;
       }
       document.getElementById('survey-modal').style.display = 'flex';
     }
@@ -3215,15 +3305,28 @@
 
     function saveSurveyPreferences() {
       if (!activeProfile) return;
+
+      const age = document.getElementById('survey-age').value.trim();
+      const caste = document.getElementById('survey-caste').value;
+      const qualification = document.getElementById('survey-qualification').value;
+      const stream = document.getElementById('survey-stream').value;
+
       const interests = [];
       if (document.getElementById('survey-interest-engineering').checked) interests.push('engineering');
       if (document.getElementById('survey-interest-medical').checked) interests.push('medical');
       if (document.getElementById('survey-interest-government').checked) interests.push('government');
       if (document.getElementById('survey-interest-corporate').checked) interests.push('corporate');
+      if (document.getElementById('survey-interest-scholarships').checked) interests.push('scholarships');
+
+      const exams = [];
+      if (document.getElementById('survey-exam-jee').checked) exams.push('jee');
+      if (document.getElementById('survey-exam-neet').checked) exams.push('neet');
+      if (document.getElementById('survey-exam-gate').checked) exams.push('gate');
+      if (document.getElementById('survey-exam-cat').checked) exams.push('cat');
+      if (document.getElementById('survey-exam-upsc').checked) exams.push('upsc');
+      if (document.getElementById('survey-exam-scholarships').checked) exams.push('scholarships');
       
-      const qualification = document.getElementById('survey-qualification').value;
-      
-      const prefs = { interests, qualification };
+      const prefs = { age, caste, qualification, stream, interests, exams };
       localStorage.setItem(`fs_survey_prefs_${activeProfile}`, JSON.stringify(prefs));
       
       // Auto-dismiss the customization prompt once preferences are saved
@@ -3257,6 +3360,7 @@
       if (lower.includes("neet") || lower.includes("medical")) return "medical";
       if (lower.includes("upsc") || lower.includes("civil") || lower.includes("government")) return "government";
       if (lower.includes("tcs") || lower.includes("google") || lower.includes("corporate") || lower.includes("job") || lower.includes("intern")) return "corporate";
+      if (lower.includes("scholarship")) return "scholarships";
       return null;
     }
 
@@ -3273,8 +3377,12 @@
       let prefs = JSON.parse(localStorage.getItem(`fs_survey_prefs_${activeProfile}`) || 'null');
       if (!prefs) {
         prefs = {
-          interests: ['engineering', 'medical', 'government', 'corporate'],
-          qualification: 'college'
+          age: '',
+          caste: 'general',
+          qualification: 'college',
+          stream: 'pcm',
+          interests: ['engineering', 'medical', 'government', 'corporate', 'scholarships'],
+          exams: ['jee', 'neet', 'gate', 'cat', 'upsc', 'scholarships']
         };
       }
       
@@ -3362,11 +3470,14 @@
       
       // 4. Process New Eligible Forms
       const SYSTEM_NEW_FORMS = [
-        { id: 'sys_gate_2027', name: "GATE 2027 Registration", url: "https://gate2027.iitr.ac.in", requiredDegree: "B.Tech", requiredQualification: "college", category: "engineering", deadline: "2026-10-30T23:59:59Z" },
-        { id: 'sys_cat_2026', name: "CAT 2026 Registration", url: "https://iimcat.ac.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "corporate", deadline: "2026-09-25T23:59:59Z" },
-        { id: 'sys_upsc_2027', name: "UPSC Civil Services 2027", url: "https://upsc.gov.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "government", deadline: "2027-02-15T23:59:59Z" },
-        { id: 'sys_neet_2027', name: "NEET UG 2027 Registration", url: "https://neet.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "medical", deadline: "2027-04-10T23:59:59Z" },
-        { id: 'sys_jee_2026', name: "JEE Main 2026 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", deadline: "2026-01-15T23:59:59Z" }
+        { id: 'sys_gate_2027', name: "GATE 2027 Registration", url: "https://gate2027.iitr.ac.in", requiredDegree: "B.Tech", requiredQualification: "college", category: "engineering", examKey: "gate", allowedStreams: ["pcm"], deadline: "2026-10-30T23:59:59Z" },
+        { id: 'sys_cat_2026', name: "CAT 2026 Registration", url: "https://iimcat.ac.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "corporate", examKey: "cat", deadline: "2026-09-25T23:59:59Z" },
+        { id: 'sys_upsc_2027', name: "UPSC Civil Services 2027", url: "https://upsc.gov.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "government", examKey: "upsc", deadline: "2027-02-15T23:59:59Z" },
+        { id: 'sys_neet_2027', name: "NEET UG 2027 Registration", url: "https://neet.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "medical", examKey: "neet", allowedStreams: ["pcb"], deadline: "2027-04-10T23:59:59Z" },
+        { id: 'sys_jee_2026', name: "JEE Main 2026 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", examKey: "jee", allowedStreams: ["pcm"], deadline: "2026-01-15T23:59:59Z" },
+        { id: 'sys_jee_2027', name: "JEE Main 2027 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", examKey: "jee", allowedStreams: ["pcm"], deadline: "2026-12-15T23:59:59Z" },
+        { id: 'sys_post_matric_scst', name: "Post-Matric Scholarship for SC/ST", url: "https://scholarships.gov.in", requiredDegree: "School", requiredQualification: "school", category: "scholarships", examKey: "scholarships", allowedCastes: ["sc", "st"], deadline: "2026-11-30T23:59:59Z" },
+        { id: 'sys_nsp_merit', name: "NSP Central Sector Scheme Scholarship", url: "https://scholarships.gov.in", requiredDegree: "College", requiredQualification: "college", category: "scholarships", examKey: "scholarships", deadline: "2026-11-15T23:59:59Z" }
       ];
       
       SYSTEM_NEW_FORMS.forEach(sys => {
@@ -3374,8 +3485,14 @@
         if (formDeadline < now) return; // Filter out expired forms (e.g. JEE 2026)
         
         if (!prefs.interests.includes(sys.category)) return;
+
+        if (sys.examKey && !prefs.exams.includes(sys.examKey)) return;
         
         if (!checkEligibility(prefs.qualification, sys.requiredQualification)) return;
+
+        if (sys.allowedStreams && !sys.allowedStreams.includes(prefs.stream)) return;
+
+        if (sys.allowedCastes && !sys.allowedCastes.includes(prefs.caste)) return;
         
         const id = `new_form_${sys.id}`;
         const existing = reminders.find(r => r.id === id);
@@ -3405,6 +3522,8 @@
             readStatus: 'unread',
             relatedUrl: 'http://localhost:4000/mock-form.html',
             category: 'medical',
+            examKey: 'neet',
+            allowedStreams: ['pcb'],
             requiredQualification: 'school',
             deadline: new Date(now + 15 * 24 * 3600 * 1000).toISOString()
           },
@@ -3417,6 +3536,8 @@
             readStatus: 'unread',
             relatedUrl: 'https://jeemain.nta.nic.in',
             category: 'engineering',
+            examKey: 'jee',
+            allowedStreams: ['pcm'],
             requiredQualification: 'school',
             deadline: new Date(now + 5 * 24 * 3600 * 1000).toISOString()
           },
@@ -3429,6 +3550,7 @@
             readStatus: 'unread',
             relatedUrl: '#docs',
             category: 'corporate',
+            examKey: 'cat',
             requiredQualification: 'college',
             deadline: new Date(now + 10 * 24 * 3600 * 1000).toISOString()
           },
@@ -3441,15 +3563,33 @@
             readStatus: 'unread',
             relatedUrl: 'https://upsc.gov.in',
             category: 'government',
+            examKey: 'upsc',
             requiredQualification: 'graduate',
             deadline: new Date(now + 12 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_scholarship',
+            type: 'new_form',
+            title: 'Scholarship Opportunity: SC/ST Merit Scholarship',
+            message: 'National Merit Scholarship Scheme is open. Click Open Portal to apply.',
+            createdAt: new Date(Date.now() - 24000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://scholarships.gov.in',
+            category: 'scholarships',
+            examKey: 'scholarships',
+            allowedCastes: ['sc', 'st'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 20 * 24 * 3600 * 1000).toISOString()
           }
         ];
         
         mergedReminders = demoReminders.filter(demo => {
           if (demo.deadline && new Date(demo.deadline).getTime() < now) return false;
           if (!prefs.interests.includes(demo.category)) return false;
+          if (demo.examKey && !prefs.exams.includes(demo.examKey)) return false;
           if (!checkEligibility(prefs.qualification, demo.requiredQualification)) return false;
+          if (demo.allowedStreams && !demo.allowedStreams.includes(prefs.stream)) return false;
+          if (demo.allowedCastes && !demo.allowedCastes.includes(prefs.caste)) return false;
           return true;
         });
       }
