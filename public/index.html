@@ -1740,10 +1740,13 @@
           <div style="display:flex; flex-direction:column; gap:6px;">
             <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">12th Subject Stream</label>
             <select id="survey-stream" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
-              <option value="pcm">Science (Physics, Chemistry, Maths)</option>
-              <option value="pcb">Science (Physics, Chemistry, Biology)</option>
-              <option value="commerce">Commerce</option>
+              <option value="pcm">Science - PCM (Physics, Chemistry, Maths)</option>
+              <option value="pcb">Science - PCB (Physics, Chemistry, Biology)</option>
+              <option value="pcmb">Science - PCMB (Maths & Biology)</option>
+              <option value="commerce_maths">Commerce with Mathematics</option>
+              <option value="commerce_no_maths">Commerce without Mathematics</option>
               <option value="arts">Arts / Humanities</option>
+              <option value="vocational">Vocational / Other streams</option>
             </select>
           </div>
         </div>
@@ -1754,19 +1757,51 @@
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-engineering" value="engineering" checked style="accent-color:var(--accent); cursor:pointer;">
-              Engineering
+              Engineering & Tech
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-medical" value="medical" checked style="accent-color:var(--accent); cursor:pointer;">
-              Medical
+              Medicine & Healthcare
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-architecture" value="architecture" checked style="accent-color:var(--accent); cursor:pointer;">
+              Architecture
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-defense" value="defense" checked style="accent-color:var(--accent); cursor:pointer;">
+              Defense Services
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-agriculture" value="agriculture" checked style="accent-color:var(--accent); cursor:pointer;">
+              Agriculture & Biotech
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-commerce" value="commerce" checked style="accent-color:var(--accent); cursor:pointer;">
+              Commerce, CA & CS
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-business" value="business" checked style="accent-color:var(--accent); cursor:pointer;">
+              Business & Management
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-law" value="law" checked style="accent-color:var(--accent); cursor:pointer;">
+              Law (LLB)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-design" value="design" checked style="accent-color:var(--accent); cursor:pointer;">
+              Design & Fashion
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-humanities" value="humanities" checked style="accent-color:var(--accent); cursor:pointer;">
+              Humanities & Social Sciences
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-government" value="government" checked style="accent-color:var(--accent); cursor:pointer;">
-              Govt Jobs
+              Govt Jobs (UPSC/SSC)
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
               <input type="checkbox" id="survey-interest-corporate" value="corporate" checked style="accent-color:var(--accent); cursor:pointer;">
-              Corporate Jobs
+              Corporate / IT Jobs
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text); grid-column: span 2;">
               <input type="checkbox" id="survey-interest-scholarships" value="scholarships" checked style="accent-color:var(--accent); cursor:pointer;">
@@ -1796,12 +1831,56 @@
               CAT
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-upsc" value="upsc" checked style="accent-color:var(--accent); cursor:pointer;">
-              UPSC Civil Services
+              <input type="checkbox" id="survey-exam-bitsat" value="bitsat" checked style="accent-color:var(--accent); cursor:pointer;">
+              BITSAT
             </label>
             <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nata" value="nata" checked style="accent-color:var(--accent); cursor:pointer;">
+              NATA (Architecture)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nda" value="nda" checked style="accent-color:var(--accent); cursor:pointer;">
+              NDA (Defense)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-icar" value="icar" checked style="accent-color:var(--accent); cursor:pointer;">
+              ICAR AIEEA (Agriculture)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-ca" value="ca" checked style="accent-color:var(--accent); cursor:pointer;">
+              CA Foundation
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-cseet" value="cseet" checked style="accent-color:var(--accent); cursor:pointer;">
+              CSEET (CS Entrance)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-ipmat" value="ipmat" checked style="accent-color:var(--accent); cursor:pointer;">
+              IPMAT (Management)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-clat" value="clat" checked style="accent-color:var(--accent); cursor:pointer;">
+              CLAT (Law Entrance)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nift" value="nift" checked style="accent-color:var(--accent); cursor:pointer;">
+              NIFT / NID (Design)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nchmct" value="nchmct" checked style="accent-color:var(--accent); cursor:pointer;">
+              NCHMCT JEE (Hotel Mgmt)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-cuet" value="cuet" checked style="accent-color:var(--accent); cursor:pointer;">
+              CUET UG
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-upsc" value="upsc" checked style="accent-color:var(--accent); cursor:pointer;">
+              UPSC / SSC CGL
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text); grid-column: span 2;">
               <input type="checkbox" id="survey-exam-scholarships" value="scholarships" checked style="accent-color:var(--accent); cursor:pointer;">
-              National Scholarships
+              National / State Scholarships
             </label>
           </div>
         </div>
@@ -3272,6 +3351,14 @@
 
         document.getElementById('survey-interest-engineering').checked = prefs.interests.includes('engineering');
         document.getElementById('survey-interest-medical').checked = prefs.interests.includes('medical');
+        document.getElementById('survey-interest-architecture').checked = prefs.interests.includes('architecture');
+        document.getElementById('survey-interest-defense').checked = prefs.interests.includes('defense');
+        document.getElementById('survey-interest-agriculture').checked = prefs.interests.includes('agriculture');
+        document.getElementById('survey-interest-commerce').checked = prefs.interests.includes('commerce');
+        document.getElementById('survey-interest-business').checked = prefs.interests.includes('business');
+        document.getElementById('survey-interest-law').checked = prefs.interests.includes('law');
+        document.getElementById('survey-interest-design').checked = prefs.interests.includes('design');
+        document.getElementById('survey-interest-humanities').checked = prefs.interests.includes('humanities');
         document.getElementById('survey-interest-government').checked = prefs.interests.includes('government');
         document.getElementById('survey-interest-corporate').checked = prefs.interests.includes('corporate');
         document.getElementById('survey-interest-scholarships').checked = prefs.interests.includes('scholarships');
@@ -3280,6 +3367,17 @@
         document.getElementById('survey-exam-neet').checked = prefs.exams.includes('neet');
         document.getElementById('survey-exam-gate').checked = prefs.exams.includes('gate');
         document.getElementById('survey-exam-cat').checked = prefs.exams.includes('cat');
+        document.getElementById('survey-exam-bitsat').checked = prefs.exams.includes('bitsat');
+        document.getElementById('survey-exam-nata').checked = prefs.exams.includes('nata');
+        document.getElementById('survey-exam-nda').checked = prefs.exams.includes('nda');
+        document.getElementById('survey-exam-icar').checked = prefs.exams.includes('icar');
+        document.getElementById('survey-exam-ca').checked = prefs.exams.includes('ca');
+        document.getElementById('survey-exam-cseet').checked = prefs.exams.includes('cseet');
+        document.getElementById('survey-exam-ipmat').checked = prefs.exams.includes('ipmat');
+        document.getElementById('survey-exam-clat').checked = prefs.exams.includes('clat');
+        document.getElementById('survey-exam-nift').checked = prefs.exams.includes('nift');
+        document.getElementById('survey-exam-nchmct').checked = prefs.exams.includes('nchmct');
+        document.getElementById('survey-exam-cuet').checked = prefs.exams.includes('cuet');
         document.getElementById('survey-exam-upsc').checked = prefs.exams.includes('upsc');
         document.getElementById('survey-exam-scholarships').checked = prefs.exams.includes('scholarships');
       } else {
@@ -3290,6 +3388,14 @@
 
         document.getElementById('survey-interest-engineering').checked = true;
         document.getElementById('survey-interest-medical').checked = true;
+        document.getElementById('survey-interest-architecture').checked = true;
+        document.getElementById('survey-interest-defense').checked = true;
+        document.getElementById('survey-interest-agriculture').checked = true;
+        document.getElementById('survey-interest-commerce').checked = true;
+        document.getElementById('survey-interest-business').checked = true;
+        document.getElementById('survey-interest-law').checked = true;
+        document.getElementById('survey-interest-design').checked = true;
+        document.getElementById('survey-interest-humanities').checked = true;
         document.getElementById('survey-interest-government').checked = true;
         document.getElementById('survey-interest-corporate').checked = true;
         document.getElementById('survey-interest-scholarships').checked = true;
@@ -3298,6 +3404,17 @@
         document.getElementById('survey-exam-neet').checked = true;
         document.getElementById('survey-exam-gate').checked = true;
         document.getElementById('survey-exam-cat').checked = true;
+        document.getElementById('survey-exam-bitsat').checked = true;
+        document.getElementById('survey-exam-nata').checked = true;
+        document.getElementById('survey-exam-nda').checked = true;
+        document.getElementById('survey-exam-icar').checked = true;
+        document.getElementById('survey-exam-ca').checked = true;
+        document.getElementById('survey-exam-cseet').checked = true;
+        document.getElementById('survey-exam-ipmat').checked = true;
+        document.getElementById('survey-exam-clat').checked = true;
+        document.getElementById('survey-exam-nift').checked = true;
+        document.getElementById('survey-exam-nchmct').checked = true;
+        document.getElementById('survey-exam-cuet').checked = true;
         document.getElementById('survey-exam-upsc').checked = true;
         document.getElementById('survey-exam-scholarships').checked = true;
       }
@@ -3319,6 +3436,14 @@
       const interests = [];
       if (document.getElementById('survey-interest-engineering').checked) interests.push('engineering');
       if (document.getElementById('survey-interest-medical').checked) interests.push('medical');
+      if (document.getElementById('survey-interest-architecture').checked) interests.push('architecture');
+      if (document.getElementById('survey-interest-defense').checked) interests.push('defense');
+      if (document.getElementById('survey-interest-agriculture').checked) interests.push('agriculture');
+      if (document.getElementById('survey-interest-commerce').checked) interests.push('commerce');
+      if (document.getElementById('survey-interest-business').checked) interests.push('business');
+      if (document.getElementById('survey-interest-law').checked) interests.push('law');
+      if (document.getElementById('survey-interest-design').checked) interests.push('design');
+      if (document.getElementById('survey-interest-humanities').checked) interests.push('humanities');
       if (document.getElementById('survey-interest-government').checked) interests.push('government');
       if (document.getElementById('survey-interest-corporate').checked) interests.push('corporate');
       if (document.getElementById('survey-interest-scholarships').checked) interests.push('scholarships');
@@ -3328,6 +3453,17 @@
       if (document.getElementById('survey-exam-neet').checked) exams.push('neet');
       if (document.getElementById('survey-exam-gate').checked) exams.push('gate');
       if (document.getElementById('survey-exam-cat').checked) exams.push('cat');
+      if (document.getElementById('survey-exam-bitsat').checked) exams.push('bitsat');
+      if (document.getElementById('survey-exam-nata').checked) exams.push('nata');
+      if (document.getElementById('survey-exam-nda').checked) exams.push('nda');
+      if (document.getElementById('survey-exam-icar').checked) exams.push('icar');
+      if (document.getElementById('survey-exam-ca').checked) exams.push('ca');
+      if (document.getElementById('survey-exam-cseet').checked) exams.push('cseet');
+      if (document.getElementById('survey-exam-ipmat').checked) exams.push('ipmat');
+      if (document.getElementById('survey-exam-clat').checked) exams.push('clat');
+      if (document.getElementById('survey-exam-nift').checked) exams.push('nift');
+      if (document.getElementById('survey-exam-nchmct').checked) exams.push('nchmct');
+      if (document.getElementById('survey-exam-cuet').checked) exams.push('cuet');
       if (document.getElementById('survey-exam-upsc').checked) exams.push('upsc');
       if (document.getElementById('survey-exam-scholarships').checked) exams.push('scholarships');
       
@@ -3361,8 +3497,16 @@
 
     function getCategoryFromTitle(title) {
       const lower = title.toLowerCase();
-      if (lower.includes("jee") || lower.includes("gate") || lower.includes("engineering")) return "engineering";
+      if (lower.includes("jee") || lower.includes("gate") || lower.includes("engineering") || lower.includes("bitsat")) return "engineering";
       if (lower.includes("neet") || lower.includes("medical")) return "medical";
+      if (lower.includes("nata") || lower.includes("architecture")) return "architecture";
+      if (lower.includes("nda") || lower.includes("defense")) return "defense";
+      if (lower.includes("icar") || lower.includes("agriculture")) return "agriculture";
+      if (lower.includes("ca foundation") || lower.includes("cseet") || lower.includes("commerce")) return "commerce";
+      if (lower.includes("ipmat") || lower.includes("business") || lower.includes("management") || lower.includes("nchmct")) return "business";
+      if (lower.includes("clat") || lower.includes("law")) return "law";
+      if (lower.includes("nift") || lower.includes("design") || lower.includes("fashion")) return "design";
+      if (lower.includes("humanities") || lower.includes("arts") || lower.includes("cuet")) return "humanities";
       if (lower.includes("upsc") || lower.includes("civil") || lower.includes("government")) return "government";
       if (lower.includes("tcs") || lower.includes("google") || lower.includes("corporate") || lower.includes("job") || lower.includes("intern")) return "corporate";
       if (lower.includes("scholarship")) return "scholarships";
@@ -3386,8 +3530,8 @@
           caste: 'general',
           qualification: 'college',
           stream: 'pcm',
-          interests: ['engineering', 'medical', 'government', 'corporate', 'scholarships'],
-          exams: ['jee', 'neet', 'gate', 'cat', 'upsc', 'scholarships']
+          interests: ['engineering', 'medical', 'architecture', 'defense', 'agriculture', 'commerce', 'business', 'law', 'design', 'humanities', 'government', 'corporate', 'scholarships'],
+          exams: ['jee', 'neet', 'gate', 'cat', 'bitsat', 'nata', 'nda', 'icar', 'ca', 'cseet', 'ipmat', 'clat', 'nift', 'nchmct', 'cuet', 'upsc', 'scholarships']
         };
       }
       
@@ -3475,12 +3619,23 @@
       
       // 4. Process New Eligible Forms
       const SYSTEM_NEW_FORMS = [
-        { id: 'sys_gate_2027', name: "GATE 2027 Registration", url: "https://gate2027.iitr.ac.in", requiredDegree: "B.Tech", requiredQualification: "college", category: "engineering", examKey: "gate", allowedStreams: ["pcm"], deadline: "2026-10-30T23:59:59Z" },
+        { id: 'sys_gate_2027', name: "GATE 2027 Registration", url: "https://gate2027.iitr.ac.in", requiredDegree: "B.Tech", requiredQualification: "college", category: "engineering", examKey: "gate", allowedStreams: ["pcm", "pcmb"], deadline: "2026-10-30T23:59:59Z" },
         { id: 'sys_cat_2026', name: "CAT 2026 Registration", url: "https://iimcat.ac.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "corporate", examKey: "cat", deadline: "2026-09-25T23:59:59Z" },
         { id: 'sys_upsc_2027', name: "UPSC Civil Services 2027", url: "https://upsc.gov.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "government", examKey: "upsc", deadline: "2027-02-15T23:59:59Z" },
-        { id: 'sys_neet_2027', name: "NEET UG 2027 Registration", url: "https://neet.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "medical", examKey: "neet", allowedStreams: ["pcb"], deadline: "2027-04-10T23:59:59Z" },
-        { id: 'sys_jee_2026', name: "JEE Main 2026 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", examKey: "jee", allowedStreams: ["pcm"], deadline: "2026-01-15T23:59:59Z" },
-        { id: 'sys_jee_2027', name: "JEE Main 2027 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", examKey: "jee", allowedStreams: ["pcm"], deadline: "2026-12-15T23:59:59Z" },
+        { id: 'sys_neet_2027', name: "NEET UG 2027 Registration", url: "https://neet.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "medical", examKey: "neet", allowedStreams: ["pcb", "pcmb"], deadline: "2027-04-10T23:59:59Z" },
+        { id: 'sys_jee_2026', name: "JEE Main 2026 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", examKey: "jee", allowedStreams: ["pcm", "pcmb"], deadline: "2026-01-15T23:59:59Z" },
+        { id: 'sys_jee_2027', name: "JEE Main 2027 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", examKey: "jee", allowedStreams: ["pcm", "pcmb"], deadline: "2026-12-15T23:59:59Z" },
+        { id: 'sys_bitsat_2027', name: "BITSAT 2027 Registration", url: "https://bitsadmission.com", requiredDegree: "School", requiredQualification: "school", category: "engineering", examKey: "bitsat", allowedStreams: ["pcm", "pcmb"], deadline: "2027-04-15T23:59:59Z" },
+        { id: 'sys_nata_2027', name: "NATA 2027 Registration", url: "https://nata.in", requiredDegree: "School", requiredQualification: "school", category: "architecture", examKey: "nata", allowedStreams: ["pcm", "pcmb", "commerce_maths"], deadline: "2027-05-01T23:59:59Z" },
+        { id: 'sys_nda_2027', name: "NDA (I) 2027 Registration", url: "https://upsconline.nic.in", requiredDegree: "School", requiredQualification: "school", category: "defense", examKey: "nda", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2026-12-30T23:59:59Z" },
+        { id: 'sys_icar_2027', name: "ICAR AIEEA 2027 Registration", url: "https://icar.org.in", requiredDegree: "School", requiredQualification: "school", category: "agriculture", examKey: "icar", allowedStreams: ["pcb", "pcmb"], deadline: "2027-05-15T23:59:59Z" },
+        { id: 'sys_ca_2027', name: "CA Foundation June 2027", url: "https://icai.org", requiredDegree: "School", requiredQualification: "school", category: "commerce", examKey: "ca", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2027-02-28T23:59:59Z" },
+        { id: 'sys_cseet_2027', name: "CSEET May 2027 Registration", url: "https://icsi.edu", requiredDegree: "School", requiredQualification: "school", category: "commerce", examKey: "cseet", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2027-04-15T23:59:59Z" },
+        { id: 'sys_ipmat_2027', name: "IPMAT 2027 Registration", url: "https://iimidr.ac.in", requiredDegree: "School", requiredQualification: "school", category: "business", examKey: "ipmat", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2027-04-10T23:59:59Z" },
+        { id: 'sys_clat_2027', name: "CLAT 2027 Law Admission", url: "https://consortiumofnlus.ac.in", requiredDegree: "School", requiredQualification: "school", category: "law", examKey: "clat", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2026-11-10T23:59:59Z" },
+        { id: 'sys_nift_2027', name: "NIFT 2027 Fashion Entrance", url: "https://nift.ac.in", requiredDegree: "School", requiredQualification: "school", category: "design", examKey: "nift", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2026-12-31T23:59:59Z" },
+        { id: 'sys_nchmct_2027', name: "NCHMCT JEE 2027 Registration", url: "https://nchm.nic.in", requiredDegree: "School", requiredQualification: "school", category: "business", examKey: "nchmct", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2027-05-10T23:59:59Z" },
+        { id: 'sys_cuet_2027', name: "CUET UG 2027 Registration", url: "https://cuet.samarth.ac.in", requiredDegree: "School", requiredQualification: "school", category: "humanities", examKey: "cuet", allowedStreams: ["pcm", "pcb", "pcmb", "commerce_maths", "commerce_no_maths", "arts", "vocational"], deadline: "2027-03-30T23:59:59Z" },
         { id: 'sys_post_matric_scst', name: "Post-Matric Scholarship for SC/ST", url: "https://scholarships.gov.in", requiredDegree: "School", requiredQualification: "school", category: "scholarships", examKey: "scholarships", allowedCastes: ["sc", "st"], deadline: "2026-11-30T23:59:59Z" },
         { id: 'sys_nsp_merit', name: "NSP Central Sector Scheme Scholarship", url: "https://scholarships.gov.in", requiredDegree: "College", requiredQualification: "college", category: "scholarships", examKey: "scholarships", deadline: "2026-11-15T23:59:59Z" }
       ];
@@ -3528,7 +3683,7 @@
             relatedUrl: 'http://localhost:4000/mock-form.html',
             category: 'medical',
             examKey: 'neet',
-            allowedStreams: ['pcb'],
+            allowedStreams: ['pcb', 'pcmb'],
             requiredQualification: 'school',
             deadline: new Date(now + 15 * 24 * 3600 * 1000).toISOString()
           },
@@ -3542,9 +3697,135 @@
             relatedUrl: 'https://jeemain.nta.nic.in',
             category: 'engineering',
             examKey: 'jee',
-            allowedStreams: ['pcm'],
+            allowedStreams: ['pcm', 'pcmb'],
             requiredQualification: 'school',
             deadline: new Date(now + 5 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_bitsat',
+            type: 'new_form',
+            title: 'New Form Matching Profile: BITSAT 2027',
+            message: 'You are eligible for "BITSAT 2027". Click Open Portal to check details.',
+            createdAt: new Date(Date.now() - 5000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://bitsadmission.com',
+            category: 'engineering',
+            examKey: 'bitsat',
+            allowedStreams: ['pcm', 'pcmb'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 8 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_nata',
+            type: 'new_form',
+            title: 'New Form Matching Profile: NATA 2027',
+            message: 'You are eligible for "NATA 2027" Architecture entrance. Click Open Portal.',
+            createdAt: new Date(Date.now() - 6000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://nata.in',
+            category: 'architecture',
+            examKey: 'nata',
+            allowedStreams: ['pcm', 'pcmb', 'commerce_maths'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 25 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_nda',
+            type: 'new_form',
+            title: 'New Form Matching Profile: NDA (I) 2027',
+            message: 'Defense forces registration is open for "NDA (I) 2027". Click to apply.',
+            createdAt: new Date(Date.now() - 8000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://upsconline.nic.in',
+            category: 'defense',
+            examKey: 'nda',
+            allowedStreams: ['pcm', 'pcb', 'pcmb', 'commerce_maths', 'commerce_no_maths', 'arts', 'vocational'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 18 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_icar',
+            type: 'new_form',
+            title: 'New Form Matching Profile: ICAR AIEEA 2027',
+            message: 'Agriculture admission portal open for "ICAR AIEEA 2027". Click to apply.',
+            createdAt: new Date(Date.now() - 9000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://icar.org.in',
+            category: 'agriculture',
+            examKey: 'icar',
+            allowedStreams: ['pcb', 'pcmb'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 30 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_ca_foundation',
+            type: 'incomplete_form',
+            title: 'Incomplete Form: CA Foundation June 2027',
+            message: 'Your progress on "CA Foundation June 2027" registration is at 60%. Click to continue.',
+            createdAt: new Date(Date.now() - 4000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://icai.org',
+            category: 'commerce',
+            examKey: 'ca',
+            allowedStreams: ['pcm', 'pcb', 'pcmb', 'commerce_maths', 'commerce_no_maths', 'arts', 'vocational'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 22 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_ipmat',
+            type: 'deadline',
+            title: 'Upcoming Deadline: IPMAT 2027 Management Entrance',
+            message: 'IPMAT 2027 (IIM Indore BBA+MBA) closes soon. Complete your registration!',
+            createdAt: new Date(Date.now() - 10000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://iimidr.ac.in',
+            category: 'business',
+            examKey: 'ipmat',
+            allowedStreams: ['pcm', 'pcb', 'pcmb', 'commerce_maths', 'commerce_no_maths', 'arts', 'vocational'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 4 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_clat',
+            type: 'deadline',
+            title: 'Upcoming Deadline: CLAT 2027 Law Admission',
+            message: 'Common Law Admission Test closes soon. Complete your application now!',
+            createdAt: new Date(Date.now() - 12000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://consortiumofnlus.ac.in',
+            category: 'law',
+            examKey: 'clat',
+            allowedStreams: ['pcm', 'pcb', 'pcmb', 'commerce_maths', 'commerce_no_maths', 'arts', 'vocational'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 6 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_nift',
+            type: 'new_form',
+            title: 'New Form Matching Profile: NIFT 2027',
+            message: 'National Institute of Fashion Technology entrance open. Click to apply.',
+            createdAt: new Date(Date.now() - 11000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://nift.ac.in',
+            category: 'design',
+            examKey: 'nift',
+            allowedStreams: ['pcm', 'pcb', 'pcmb', 'commerce_maths', 'commerce_no_maths', 'arts', 'vocational'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 28 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_cuet',
+            type: 'new_form',
+            title: 'New Form Matching Profile: CUET UG 2027',
+            message: 'Common University Entrance Test registration is open. Click here to check.',
+            createdAt: new Date(Date.now() - 13000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://cuet.samarth.ac.in',
+            category: 'humanities',
+            examKey: 'cuet',
+            allowedStreams: ['pcm', 'pcb', 'pcmb', 'commerce_maths', 'commerce_no_maths', 'arts', 'vocational'],
+            requiredQualification: 'school',
+            deadline: new Date(now + 12 * 24 * 3600 * 1000).toISOString()
           },
           {
             id: 'demo_missing',
