@@ -1363,9 +1363,13 @@
             
             <!-- Notifications Dropdown -->
             <div id="notification-dropdown" class="card" style="display: none; position: absolute; right: 0; top: 45px; width: 350px; max-height: 400px; overflow-y: auto; z-index: 1000; padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; gap: 8px;">
                 <h3 style="font-size: 14px; font-weight: 700;">Reminders</h3>
-                <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer;">Mark all as read</button>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer;">Mark all read</button>
+                  <span style="color: var(--border2); font-size: 10px;">|</span>
+                  <button onclick="openSurveyModal()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 2px;">⚙️ Customize</button>
+                </div>
               </div>
               <div id="notification-list" style="display: flex; flex-direction: column; gap: 10px;">
                 <!-- Notifications list rendered dynamically -->
@@ -1577,7 +1581,7 @@
               <div class="deadline-inputs-row">
                 <div style="display:flex; flex-direction:column; gap:4px">
                   <label style="font-size:11px; font-weight:700">Form / Portal Name</label>
-                  <input type="text" id="deadline-form-name" class="form-input" placeholder="e.g. JEE Main 2026 Registration" style="padding:10px">
+                  <input type="text" id="deadline-form-name" class="form-input" placeholder="e.g. JEE Main 2027 Registration" style="padding:10px">
                 </div>
                 <div style="display:flex; flex-direction:column; gap:4px">
                   <label style="font-size:11px; font-weight:700">Form Link</label>
@@ -1689,6 +1693,58 @@
     <div style="flex:1; width:90%; max-width:1000px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:20px;">
       <img id="doc-modal-img" style="display:none; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;" />
       <iframe id="doc-modal-pdf" style="display:none; width:100%; height:100%; border:none; border-radius:8px; background:#fff;"></iframe>
+    </div>
+  </div>
+
+  <!-- SURVEY CUSTOMIZATION MODAL -->
+  <div id="survey-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="card" style="width:90%; max-width:480px; padding:24px; display:flex; flex-direction:column; gap:18px; position:relative; box-shadow:var(--shadow); border:1px solid var(--border); background:var(--surface);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+        <h2 style="font-size:18px; font-weight:800; color:var(--text)">⚙️ Customize Notifications</h2>
+        <button onclick="closeSurveyModal()" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+      </div>
+      
+      <p style="font-size:13px; color:var(--muted); line-height:1.5;">Tell us your interests and qualification to customize your dynamic form reminders and eligibility notifications.</p>
+      
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <!-- Categories -->
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target Exams & Interests</label>
+          <div style="display:flex; flex-direction:column; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-engineering" value="engineering" checked style="accent-color:var(--accent); cursor:pointer;">
+              Engineering Exams (GATE, JEE)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-medical" value="medical" checked style="accent-color:var(--accent); cursor:pointer;">
+              Medical Entrance (NEET)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-government" value="government" checked style="accent-color:var(--accent); cursor:pointer;">
+              Civil Services / Government (UPSC)
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-corporate" value="corporate" checked style="accent-color:var(--accent); cursor:pointer;">
+              Corporate Jobs / Internships (TCS, Google)
+            </label>
+          </div>
+        </div>
+        
+        <!-- Qualification -->
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Current Education Level</label>
+          <select id="survey-qualification" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
+            <option value="school">High School (Class 10th / 12th)</option>
+            <option value="college" selected>College Student (B.Tech / Undergrad)</option>
+            <option value="graduate">Graduate / Post-Graduate</option>
+          </select>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn outline" onclick="closeSurveyModal()" style="flex:1; padding:10px; font-size:13px;">Cancel</button>
+        <button class="btn" onclick="saveSurveyPreferences()" style="flex:1; padding:10px; font-size:13px;">Save Preferences</button>
+      </div>
     </div>
   </div>
 
@@ -3116,13 +3172,66 @@
     }
 
     // Close notifications dropdown when clicking outside
+    // Close notifications dropdown when clicking outside, or modal when clicking backdrop
     window.addEventListener('click', (e) => {
       const dropdown = document.getElementById('notification-dropdown');
       const container = document.querySelector('.notification-container');
       if (dropdown && dropdown.style.display === 'block' && container && !container.contains(e.target)) {
         dropdown.style.display = 'none';
       }
+      const surveyModal = document.getElementById('survey-modal');
+      if (e.target === surveyModal) {
+        closeSurveyModal();
+      }
     });
+
+    // ── Survey Customization Handlers ──
+    function openSurveyModal() {
+      if (!activeProfile) return;
+      const dropdown = document.getElementById('notification-dropdown');
+      if (dropdown) dropdown.style.display = 'none';
+
+      let prefs = JSON.parse(localStorage.getItem(`fs_survey_prefs_${activeProfile}`) || 'null');
+      if (prefs) {
+        document.getElementById('survey-interest-engineering').checked = prefs.interests.includes('engineering');
+        document.getElementById('survey-interest-medical').checked = prefs.interests.includes('medical');
+        document.getElementById('survey-interest-government').checked = prefs.interests.includes('government');
+        document.getElementById('survey-interest-corporate').checked = prefs.interests.includes('corporate');
+        document.getElementById('survey-qualification').value = prefs.qualification || 'college';
+      } else {
+        document.getElementById('survey-interest-engineering').checked = true;
+        document.getElementById('survey-interest-medical').checked = true;
+        document.getElementById('survey-interest-government').checked = true;
+        document.getElementById('survey-interest-corporate').checked = true;
+        document.getElementById('survey-qualification').value = 'college';
+      }
+      document.getElementById('survey-modal').style.display = 'flex';
+    }
+
+    function closeSurveyModal() {
+      document.getElementById('survey-modal').style.display = 'none';
+    }
+
+    function saveSurveyPreferences() {
+      if (!activeProfile) return;
+      const interests = [];
+      if (document.getElementById('survey-interest-engineering').checked) interests.push('engineering');
+      if (document.getElementById('survey-interest-medical').checked) interests.push('medical');
+      if (document.getElementById('survey-interest-government').checked) interests.push('government');
+      if (document.getElementById('survey-interest-corporate').checked) interests.push('corporate');
+      
+      const qualification = document.getElementById('survey-qualification').value;
+      
+      const prefs = { interests, qualification };
+      localStorage.setItem(`fs_survey_prefs_${activeProfile}`, JSON.stringify(prefs));
+      
+      closeSurveyModal();
+      toast("Preferences saved successfully!", "success");
+      
+      checkAndGenerateReminders();
+      renderReminders();
+      updateBadges();
+    }
 
     function getRequiredDocsForForm(name) {
       const lowerName = name.toLowerCase();
@@ -3138,6 +3247,15 @@
       return ["aadhaar"];
     }
 
+    function getCategoryFromTitle(title) {
+      const lower = title.toLowerCase();
+      if (lower.includes("jee") || lower.includes("gate") || lower.includes("engineering")) return "engineering";
+      if (lower.includes("neet") || lower.includes("medical")) return "medical";
+      if (lower.includes("upsc") || lower.includes("civil") || lower.includes("government")) return "government";
+      if (lower.includes("tcs") || lower.includes("google") || lower.includes("corporate") || lower.includes("job") || lower.includes("intern")) return "corporate";
+      return null;
+    }
+
     function checkAndGenerateReminders() {
       if (!activeProfile) return;
       
@@ -3147,6 +3265,22 @@
       const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
       
       const newRemindersMap = {};
+      
+      let prefs = JSON.parse(localStorage.getItem(`fs_survey_prefs_${activeProfile}`) || 'null');
+      if (!prefs) {
+        prefs = {
+          interests: ['engineering', 'medical', 'government', 'corporate'],
+          qualification: 'college'
+        };
+      }
+      
+      const checkEligibility = (userQual, requiredQual) => {
+        if (!requiredQual) return true;
+        const levels = { 'school': 1, 'college': 2, 'graduate': 3 };
+        const userLevel = levels[userQual] || 2;
+        const reqLevel = levels[requiredQual.toLowerCase()] || (requiredQual.toLowerCase() === 'b.tech' ? 2 : 1);
+        return userLevel >= reqLevel;
+      };
       
       // 1. Process Drafts (Incomplete forms)
       Object.keys(drafts).forEach(url => {
@@ -3224,34 +3358,32 @@
       
       // 4. Process New Eligible Forms
       const SYSTEM_NEW_FORMS = [
-        { id: 'sys_gate_2026', name: "GATE 2026 Registration", url: "https://gate2026.iitr.ac.in", requiredDegree: "B.Tech" },
-        { id: 'sys_cat_2026', name: "CAT 2026 Registration", url: "https://iimcat.ac.in", requiredDegree: "Graduate" },
-        { id: 'sys_upsc_2026', name: "UPSC Civil Services 2026", url: "https://upsc.gov.in", requiredDegree: "Graduate" }
+        { id: 'sys_gate_2027', name: "GATE 2027 Registration", url: "https://gate2027.iitr.ac.in", requiredDegree: "B.Tech", requiredQualification: "college", category: "engineering", deadline: "2026-10-30T23:59:59Z" },
+        { id: 'sys_cat_2026', name: "CAT 2026 Registration", url: "https://iimcat.ac.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "corporate", deadline: "2026-09-25T23:59:59Z" },
+        { id: 'sys_upsc_2027', name: "UPSC Civil Services 2027", url: "https://upsc.gov.in", requiredDegree: "Graduate", requiredQualification: "graduate", category: "government", deadline: "2027-02-15T23:59:59Z" },
+        { id: 'sys_neet_2027', name: "NEET UG 2027 Registration", url: "https://neet.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "medical", deadline: "2027-04-10T23:59:59Z" },
+        { id: 'sys_jee_2026', name: "JEE Main 2026 Registration", url: "https://jeemain.nta.nic.in", requiredDegree: "School", requiredQualification: "school", category: "engineering", deadline: "2026-01-15T23:59:59Z" }
       ];
       
-      const userDegree = (sessionData && sessionData.degree) || '';
-      
       SYSTEM_NEW_FORMS.forEach(sys => {
-        let eligible = false;
-        if (sys.requiredDegree === "Graduate") {
-          eligible = !!userDegree;
-        } else {
-          eligible = userDegree.toLowerCase().includes(sys.requiredDegree.toLowerCase());
-        }
+        const formDeadline = new Date(sys.deadline).getTime();
+        if (formDeadline < now) return; // Filter out expired forms (e.g. JEE 2026)
         
-        if (eligible) {
-          const id = `new_form_${sys.id}`;
-          const existing = reminders.find(r => r.id === id);
-          newRemindersMap[id] = {
-            id,
-            type: 'new_form',
-            title: `New Form Matching Profile`,
-            message: `You are eligible for "${sys.name}". Registration portal is open. Click here to check.`,
-            createdAt: existing ? existing.createdAt : new Date().toISOString(),
-            readStatus: existing ? existing.readStatus : 'unread',
-            relatedUrl: sys.url
-          };
-        }
+        if (!prefs.interests.includes(sys.category)) return;
+        
+        if (!checkEligibility(prefs.qualification, sys.requiredQualification)) return;
+        
+        const id = `new_form_${sys.id}`;
+        const existing = reminders.find(r => r.id === id);
+        newRemindersMap[id] = {
+          id,
+          type: 'new_form',
+          title: `New Form Matching Profile`,
+          message: `You are eligible for "${sys.name}". Registration portal is open. Click here to check.`,
+          createdAt: existing ? existing.createdAt : new Date().toISOString(),
+          readStatus: existing ? existing.readStatus : 'unread',
+          relatedUrl: sys.url
+        };
       });
       
       // Merge into a list
@@ -3263,20 +3395,26 @@
           {
             id: 'demo_incomplete',
             type: 'incomplete_form',
-            title: 'Incomplete Form: NEET UG Registration 2026',
-            message: 'Your progress on "NEET UG Registration 2026" is at 45%. Click Continue to restore and complete.',
+            title: 'Incomplete Form: NEET UG Registration 2027',
+            message: 'Your progress on "NEET UG Registration 2027" is at 45%. Click Continue to restore and complete.',
             createdAt: new Date(Date.now() - 3600000).toISOString(),
             readStatus: 'unread',
-            relatedUrl: 'http://localhost:4000/mock-form.html'
+            relatedUrl: 'http://localhost:4000/mock-form.html',
+            category: 'medical',
+            requiredQualification: 'school',
+            deadline: new Date(now + 15 * 24 * 3600 * 1000).toISOString()
           },
           {
             id: 'demo_deadline',
             type: 'deadline',
-            title: 'Upcoming Deadline: JEE Main 2026 Registration',
-            message: 'JEE Main 2026 Registration closes soon. Complete your application now!',
+            title: 'Upcoming Deadline: JEE Main 2027 Registration',
+            message: 'JEE Main 2027 Registration closes soon. Complete your application now!',
             createdAt: new Date(Date.now() - 7200000).toISOString(),
             readStatus: 'unread',
-            relatedUrl: 'https://jeemain.nta.nic.in'
+            relatedUrl: 'https://jeemain.nta.nic.in',
+            category: 'engineering',
+            requiredQualification: 'school',
+            deadline: new Date(now + 5 * 24 * 3600 * 1000).toISOString()
           },
           {
             id: 'demo_missing',
@@ -3285,11 +3423,41 @@
             message: 'Please upload your Resume / CV in the Documents tab to complete the application for "Google Software Engineer Intern".',
             createdAt: new Date(Date.now() - 14400000).toISOString(),
             readStatus: 'unread',
-            relatedUrl: '#docs'
+            relatedUrl: '#docs',
+            category: 'corporate',
+            requiredQualification: 'college',
+            deadline: new Date(now + 10 * 24 * 3600 * 1000).toISOString()
+          },
+          {
+            id: 'demo_upsc',
+            type: 'deadline',
+            title: 'Upcoming Deadline: UPSC Civil Services 2027',
+            message: 'UPSC Civil Services 2027 closes soon. Complete your application now!',
+            createdAt: new Date(Date.now() - 18000000).toISOString(),
+            readStatus: 'unread',
+            relatedUrl: 'https://upsc.gov.in',
+            category: 'government',
+            requiredQualification: 'graduate',
+            deadline: new Date(now + 12 * 24 * 3600 * 1000).toISOString()
           }
         ];
-        mergedReminders = demoReminders;
+        
+        mergedReminders = demoReminders.filter(demo => {
+          if (demo.deadline && new Date(demo.deadline).getTime() < now) return false;
+          if (!prefs.interests.includes(demo.category)) return false;
+          if (!checkEligibility(prefs.qualification, demo.requiredQualification)) return false;
+          return true;
+        });
       }
+
+      // Filter all final reminders dynamically by category/interests to be consistent
+      mergedReminders = mergedReminders.filter(r => {
+        const cat = r.category || getCategoryFromTitle(r.title);
+        if (cat && !prefs.interests.includes(cat)) {
+          return false;
+        }
+        return true;
+      });
       
       localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(mergedReminders));
     }
