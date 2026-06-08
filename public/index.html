@@ -571,6 +571,7 @@
     .notification-item.type-deadline { border-left: 3px solid var(--amber); }
     .notification-item.type-missing_document { border-left: 3px solid var(--red); }
     .notification-item.type-new_form { border-left: 3px solid var(--green); }
+    .notification-item.type-customization_prompt { border-left: 3px solid var(--accent); background: rgba(94, 234, 212, 0.05); }
     
     .notification-close-btn {
       position: absolute;
@@ -2216,6 +2217,14 @@
       renderReminders();
       updateBadges();
       show('main');
+
+      // Auto-open customization survey on first login if preferences don't exist yet
+      const prefs = localStorage.getItem(`fs_survey_prefs_${activeProfile}`);
+      if (!prefs) {
+        setTimeout(() => {
+          openSurveyModal();
+        }, 800);
+      }
     }
 
     function updateBadges() {
@@ -3458,6 +3467,20 @@
         }
         return true;
       });
+
+      // Add a special customization onboarding reminder at the top if preferences are not set yet
+      const rawPrefs = localStorage.getItem(`fs_survey_prefs_${activeProfile}`);
+      if (!rawPrefs) {
+        mergedReminders.unshift({
+          id: 'customization_prompt',
+          type: 'customization_prompt',
+          title: '⚙️ Customize Your Alerts',
+          message: 'Please complete your interest and qualification survey to get tailored form updates.',
+          createdAt: new Date().toISOString(),
+          readStatus: 'unread',
+          relatedUrl: '#customize_survey'
+        });
+      }
       
       localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(mergedReminders));
     }
@@ -3480,6 +3503,8 @@
             actionBtnHtml = `<button class="notification-action" onclick="continueIncompleteForm('${r.relatedUrl}', '${r.id}')">Continue</button>`;
           } else if (r.relatedUrl === '#docs') {
             actionBtnHtml = `<button class="notification-action" onclick="goToDocsTab('${r.id}')">Upload Document</button>`;
+          } else if (r.relatedUrl === '#customize_survey') {
+            actionBtnHtml = `<button class="notification-action" onclick="openSurveyModal()">Customize Now</button>`;
           } else {
             actionBtnHtml = `<button class="notification-action" onclick="openPortalUrl('${r.relatedUrl}', '${r.id}')">Open Portal</button>`;
           }
@@ -3487,10 +3512,11 @@
         
         const timeText = formatTimeAgo(new Date(r.createdAt));
         const unreadClass = r.readStatus === 'unread' ? 'unread' : '';
+        const closeBtnHtml = r.type === 'customization_prompt' ? '' : `<button class="notification-close-btn" onclick="deleteNotification('${r.id}', event)">✕</button>`;
         
         return `
           <div class="notification-item ${unreadClass} type-${r.type}">
-            <button class="notification-close-btn" onclick="deleteNotification('${r.id}', event)">✕</button>
+            ${closeBtnHtml}
             <div class="notification-title">${r.title}</div>
             <div class="notification-message">${r.message}</div>
             <div class="notification-meta">
