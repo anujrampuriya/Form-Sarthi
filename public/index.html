@@ -240,6 +240,47 @@
       background: rgba(255,255,255,0.02);
     }
 
+    .google-signin-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      height: 52px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto;
+    }
+    .google-custom-btn {
+      height: 100%;
+      margin: 0;
+    }
+    #google-signin-btn {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      opacity: 0 !important;
+      z-index: 10 !important;
+      overflow: hidden !important;
+      cursor: pointer !important;
+    }
+    #google-signin-btn iframe,
+    #google-signin-btn div {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      transform: scale(1.15);
+      transform-origin: center;
+      cursor: pointer !important;
+    }
+    .google-signin-wrapper:hover .google-custom-btn {
+      color: var(--text);
+      border-color: var(--text);
+      background: rgba(255,255,255,0.02);
+    }
+
     /* ── SCREEN: ADD PROFILE ── */
     .form-group {
       margin-bottom: 16px;
@@ -1240,10 +1281,21 @@
         <!-- Injected dynamically -->
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center;">
-        <div id="google-signin-btn" style="width: 100%; display: flex; justify-content: center;"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center; width: 100%;">
+        <div class="google-signin-wrapper">
+          <button class="add-btn google-custom-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" style="flex-shrink: 0;">
+              <path fill="#EA4335" d="M12 5.04c1.66 0 3.2.57 4.38 1.69l3.27-3.27C17.68 1.54 15.02 1 12 1 7.24 1 3.2 3.73 1.24 7.72l3.84 2.98C6.01 7.02 8.79 5.04 12 5.04z"/>
+              <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.29 1.48-1.14 2.73-2.42 3.58l3.77 2.93c2.2-2.03 3.68-5.01 3.68-8.66z"/>
+              <path fill="#FBBC05" d="M5.08 14.7c-.24-.72-.38-1.5-.38-2.3s.14-1.58.38-2.3L1.24 7.12C.45 8.7.01 10.47.01 12.3c0 1.83.44 3.6 1.23 5.18l3.84-2.78z"/>
+              <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.77-2.93c-1.12.75-2.55 1.19-4.19 1.19-3.21 0-5.99-1.98-6.96-4.66L1.2 16.4C3.16 20.39 7.2 23 12 23z"/>
+            </svg>
+            Continue with Google
+          </button>
+          <div id="google-signin-btn"></div>
+        </div>
 
-        <button class="add-btn" onclick="showAddProfile()">
+        <button class="add-btn" onclick="showAddProfile()" style="max-width: 400px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Add new profile manually
         </button>
@@ -2154,7 +2206,7 @@
           { 
             theme: isDark ? "filled_black" : "outline", 
             size: "large", 
-            width: 320, 
+            width: 400, 
             text: "continue_with"
           }
         );
