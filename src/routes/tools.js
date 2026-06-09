@@ -6,8 +6,11 @@
 const express = require("express");
 const multer  = require("multer");
 const sharp   = require("sharp");
+const { requireAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
+router.use(requireAuth);
 
 const upload = multer({
   storage: multer.memoryStorage(),

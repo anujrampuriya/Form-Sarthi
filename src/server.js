@@ -18,26 +18,31 @@
 
 // Load environment variables
 require("dotenv").config();
+const { loadSecretsFromGCP } = require("./utils/secrets");
 
-const express = require("express");
-const cors    = require("cors");
-const path    = require("path");
+async function startServer() {
+  // Load remote secrets before importing routes (so process.env has the remote keys)
+  await loadSecretsFromGCP();
 
-// ── Initialize database ────────
-require("./db/database");
+  const express = require("express");
+  const cors    = require("cors");
+  const path    = require("path");
 
-// ── Import route files ────────────────────────────────────────
-const authRoutes       = require("./routes/auth");
-const profileRoutes    = require("./routes/profile");
-const documentRoutes   = require("./routes/documents");
-const autofillRoutes   = require("./routes/autofill");
-const extensionRoutes  = require("./routes/extension");
-const processRoutes    = require("./routes/process");
-const toolRoutes       = require("./routes/tools");
-const syncRoutes       = require("./routes/sync");
+  // ── Initialize database ────────
+  require("./db/database");
 
-const app  = express();
-const PORT = process.env.PORT || 3000;
+  // ── Import route files ────────────────────────────────────────
+  const authRoutes       = require("./routes/auth");
+  const profileRoutes    = require("./routes/profile");
+  const documentRoutes   = require("./routes/documents");
+  const autofillRoutes   = require("./routes/autofill");
+  const extensionRoutes  = require("./routes/extension");
+  const processRoutes    = require("./routes/process");
+  const toolRoutes       = require("./routes/tools");
+  const syncRoutes       = require("./routes/sync");
+
+  const app  = express();
+  const PORT = process.env.PORT || 3000;
 
 // =============================================================
 // MIDDLEWARE (runs on every request before routes)
@@ -99,10 +104,15 @@ app.get("*", (req, res) => {
 // =============================================================
 // START SERVER
 // =============================================================
-app.listen(PORT, () => {
-  console.log("");
-  console.log("🚀 FormSarthi is running!");
-  console.log(`   Frontend: http://localhost:${PORT}`);
-  console.log(`   API:      http://localhost:${PORT}/api`);
-  console.log("");
+  app.listen(PORT, () => {
+    console.log("");
+    console.log("🚀 FormSarthi is running!");
+    console.log(`   Frontend: http://localhost:${PORT}`);
+    console.log(`   API:      http://localhost:${PORT}/api`);
+    console.log("");
+  });
+}
+
+startServer().catch(err => {
+  console.error("Failed to start server:", err);
 });

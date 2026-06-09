@@ -1,6 +1,10 @@
 const express = require("express");
 const db      = require("../db/database");
+const { requireAuth } = require("../middleware/authMiddleware");
 const router  = express.Router();
+
+// Apply authentication middleware to all sync endpoints
+router.use(requireAuth);
 
 // GET /api/sync/profile?email=<email>
 router.get("/profile", (req, res) => {

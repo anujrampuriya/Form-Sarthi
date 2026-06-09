@@ -2235,6 +2235,20 @@
       setTimeout(() => t.className = 'toast', 2800);
     }
 
+    // ── Authenticated Fetch Helper ──
+    async function fetchWithAuth(url, options = {}) {
+      const token = localStorage.getItem("fs_token");
+      if (!options.headers) options.headers = {};
+      if (token) {
+        if (options.headers instanceof Headers) {
+          options.headers.append("Authorization", `Bearer ${token}`);
+        } else {
+          options.headers["Authorization"] = `Bearer ${token}`;
+        }
+      }
+      return fetch(url, options);
+    }
+
     // ── Load profiles ──
     async function loadProfiles() {
       try {
@@ -2244,7 +2258,7 @@
         // Background sync: push all local profiles to the server
         for (const p of profiles) {
           try {
-            fetch('/api/sync/profile', {
+            fetchWithAuth('/api/sync/profile', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(p)
@@ -2565,7 +2579,7 @@
         if (!fileObj) {
           // Attempt to fetch from backend sync server
           try {
-            const res = await fetch(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`);
+            const res = await fetchWithAuth(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`);
             if (res.ok) {
               const syncedFile = await res.json();
               if (syncedFile && syncedFile.fileData) {
@@ -2617,7 +2631,7 @@
         
         // Delete from backend sync
         try {
-          await fetch(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`, {
+          await fetchWithAuth(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`, {
             method: 'DELETE'
           });
         } catch (err) {
@@ -2661,7 +2675,7 @@
         }
 
         try {
-          const res = await fetch('/api/process', {
+          const res = await fetchWithAuth('/api/process', {
             method: 'POST',
             body: formData
           });
@@ -2706,7 +2720,7 @@
                 
                 // Sync file upload to server
                 try {
-                  await fetch('/api/sync/files', {
+                  await fetchWithAuth('/api/sync/files', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -2792,7 +2806,7 @@
         
         // Sync profile to server
         try {
-          await fetch('/api/sync/profile', {
+          await fetchWithAuth('/api/sync/profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(p)
@@ -2948,7 +2962,7 @@
 
       // Delete from backend sync
       try {
-        await fetch(`/api/sync/profile?email=${encodeURIComponent(targetEmail)}`, {
+        await fetchWithAuth(`/api/sync/profile?email=${encodeURIComponent(targetEmail)}`, {
           method: 'DELETE'
         });
       } catch (err) {
@@ -3104,7 +3118,7 @@
       toast("Processing document transformation...", "success");
 
       try {
-        const res = await fetch('/api/tools/resize', {
+        const res = await fetchWithAuth('/api/tools/resize', {
           method: 'POST',
           body: formData
         });
@@ -3399,7 +3413,7 @@
         
         // Sync profile to backend
         try {
-          await fetch('/api/sync/profile', {
+          await fetchWithAuth('/api/sync/profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(newProfile)

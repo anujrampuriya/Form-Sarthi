@@ -6,8 +6,11 @@
 const express = require("express");
 const multer  = require("multer");
 const { processDocument } = require("../processors/documentPipeline");
+const { requireAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
+router.use(requireAuth);
 
 // Multer setup
 const upload = multer({
