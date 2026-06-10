@@ -1197,6 +1197,68 @@
       font-size: 12px; color: var(--muted); line-height: 1.6;
     }
 
+    /* ── OPPORTUNITY HUB ── */
+    .opp-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .opp-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .opp-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .opp-card[data-cat="scholarship"]::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+    .opp-card[data-cat="internship"]::before  { background: linear-gradient(90deg, #0ea5e9, #06b6d4); }
+    .opp-card[data-cat="scheme"]::before      { background: linear-gradient(90deg, #10b981, #059669); }
+    .opp-card[data-cat="admission"]::before   { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .opp-card[data-cat="competition"]::before { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+    .opp-cat-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+      padding: 3px 9px; border-radius: 99px;
+    }
+    .opp-cat-pill.scholarship { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .opp-cat-pill.internship  { background: rgba(14,165,233,0.15);  color: #38bdf8; }
+    .opp-cat-pill.scheme      { background: rgba(16,185,129,0.15);  color: #34d399; }
+    .opp-cat-pill.admission   { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+    .opp-cat-pill.competition { background: rgba(239,68,68,0.15);   color: #f87171; }
+
+    .opp-eligible-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 99px;
+    }
+    .opp-eligible-badge.yes { background: rgba(16,185,129,0.15); color: #34d399; }
+    .opp-eligible-badge.no  { background: rgba(239,68,68,0.12);  color: #f87171; }
+    .opp-eligible-badge.unknown { background: rgba(148,163,184,0.12); color: var(--muted); }
+
+    .opp-filter-btn.active-filter {
+      background: var(--accent) !important;
+      color: #fff !important;
+      border-color: var(--accent) !important;
+    }
+
+    .opp-deadline-badge {
+      font-size: 11px; color: var(--muted);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .opp-deadline-badge.urgent { color: #f87171; font-weight: 700; }
+
     /* ── TOAST ── */
     .toast {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
@@ -1435,6 +1497,10 @@
             <button class="nav-item" id="nav-history" onclick="switchTab('history', this)">
               <span>📜 Autofill History</span>
             </button>
+            <button class="nav-item" id="nav-opportunities" onclick="switchTab('opportunities', this)">
+              <span>🌟 Opportunity Hub</span>
+              <span class="badge" id="opp-count-badge">New</span>
+            </button>
             <button class="nav-item" id="nav-security" onclick="switchTab('security', this)">
               <span>🛡️ About Security Shield</span>
             </button>
@@ -1639,16 +1705,16 @@
 
           <!-- ── TAB: HISTORY ── -->
           <div class="tab-panel" id="tab-history">
-            <div style="margin-bottom:18px; display: flex; justify-content: space-between; align-items: center">
+            <div style="margin-bottom:20px; display: flex; justify-content: space-between; align-items: center">
               <div>
-                <h2 style="font-size: 18px; font-weight: 700">Autofill History Logs</h2>
-                <p style="font-size: 13px; color: var(--muted)">Locally logged list of form applications visited and autofilled.</p>
+                <h2 style="font-size: 18px; font-weight: 700">📋 Recent Form History</h2>
+                <p style="font-size: 13px; color: var(--muted)">Forms you have previously autofilled — click Fill Again to re-open with your vault data.</p>
               </div>
-              <button class="btn outline" style="font-size:12px; padding:6px 12px" onclick="clearHistory()">Clear History Logs</button>
+              <button class="btn outline" style="font-size:12px; padding:6px 14px; color:var(--red); border-color:var(--red);" onclick="clearHistory()">🗑 Clear All</button>
             </div>
 
-            <div class="list-group" id="history-list-render">
-              <!-- Rendered history logs -->
+            <div id="history-list-render" style="display:flex; flex-direction:column; gap:12px;">
+              <!-- Rendered history cards -->
             </div>
           </div>
 
@@ -1696,6 +1762,45 @@
                 FormSarthi is your private, stateless utility engine for form filling. Designed for Indian students and citizens, it seamlessly processes and encrypts your data locally, ensuring your PAN, Aadhaar, and other sensitive details never leave your device unencrypted. We utilize on-device OCR and document analysis to make filling out tedious online applications a breeze.
               </p>
             </div>
+          </div>
+
+          <!-- ── TAB: OPPORTUNITY HUB ── -->
+          <div class="tab-panel" id="tab-opportunities">
+
+            <!-- Header -->
+            <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+              <div>
+                <h2 style="font-size:18px; font-weight:700;">🌟 Opportunity Hub</h2>
+                <p style="font-size:13px; color:var(--muted); margin-top:4px;">Scholarships, internships, schemes &amp; admissions — personalized for you.</p>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <div style="position:relative;">
+                  <input id="opp-search" type="text" placeholder="🔍 Search opportunities..." oninput="renderOpportunities()" style="background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 14px; color:var(--text); font-family:inherit; font-size:13px; outline:none; width:220px;">
+                </div>
+                <button class="btn outline" id="opp-filter-all" style="font-size:11px; padding:6px 12px;" onclick="setOppFilter('all', this)">All</button>
+                <button class="btn outline" id="opp-filter-scholarship" style="font-size:11px; padding:6px 12px;" onclick="setOppFilter('scholarship', this)">🎓 Scholarships</button>
+                <button class="btn outline" id="opp-filter-internship" style="font-size:11px; padding:6px 12px;" onclick="setOppFilter('internship', this)">💼 Internships</button>
+                <button class="btn outline" id="opp-filter-scheme" style="font-size:11px; padding:6px 12px;" onclick="setOppFilter('scheme', this)">🏛️ Govt Schemes</button>
+                <button class="btn outline" id="opp-filter-admission" style="font-size:11px; padding:6px 12px;" onclick="setOppFilter('admission', this)">🏫 Admissions</button>
+                <button class="btn outline" id="opp-filter-competition" style="font-size:11px; padding:6px 12px;" onclick="setOppFilter('competition', this)">🏆 Competitions</button>
+              </div>
+            </div>
+
+            <!-- Eligibility notice -->
+            <div id="opp-eligibility-notice" style="display:none; background:linear-gradient(135deg,rgba(99,102,241,0.15),rgba(139,92,246,0.1)); border:1px solid rgba(99,102,241,0.3); border-radius:var(--radius); padding:12px 16px; margin-bottom:18px; font-size:13px; color:var(--text);">
+              ✨ Eligibility is checked based on your <strong>survey preferences</strong>. <button onclick="openSurveyModal()" style="background:none;border:none;color:var(--accent);font-weight:700;cursor:pointer;font-size:13px;">Update Profile →</button>
+            </div>
+
+            <!-- Grid -->
+            <div id="opp-grid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px;"></div>
+
+            <!-- Empty state -->
+            <div id="opp-empty" style="display:none; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:14px; color:var(--muted);">
+              <div style="font-size:48px; opacity:0.3;">🔍</div>
+              <div style="font-size:14px; font-weight:600;">No opportunities found</div>
+              <div style="font-size:12px;">Try a different search term or filter.</div>
+            </div>
+
           </div>
 
         </main>
@@ -2489,6 +2594,7 @@
       checkAndGenerateReminders();
       renderReminders();
       updateBadges();
+      if (typeof initOpportunityHub === 'function') initOpportunityHub();
       show('main');
     }
 
@@ -2533,6 +2639,7 @@
       el.classList.add('active');
       document.getElementById('tab-' + name).classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (name === 'opportunities' && typeof renderOpportunities === 'function') renderOpportunities();
     }
 
     // ── Render Document Slots (8 slots) ──
@@ -3098,12 +3205,21 @@
 
       // Save history logs
       let history = JSON.parse(localStorage.getItem(`fs_history_${activeProfile}`) || '[]');
+      let portalName = url;
+      try {
+        const u = new URL(url);
+        const host = u.hostname.replace('www.', '');
+        portalName = host.split('.')[0].charAt(0).toUpperCase() + host.split('.')[0].slice(1) + ' Portal';
+      } catch(e) {}
       history.push({
         id: Date.now(),
         url: url,
+        portal: portalName,
         timestamp: new Date().toLocaleString(),
         filledCount: data.filter(d => d.value).length
       });
+      // Keep only last 50 history entries
+      if (history.length > 50) history = history.slice(-50);
       localStorage.setItem(`fs_history_${activeProfile}`, JSON.stringify(history));
       renderHistory();
 
@@ -3316,25 +3432,79 @@
       const history = JSON.parse(localStorage.getItem(`fs_history_${activeProfile}`) || '[]');
 
       if (history.length === 0) {
-        listDiv.innerHTML = `<p style="font-size:12px; color:var(--muted); text-align:center; padding:12px 0;">No fill logs yet.</p>`;
+        listDiv.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:14px; color:var(--muted);">
+            <div style="font-size:48px; opacity:0.3;">📋</div>
+            <div style="font-size:14px; font-weight:600;">No form history yet</div>
+            <div style="font-size:12px; text-align:center; max-width:260px; line-height:1.5;">Forms you autofill from the Smart Autofill tab will appear here.</div>
+          </div>`;
         return;
       }
 
-      listDiv.innerHTML = history.slice().reverse().map(h => `
-        <div class="list-item" style="flex-direction:column; align-items:flex-start; gap:6px">
-          <div style="display:flex; justify-content:space-between; width:100%; align-items:center">
-            <span style="font-weight:700; font-size:13px; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${h.url}</span>
-            <span style="color:var(--green); font-size:12px; font-weight:700">${h.filledCount} fields filled</span>
+      listDiv.innerHTML = history.slice().reverse().map((h, i) => {
+        let domain = h.url;
+        let faviconUrl = '';
+        try {
+          const u = new URL(h.url);
+          domain = u.hostname.replace('www.', '');
+          faviconUrl = `https://www.google.com/s2/favicons?sz=32&domain=${u.hostname}`;
+        } catch(e) {}
+        const portalLabel = h.portal || domain;
+        const entryIdx = history.length - 1 - i;
+        return `
+          <div style="
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: border-color 0.2s;
+          " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <!-- Favicon -->
+            <div style="width:40px; height:40px; border-radius:10px; background:var(--surface); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-shrink:0; overflow:hidden;">
+              ${faviconUrl
+                ? `<img src="${faviconUrl}" width="20" height="20" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="object-fit:contain;"><span style="display:none; font-size:16px;">🌐</span>`
+                : `<span style="font-size:16px;">🌐</span>`}
+            </div>
+            <!-- Info -->
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${portalLabel}</div>
+              <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;" title="${h.url}">${domain}</div>
+              <div style="margin-top:6px; display:flex; align-items:center; gap:10px;">
+                <span style="font-size:11px; background:rgba(var(--accent-rgb, 99,102,241),0.12); color:var(--accent); padding:2px 8px; border-radius:99px; font-weight:700;">✅ ${h.filledCount} fields filled</span>
+                <span style="font-size:11px; color:var(--muted);">🕐 ${h.timestamp}</span>
+              </div>
+            </div>
+            <!-- Actions -->
+            <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+              <button class="btn" style="font-size:11px; padding:6px 12px; white-space:nowrap;" onclick="fillAgainHistory('${h.url.replace(/'/g, "\\'")}')">↩ Fill Again</button>
+              <button class="btn outline" style="font-size:11px; padding:5px 10px; color:var(--red); border-color:transparent;" onclick="deleteHistoryEntry(${entryIdx})">✕ Remove</button>
+            </div>
           </div>
-          <div style="font-size:11px; color:var(--muted)">${h.timestamp}</div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
+    }
+
+    function fillAgainHistory(url) {
+      document.getElementById('form-url').value = url;
+      switchTab('autofill', document.getElementById('nav-autofill'));
+      toast('URL loaded — click Analyze & Autofill to start!', 'success');
+    }
+
+    function deleteHistoryEntry(idx) {
+      const history = JSON.parse(localStorage.getItem(`fs_history_${activeProfile}`) || '[]');
+      history.splice(idx, 1);
+      localStorage.setItem(`fs_history_${activeProfile}`, JSON.stringify(history));
+      renderHistory();
+      toast('Entry removed');
     }
 
     function clearHistory() {
       localStorage.removeItem(`fs_history_${activeProfile}`);
       renderHistory();
-      toast("History logs wiped");
+      toast('History cleared');
     }
 
     // ── Add profile UI flows ──
@@ -4250,5 +4420,6 @@
     loadProfiles();
     initGoogleAuth();
   </script>
+<script src="/opportunity-hub.js"></script>
 </body>
 </html>
