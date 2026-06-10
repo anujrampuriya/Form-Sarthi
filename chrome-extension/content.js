@@ -7,16 +7,30 @@
 
 console.log("[FormSarthi Content Script] Injected on: " + window.location.href);
 
+// File-level state (accessible to all functions regardless of scope)
+let fsMeterInjected = false;
+let lastPercent = -1;
+let lastFilledCount = -1;
+let debouncedAutoSaveTimeout = null;
+
 if (window.hasFormSarthiContentScript) {
   console.log("[FormSarthi] Content script already initialized on this tab.");
 } else {
   window.hasFormSarthiContentScript = true;
 
-  const isDashboard = !!document.getElementById('screen-main');
+  // isDashboard: true when running on the FormSarthi dashboard tab.
+  // Check DOM element (static HTML) AND URL as fallback in case of SPA timing.
+  const isDashboard = !!document.getElementById('screen-main') ||
+    ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+     (window.location.port === '3000' || window.location.port === '4000') &&
+     window.location.pathname === '/');
+
+
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "FILL_PAGE") {
       const count = fillForm(message.profile);
+      setTimeout(checkProgressChange, 100);
       sendResponse({ success: true, count });
     } else if (message.type === "GET_DECRYPTED_SESSION") {
       try {
@@ -56,12 +70,59 @@ if (window.hasFormSarthiContentScript) {
       } catch (e) {
         sendResponse({ success: false, error: e.message });
       }
+    } else if (isDashboard && message.type === "GET_DASHBOARD_FILE") {
+      try {
+        const activeProfile = sessionStorage.getItem("fs_active_profile");
+        if (!activeProfile) {
+          sendResponse({ success: false, error: "No active profile session" });
+          return true;
+        }
+        
+        const fileId = activeProfile + "_" + message.docKey;
+        const dbOpenReq = indexedDB.open("FormSarthiLocalDB", 2);
+        
+        dbOpenReq.onsuccess = (e) => {
+          const db = e.target.result;
+          try {
+            const tx = db.transaction("files", "readonly");
+            const store = tx.objectStore("files");
+            const getReq = store.get(fileId);
+            
+            getReq.onsuccess = () => {
+              const fileObj = getReq.result;
+              if (fileObj && fileObj.fileData) {
+                sendResponse({ 
+                  success: true, 
+                  fileData: fileObj.fileData, 
+                  fileType: fileObj.fileType 
+                });
+              } else {
+                sendResponse({ success: false, error: "File not found in vault" });
+              }
+            };
+            getReq.onerror = () => {
+              sendResponse({ success: false, error: "Failed to read file" });
+            };
+          } catch (err) {
+            sendResponse({ success: false, error: err.message });
+          }
+        };
+        dbOpenReq.onerror = () => {
+          sendResponse({ success: false, error: "Failed to open DB" });
+        };
+      } catch (err) {
+        sendResponse({ success: false, error: err.message });
+      }
+      return true;
     }
     return true;
   });
 
   // Target page logic (runs on non-dashboard form pages)
   if (!isDashboard) {
+    injectCompletenessMeter();
+    updateMeterUIForLockedState();
+
     chrome.runtime.sendMessage({ type: "GET_PROFILE" }, (response) => {
       if (response && response.success && response.profile) {
         // Retrieve and restore draft values if any
@@ -70,8 +131,10 @@ if (window.hasFormSarthiContentScript) {
             restoreDraftValues(restoreRes.values);
           }
         });
-        // Start auto-save progress loop
-        startAutoSave();
+        // Start auto-save progress loop and setup completeness meter
+        setupCompletenessMeter();
+      } else {
+        updateMeterUIForLockedState();
       }
     });
   }
@@ -90,40 +153,388 @@ function restoreDraftValues(values) {
   });
 }
 
-let autoSaveInterval = null;
-function startAutoSave() {
-  if (autoSaveInterval) clearInterval(autoSaveInterval);
-  autoSaveInterval = setInterval(() => {
-    const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
-    if (inputs.length === 0) return;
-    
-    const values = {};
-    let filledCount = 0;
-    inputs.forEach((input, index) => {
-      const val = input.value.trim();
-      if (val) {
-        filledCount++;
-        const key = input.name || input.id || `input_idx_${index}`;
-        values[key] = val;
-      }
-    });
-    
-    const pct = Math.round((filledCount / inputs.length) * 100);
-    
-    if (filledCount > 0) {
-      const draft = {
-        url: window.location.href,
-        title: document.title || window.location.hostname,
-        percent: pct,
-        values: values,
-        timestamp: Date.now()
-      };
-      chrome.runtime.sendMessage({
-        type: "AUTO_SAVE_DRAFT",
-        draft: draft
-      });
+function injectCompletenessMeter() {
+  if (document.getElementById('fs-completeness-container')) return;
+  if (!document.body) return;
+
+  const container = document.createElement('div');
+  container.id = 'fs-completeness-container';
+  container.style.cssText = `
+    position: fixed !important;
+    bottom: 24px !important;
+    right: 24px !important;
+    z-index: 2147483647 !important;
+    font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif !important;
+    color: #ffffff !important;
+    display: flex !important;
+    align-items: center !important;
+    pointer-events: auto !important;
+  `;
+
+  if (!document.querySelector('link[href*="Outfit"]')) {
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap';
+    document.head.appendChild(fontLink);
+  }
+
+  const style = document.createElement('style');
+  style.id = 'fs-completeness-styles';
+  style.textContent = `
+    #fs-completeness-container * {
+      box-sizing: border-box !important;
+      margin: 0 !important;
+      padding: 0 !important;
     }
-  }, 30000);
+    .fs-card {
+      background: rgba(18, 14, 12, 0.95) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 16px !important;
+      padding: 12px 16px !important;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      width: 250px !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .fs-card.fs-hidden {
+      opacity: 0 !important;
+      transform: translateY(20px) scale(0.9) !important;
+      pointer-events: none !important;
+      width: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      margin-left: 0 !important;
+      border-color: transparent !important;
+    }
+    .fs-progress-container {
+      position: relative !important;
+      width: 44px !important;
+      height: 44px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .fs-pct-text {
+      position: absolute !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      color: #5eead4 !important;
+    }
+    .fs-details {
+      flex: 1 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 2px !important;
+      align-items: flex-start !important;
+    }
+    .fs-title {
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      color: rgba(255, 255, 255, 0.5) !important;
+    }
+    .fs-remaining {
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      color: #F7F2EC !important;
+    }
+    .fs-close-btn {
+      background: none !important;
+      border: none !important;
+      color: rgba(255, 255, 255, 0.4) !important;
+      cursor: pointer !important;
+      font-size: 14px !important;
+      padding: 4px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.2s !important;
+      border-radius: 4px !important;
+    }
+    .fs-close-btn:hover {
+      color: #f87171 !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+    }
+    .fs-fab {
+      width: 48px !important;
+      height: 48px !important;
+      background: #5eead4 !important;
+      border-radius: 50% !important;
+      box-shadow: 0 8px 24px rgba(94, 234, 212, 0.3) !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      position: absolute !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      border: none !important;
+    }
+    .fs-fab.fs-hidden {
+      opacity: 0 !important;
+      transform: scale(0.5) rotate(-45deg) !important;
+      pointer-events: none !important;
+    }
+    .fs-fab:hover {
+      transform: scale(1.05) !important;
+      background: #2dd4bf !important;
+      box-shadow: 0 8px 30px rgba(45, 212, 191, 0.4) !important;
+    }
+    .fs-fab-icon {
+      font-weight: 800 !important;
+      font-size: 12px !important;
+      color: #110e0b !important;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Programmatically create HTML elements to bypass Google's TrustedHTML policy
+  const fsCard = document.createElement('div');
+  fsCard.id = 'fs-card';
+  fsCard.className = 'fs-card';
+
+  const progressContainer = document.createElement('div');
+  progressContainer.className = 'fs-progress-container';
+
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "44");
+  svg.setAttribute("height", "44");
+  svg.setAttribute("viewBox", "0 0 44 44");
+  svg.style.display = "block";
+
+  const circleBg = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circleBg.setAttribute("cx", "22");
+  circleBg.setAttribute("cy", "22");
+  circleBg.setAttribute("r", "18");
+  circleBg.setAttribute("fill", "transparent");
+  circleBg.setAttribute("stroke", "rgba(255, 255, 255, 0.08)");
+  circleBg.setAttribute("stroke-width", "3.5");
+
+  const circleProgress = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circleProgress.id = 'fs-progress-circle';
+  circleProgress.setAttribute("cx", "22");
+  circleProgress.setAttribute("cy", "22");
+  circleProgress.setAttribute("r", "18");
+  circleProgress.setAttribute("fill", "transparent");
+  circleProgress.setAttribute("stroke", "#5eead4");
+  circleProgress.setAttribute("stroke-width", "3.5");
+  circleProgress.setAttribute("stroke-dasharray", "113.1");
+  circleProgress.setAttribute("stroke-dashoffset", "113.1");
+  circleProgress.setAttribute("stroke-linecap", "round");
+  circleProgress.setAttribute("transform", "rotate(-90 22 22)");
+  circleProgress.style.cssText = "transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;";
+
+  svg.appendChild(circleBg);
+  svg.appendChild(circleProgress);
+
+  const pctText = document.createElement('span');
+  pctText.id = 'fs-pct-text';
+  pctText.className = 'fs-pct-text';
+  pctText.textContent = '0%';
+
+  progressContainer.appendChild(svg);
+  progressContainer.appendChild(pctText);
+
+  const details = document.createElement('div');
+  details.className = 'fs-details';
+
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'fs-title';
+  titleSpan.textContent = 'FormSarthi Tracker';
+
+  const remainingText = document.createElement('span');
+  remainingText.id = 'fs-remaining-text';
+  remainingText.className = 'fs-remaining';
+  remainingText.textContent = 'Calculating...';
+
+  details.appendChild(titleSpan);
+  details.appendChild(remainingText);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.id = 'fs-close-btn';
+  closeBtn.className = 'fs-close-btn';
+  closeBtn.title = 'Minimize';
+  closeBtn.textContent = '✕';
+
+  fsCard.appendChild(progressContainer);
+  fsCard.appendChild(details);
+  fsCard.appendChild(closeBtn);
+
+  const fsFab = document.createElement('button');
+  fsFab.id = 'fs-fab';
+  fsFab.className = 'fs-fab fs-hidden';
+  fsFab.title = 'Show Tracker';
+
+  const fabIcon = document.createElement('span');
+  fabIcon.id = 'fs-fab-pct';
+  fabIcon.className = 'fs-fab-icon';
+  fabIcon.textContent = '0%';
+
+  fsFab.appendChild(fabIcon);
+
+  container.appendChild(fsCard);
+  container.appendChild(fsFab);
+
+  document.body.appendChild(container);
+
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fsCard.classList.add('fs-hidden');
+    fsFab.classList.remove('fs-hidden');
+    sessionStorage.setItem('fs_meter_collapsed', 'true');
+  });
+
+  fsFab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fsFab.classList.add('fs-hidden');
+    fsCard.classList.remove('fs-hidden');
+    sessionStorage.removeItem('fs_meter_collapsed');
+  });
+
+  if (sessionStorage.getItem('fs_meter_collapsed') === 'true') {
+    fsCard.classList.add('fs-hidden');
+    fsFab.classList.remove('fs-hidden');
+  }
+}
+
+function calculateCompleteness() {
+  const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+  if (inputs.length === 0) return { pct: 0, filled: 0, total: 0, remaining: 0 };
+  
+  let filledCount = 0;
+  inputs.forEach((input) => {
+    const val = input.value.trim();
+    if (val) {
+      filledCount++;
+    }
+  });
+  
+  const pct = Math.round((filledCount / inputs.length) * 100);
+  return {
+    pct,
+    filled: filledCount,
+    total: inputs.length,
+    remaining: inputs.length - filledCount
+  };
+}
+
+function checkProgressChange() {
+  const progress = calculateCompleteness();
+  if (progress.total === 0) return;
+  
+  if (progress.pct !== lastPercent || progress.filled !== lastFilledCount) {
+    lastPercent = progress.pct;
+    lastFilledCount = progress.filled;
+    updateMeterUI(progress.pct, progress.remaining);
+    triggerAutoSave();
+  }
+}
+
+function triggerAutoSave() {
+  if (debouncedAutoSaveTimeout) clearTimeout(debouncedAutoSaveTimeout);
+  debouncedAutoSaveTimeout = setTimeout(() => {
+    saveDraftData();
+  }, 2000);
+}
+
+function saveDraftData() {
+  const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+  if (inputs.length === 0) return;
+  
+  const values = {};
+  let filledCount = 0;
+  inputs.forEach((input, index) => {
+    const val = input.value.trim();
+    if (val) {
+      filledCount++;
+      const key = input.name || input.id || `input_idx_${index}`;
+      values[key] = val;
+    }
+  });
+  
+  const pct = Math.round((filledCount / inputs.length) * 100);
+  
+  if (filledCount > 0) {
+    const draft = {
+      url: window.location.href,
+      title: document.title || window.location.hostname,
+      percent: pct,
+      values: values,
+      timestamp: Date.now()
+    };
+    chrome.runtime.sendMessage({
+      type: "AUTO_SAVE_DRAFT",
+      draft: draft
+    });
+  }
+}
+
+function updateMeterUI(pct, remaining) {
+  injectCompletenessMeter();
+  
+  const circle = document.getElementById('fs-progress-circle');
+  const pctText = document.getElementById('fs-pct-text');
+  const remainingText = document.getElementById('fs-remaining-text');
+  const fabPct = document.getElementById('fs-fab-pct');
+  
+  if (circle && pctText && remainingText && fabPct) {
+    const circumference = 113.1;
+    const offset = circumference - (pct / 100) * circumference;
+    circle.style.strokeDashoffset = offset;
+    
+    pctText.textContent = `${pct}%`;
+    pctText.style.fontSize = "11px";
+    fabPct.textContent = `${pct}%`;
+    
+    if (remaining === 0) {
+      remainingText.textContent = "All fields filled! ✨";
+      remainingText.style.color = "#34d399";
+      pctText.style.color = "#34d399";
+      circle.style.stroke = "#34d399";
+    } else {
+      remainingText.textContent = `${remaining} field${remaining !== 1 ? 's' : ''} left`;
+      remainingText.style.color = "#F7F2EC";
+      pctText.style.color = "#5eead4";
+      circle.style.stroke = "#5eead4";
+    }
+  }
+}
+
+function updateMeterUIForLockedState() {
+  injectCompletenessMeter();
+  
+  const circle = document.getElementById('fs-progress-circle');
+  const pctText = document.getElementById('fs-pct-text');
+  const remainingText = document.getElementById('fs-remaining-text');
+  const fabPct = document.getElementById('fs-fab-pct');
+  
+  if (circle && pctText && remainingText && fabPct) {
+    const circumference = 113.1;
+    circle.style.strokeDashoffset = circumference;
+    circle.style.stroke = "#f87171";
+    
+    pctText.textContent = "🔒";
+    pctText.style.fontSize = "16px";
+    fabPct.textContent = "🔒";
+    
+    remainingText.textContent = "Unlock Vault to Autofill";
+    remainingText.style.color = "#f87171";
+  }
+}
+
+function setupCompletenessMeter() {
+  setTimeout(checkProgressChange, 500);
+  
+  document.addEventListener('input', checkProgressChange);
+  document.addEventListener('change', checkProgressChange);
+  
+  setInterval(checkProgressChange, 3000);
 }
 
 function fillForm(profile) {
@@ -424,6 +835,9 @@ function fillForm(profile) {
     }
   });
 
+  // Autofill files
+  fillFormFiles(profile);
+
   return filled;
 }
 
@@ -470,4 +884,206 @@ function formatDateForInput(dateStr) {
   } catch (e) {}
   
   return dateStr;
+}
+
+function fillFormFiles(profile) {
+  if (!profile || !profile.uploadedDocs) return;
+
+  const docFieldMap = [
+    { key: 'photo',         hints: ['photo', 'photograph', 'image', 'picture', 'passport size', 'pp size', 'profile pic', 'pic'] },
+    { key: 'signature',     hints: ['signature', 'sign', 'specimen', 'sig'] },
+    { key: 'aadhaar',       hints: ['aadhaar', 'aadhar', 'uid', 'id proof', 'id_proof', 'aadhaar card', 'aadhar card'] },
+    { key: 'pan',           hints: ['pan', 'panno', 'pan card', 'permanent account'] },
+    { key: 'dl',            hints: ['driving', 'license', 'licence', 'dl', 'driving license', 'driving licence'] },
+    { key: 'resume',        hints: ['resume', 'cv', 'curriculum', 'curriculum vitae'] },
+    { key: 'marksheet_10',  hints: ['10th', 'ssc', 'matric', 'class 10', 'marksheet_10', 'marksheet 10', 'class10', '10 mark', '10th mark', 'secondary', 'class x'] },
+    { key: 'marksheet_12',  hints: ['12th', 'hsc', 'inter', 'class 12', 'marksheet_12', 'marksheet 12', 'class12', '12 mark', '12th mark', 'intermediate', 'senior secondary', 'class xii'] },
+    { key: 'passport',      hints: ['passport'] },
+    { key: 'bank_passbook', hints: ['bank passbook', 'passbook', 'statement', 'bank statement', 'cancelled cheque'] }
+  ];
+
+  if (profile.customDocs) {
+    profile.customDocs.forEach(custom => {
+      docFieldMap.push({
+        key: custom.key,
+        hints: [custom.label.toLowerCase(), custom.key]
+      });
+    });
+  }
+
+  const fileInputs = Array.from(document.querySelectorAll('input[type="file"]'));
+  if (fileInputs.length === 0) {
+    console.log('[FormSarthi Files] No file inputs found on this page.');
+    return;
+  }
+
+  console.log(`[FormSarthi Files] Found ${fileInputs.length} file input(s). Attempting autofill...`);
+
+  const uploadedDocKeys = Object.entries(profile.uploadedDocs || {})
+    .filter(([k, v]) => v === true)
+    .map(([k]) => k);
+
+  if (uploadedDocKeys.length === 0) {
+    console.log('[FormSarthi Files] No uploaded docs in vault. Upload docs first on the dashboard.');
+    return;
+  }
+
+  console.log('[FormSarthi Files] Uploaded docs available:', uploadedDocKeys);
+
+  function extractFileLabelText(input) {
+    let labelText = '';
+    // 1. Direct input attributes
+    labelText += ' ' + (input.name || '');
+    labelText += ' ' + (input.id || '');
+    labelText += ' ' + (input.getAttribute('aria-label') || '');
+    labelText += ' ' + (input.getAttribute('placeholder') || '');
+    labelText += ' ' + (input.getAttribute('title') || '');
+    labelText += ' ' + (input.getAttribute('data-label') || '');
+    // 2. aria-labelledby
+    const ariaLabelledby = input.getAttribute('aria-labelledby');
+    if (ariaLabelledby) {
+      ariaLabelledby.split(/\s+/).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) labelText += ' ' + el.textContent;
+      });
+    }
+    // 3. <label for=""> element
+    if (input.id) {
+      try {
+        const lbl = document.querySelector('label[for="' + CSS.escape(input.id) + '"]');
+        if (lbl) labelText += ' ' + lbl.textContent;
+      } catch(e) {}
+    }
+    // 4. Closest <label> ancestor
+    const parentLabel = input.closest('label');
+    if (parentLabel) labelText += ' ' + parentLabel.textContent;
+    // 5. Walk up DOM tree collecting text from each ancestor (up to 10 levels)
+    let parent = input.parentElement;
+    for (let level = 0; level < 10 && parent; level++) {
+      if (parent.tagName === 'FORM' || parent.tagName === 'BODY' || parent.tagName === 'HTML') break;
+      const siblingInputs = parent.querySelectorAll('input, textarea, select');
+      if (siblingInputs.length > 1 && level > 2) break;
+      Array.from(parent.childNodes).forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          labelText += ' ' + node.textContent;
+        } else if (node.nodeType === Node.ELEMENT_NODE && !node.querySelector('input, textarea, select')) {
+          labelText += ' ' + node.textContent;
+        }
+      });
+      parent = parent.parentElement;
+    }
+    // 6. Previous sibling elements
+    let prev = input.previousElementSibling;
+    let prevCount = 0;
+    while (prev && prevCount < 4) {
+      if (['LABEL','SPAN','P','DIV','H1','H2','H3','H4','H5','LI','TD','TH'].includes(prev.tagName)) {
+        labelText += ' ' + prev.textContent;
+      }
+      prev = prev.previousElementSibling;
+      prevCount++;
+    }
+    return labelText.toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  const matchedInputIndices = new Set();
+
+  fileInputs.forEach((input, idx) => {
+    const labelText = extractFileLabelText(input);
+    console.log(`[FormSarthi Files] File input[${idx}] context: "${labelText.substring(0, 200)}"`);
+
+    for (const field of docFieldMap) {
+      if (!profile.uploadedDocs[field.key]) continue;
+      if (matchedInputIndices.has(idx)) break;
+
+      const matched = field.hints.some(hint => labelText.includes(hint));
+      if (matched) {
+        matchedInputIndices.add(idx);
+        console.log(`[FormSarthi Files] Matched input[${idx}] -> doc: "${field.key}"`);
+        chrome.runtime.sendMessage({ type: 'GET_FILE_DATA', docKey: field.key }, (fileRes) => {
+          if (chrome.runtime.lastError) {
+            console.warn('[FormSarthi Files] Runtime error:', chrome.runtime.lastError.message);
+            return;
+          }
+          if (fileRes && fileRes.success && fileRes.fileData) {
+            const mime = fileRes.fileType || 'application/pdf';
+            const ext = mime.includes('png') ? 'png' : mime.includes('jpg') || mime.includes('jpeg') ? 'jpg' : 'pdf';
+            uploadFileToInput(input, fileRes.fileData, mime, field.key + '.' + ext);
+          } else {
+            console.warn('[FormSarthi Files] No data for "' + field.key + '":', fileRes && fileRes.error);
+          }
+        });
+        break;
+      }
+    }
+  });
+
+  // Fallback: single file input, no label match => try first uploaded doc
+  if (fileInputs.length === 1 && matchedInputIndices.size === 0 && uploadedDocKeys.length > 0) {
+    const fallbackKey = uploadedDocKeys[0];
+    console.log('[FormSarthi Files] Fallback: single input, no match. Trying:', fallbackKey);
+    chrome.runtime.sendMessage({ type: 'GET_FILE_DATA', docKey: fallbackKey }, (fileRes) => {
+      if (chrome.runtime.lastError) {
+        console.warn('[FormSarthi Files] Fallback runtime error:', chrome.runtime.lastError.message);
+        return;
+      }
+      if (fileRes && fileRes.success && fileRes.fileData) {
+        const mime = fileRes.fileType || 'application/pdf';
+        const ext = mime.includes('png') ? 'png' : mime.includes('jpg') || mime.includes('jpeg') ? 'jpg' : 'pdf';
+        uploadFileToInput(fileInputs[0], fileRes.fileData, mime, fallbackKey + '.' + ext);
+      } else {
+        console.warn('[FormSarthi Files] Fallback failed. Is vault unlocked?', fileRes && fileRes.error);
+      }
+    });
+  }
+}
+
+function uploadFileToInput(input, base64Data, mimeType, fileName) {
+  try {
+    let base64Content = base64Data;
+    if (base64Data.includes(',')) {
+      base64Content = base64Data.split(',')[1];
+    }
+    // Decode base64 to byte array
+    const byteCharacters = atob(base64Content);
+    const byteArray = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArray[i] = byteCharacters.charCodeAt(i);
+    }
+    const blob = new Blob([byteArray], { type: mimeType });
+    const file = new File([blob], fileName, { type: mimeType });
+
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+
+    // Warn if accept attribute might reject the file type
+    const accept = input.getAttribute('accept') || '';
+    if (accept && accept !== '*' && accept !== '*/*') {
+      const acceptedTypes = accept.split(',').map(s => s.trim().toLowerCase());
+      const fileType = mimeType.toLowerCase();
+      const fileExt = '.' + fileName.split('.').pop().toLowerCase();
+      const isAccepted = acceptedTypes.some(a => {
+        if (a.startsWith('.')) return a === fileExt;
+        if (a.endsWith('/*')) return fileType.startsWith(a.replace('/*', '/'));
+        return a === fileType;
+      });
+      if (!isAccepted) {
+        console.warn('[FormSarthi Files] Type "' + mimeType + '" might not match accept="' + accept + '". Attempting anyway.');
+      }
+    }
+
+    input.files = dataTransfer.files;
+    input.dispatchEvent(new Event('input',  { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+
+    if (input.files && input.files.length > 0) {
+      console.log('[FormSarthi Files] Successfully set file:', fileName, '(' + mimeType + ')');
+      return true;
+    } else {
+      console.warn('[FormSarthi Files] input.files assignment did not stick (browser security?).');
+      return false;
+    }
+  } catch (err) {
+    console.error('[FormSarthi Files] Exception in uploadFileToInput:', err);
+    return false;
+  }
 }

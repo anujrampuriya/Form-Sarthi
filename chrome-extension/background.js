@@ -108,14 +108,23 @@ async function handleMessage(message, sender) {
         }
         if (!tabId) throw new Error("No active tab found.");
         
-        // Execute fillFormPageDirect directly in the target page context
-        const results = await chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          func: fillFormPageDirect,
-          args: [profile]
-        });
-        
-        const filledCount = results && results[0] ? results[0].result : 0;
+        let filledCount = 0;
+        try {
+          const response = await chrome.tabs.sendMessage(tabId, { type: "FILL_PAGE", profile });
+          if (response && response.success) {
+            filledCount = response.count;
+          } else {
+            throw new Error("Content script response failed");
+          }
+        } catch (msgErr) {
+          // Fallback to executeScript directly in the target page context
+          const results = await chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            func: fillFormPageDirect,
+            args: [profile]
+          });
+          filledCount = results && results[0] ? results[0].result : 0;
+        }
         return { success: true, fielledCount: filledCount };
       } catch (err) {
         return { success: false, error: err.message };
@@ -141,6 +150,19 @@ async function handleMessage(message, sender) {
         const response = await chrome.tabs.sendMessage(dashboardTab.id, {
           type: "SAVE_DRAFT_DATA",
           draft: message.draft
+        });
+        return response;
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+    }
+
+    case "GET_FILE_DATA": {
+      try {
+        const dashboardTab = await getDashboardTab();
+        const response = await chrome.tabs.sendMessage(dashboardTab.id, {
+          type: "GET_DASHBOARD_FILE",
+          docKey: message.docKey
         });
         return response;
       } catch (err) {
