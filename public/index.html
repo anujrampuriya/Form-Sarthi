@@ -239,6 +239,31 @@
       border-color: var(--text);
       background: rgba(255,255,255,0.02);
     }
+    .google-btn-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    .google-btn-wrapper:hover .custom-google-btn {
+      color: var(--text);
+      border-color: var(--text);
+      background: rgba(255,255,255,0.02);
+    }
+    .google-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      z-index: 10;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .google-overlay iframe {
+      width: 100% !important;
+      height: 100% !important;
+      cursor: pointer !important;
+    }
 
     /* ── SCREEN: ADD PROFILE ── */
     .form-group {
@@ -1266,8 +1291,19 @@
         <!-- Injected dynamically -->
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center;">
-        <div id="google-signin-btn" style="width: 100%; display: flex; justify-content: center;"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center; width: 100%;">
+        <div class="google-btn-wrapper">
+          <div id="google-signin-btn" class="google-overlay"></div>
+          <button class="add-btn custom-google-btn">
+            <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right: 4px;">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.5 24c0-1.63-.15-3.2-.42-4.72H24v9h12.75c-.55 2.87-2.17 5.31-4.61 6.94v5.77h7.47C44.09 36.88 46.5 30.98 46.5 24z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.47-5.77c-2.07 1.38-4.71 2.2-8.42 2.2-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              <path fill="#FBBC05" d="M10.54 28.71c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.98-6.07z"/>
+            </svg>
+            Continue with Google
+          </button>
+        </div>
 
         <button class="add-btn" onclick="showAddProfile()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1699,13 +1735,14 @@
                 <p>No analytics engines, trackers, or databases monitor your filled fields. FormSarthi is fully private and run locally by you, keeping your documents and metadata 100% isolated.</p>
               </div>
             </div>
-          </div>
-          <!-- ── ABOUT FORMSARTHI ── -->
-          <div class="about-section" style="margin-top: 40px; padding: 20px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border);">
-            <h3 style="margin-bottom: 10px; color: var(--accent);">About FormSarthi</h3>
-            <p style="font-size: 14px; color: var(--muted); line-height: 1.5;">
-              FormSarthi is your private, stateless utility engine for form filling. Designed for Indian students and citizens, it seamlessly processes and encrypts your data locally, ensuring your PAN, Aadhaar, and other sensitive details never leave your device unencrypted. We utilize on-device OCR and document analysis to make filling out tedious online applications a breeze.
-            </p>
+
+            <!-- ── ABOUT FORMSARTHI ── -->
+            <div class="about-section" style="margin-top: 40px; padding: 20px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border);">
+              <h3 style="margin-bottom: 10px; color: var(--accent);">About FormSarthi</h3>
+              <p style="font-size: 14px; color: var(--muted); line-height: 1.5;">
+                FormSarthi is your private, stateless utility engine for form filling. Designed for Indian students and citizens, it seamlessly processes and encrypts your data locally, ensuring your PAN, Aadhaar, and other sensitive details never leave your device unencrypted. We utilize on-device OCR and document analysis to make filling out tedious online applications a breeze.
+              </p>
+            </div>
           </div>
 
         </main>
@@ -2267,12 +2304,14 @@
       const btnContainer = document.getElementById("google-signin-btn");
       if (btnContainer && typeof google !== 'undefined' && google.accounts && google.accounts.id) {
         const isDark = activeTheme === 'dark';
+        const parentWidth = btnContainer.parentElement ? btnContainer.parentElement.clientWidth : 320;
+        const buttonWidth = Math.max(200, Math.min(400, parentWidth || 320));
         google.accounts.id.renderButton(
           btnContainer,
           { 
             theme: isDark ? "filled_black" : "outline", 
             size: "large", 
-            width: 320, 
+            width: buttonWidth, 
             text: "continue_with"
           }
         );
