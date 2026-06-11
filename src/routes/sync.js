@@ -1,6 +1,9 @@
 const express = require("express");
 const db      = require("../db/database");
 const { requireAuth } = require("../middleware/authMiddleware");
+const { getKey } = require("../utils/keyStore");
+const { encryptField } = require("../utils/encrypt");
+const { decryptField } = require("../utils/decrypt");
 const router  = express.Router();
 
 // Apply authentication middleware to all sync endpoints
@@ -105,10 +108,21 @@ router.get("/files", (req, res) => {
       return res.status(404).json({ error: "File not found." });
     }
 
+    // Decrypt the file data
+    const encryptionKey = getKey(req.user.userId);
+    let decryptedData = file.file_data;
+    if (encryptionKey && file.file_data && file.file_data.includes(":")) {
+      try {
+        decryptedData = decryptField(file.file_data, encryptionKey);
+      } catch (err) {
+        console.error("Failed to decrypt file data", err);
+      }
+    }
+
     return res.status(200).json({
       email: file.email,
       docKey: file.doc_key,
-      fileData: file.file_data,
+      fileData: decryptedData,
       fileType: file.file_type
     });
   } catch (err) {
@@ -126,6 +140,13 @@ router.post("/files", (req, res) => {
       return res.status(400).json({ error: "Email, docKey, fileData, and fileType are required." });
     }
 
+    // Encrypt the file data before saving
+    const encryptionKey = getKey(req.user.userId);
+    let dataToSave = fileData;
+    if (encryptionKey) {
+      dataToSave = encryptField(fileData, encryptionKey);
+    }
+
     db.prepare(`
       INSERT INTO SyncedFiles (email, doc_key, file_data, file_type, uploaded_at)
       VALUES (?, ?, ?, ?, datetime('now'))
@@ -136,7 +157,7 @@ router.post("/files", (req, res) => {
     `).run(
       email.toLowerCase().trim(),
       docKey.trim(),
-      fileData,
+      dataToSave,
       fileType
     );
 

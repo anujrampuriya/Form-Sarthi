@@ -15,110 +15,252 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const https = require("https");
+const http = require("http");
 
 let worker = null;
 let workerReady = false;
 let paddleAvailable = null; // null = not checked, true/false = checked
 
-// ── PaddleOCR (via Python subprocess) ──────────────────────────
+// ── EasyOCR & PaddleOCR (via Python subprocess daemons) ──
 
-const PADDLE_SCRIPT = path.join(__dirname, "paddle_ocr.py");
+const EASYOCR_DAEMON_SCRIPT = path.join(__dirname, "easy_ocr_server.py");
+const PADDLEOCR_DAEMON_SCRIPT = path.join(__dirname, "paddle_ocr_server.py");
+
+let easyOcrServerProc = null;
+let easyOcrAvailable = null;
+
+let paddleOcrServerProc = null;
 
 /**
- * Check if PaddleOCR is available (Python + paddleocr installed)
+ * Check if PaddleOCR is available and start the daemon server
  */
 async function checkPaddleAvailable() {
   if (paddleAvailable !== null) return paddleAvailable;
 
   return new Promise((resolve) => {
-    const proc = spawn("python", ["-c", "from paddleocr import PaddleOCR; print('ok')"], {
-      timeout: 15000,
+    console.log("⏳ Starting persistent PaddleOCR daemon...");
+    paddleOcrServerProc = spawn("python", [PADDLEOCR_DAEMON_SCRIPT], {
       stdio: ["pipe", "pipe", "pipe"]
     });
 
-    let stdout = "";
-    proc.stdout.on("data", (d) => { stdout += d.toString(); });
+    let isResolved = false;
 
-    proc.on("close", (code) => {
-      paddleAvailable = (code === 0);
-      if (paddleAvailable) {
-        console.log("✅ PaddleOCR is available");
-      } else {
-        console.log("⚠️  PaddleOCR not available — will use fallback OCR");
+    const onData = (d) => {
+      const msg = d.toString();
+      if (msg.includes("running on port")) {
+        if (!isResolved) {
+          paddleAvailable = true;
+          isResolved = true;
+          console.log("✅ PaddleOCR daemon started successfully");
+          resolve(true);
+        }
       }
-      resolve(paddleAvailable);
+    };
+
+    paddleOcrServerProc.stdout.on("data", onData);
+    paddleOcrServerProc.stderr.on("data", onData);
+
+    paddleOcrServerProc.on("close", (code) => {
+      if (!isResolved) {
+        paddleAvailable = false;
+        isResolved = true;
+        console.log("⚠️  PaddleOCR daemon failed to start");
+        resolve(false);
+      }
     });
 
-    proc.on("error", () => {
-      paddleAvailable = false;
-      console.log("⚠️  PaddleOCR not available — Python not found or paddleocr not installed");
-      resolve(false);
+    paddleOcrServerProc.on("error", () => {
+      if (!isResolved) {
+        paddleAvailable = false;
+        isResolved = true;
+        console.log("⚠️  PaddleOCR daemon not available");
+        resolve(false);
+      }
     });
   });
 }
 
 /**
- * Run PaddleOCR on an image buffer by writing to a temp file
+ * Check if EasyOCR is available and start the daemon server
  */
-async function runPaddleOCR(imageBuffer) {
-  // Write buffer to a temp file
+async function checkEasyOcrAvailable() {
+  if (easyOcrAvailable !== null) return easyOcrAvailable;
+
+  return new Promise((resolve) => {
+    console.log("⏳ Starting persistent EasyOCR daemon...");
+    easyOcrServerProc = spawn("python", [EASYOCR_DAEMON_SCRIPT], {
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+
+    let isResolved = false;
+
+    easyOcrServerProc.stdout.on("data", (d) => {
+      const msg = d.toString();
+      if (msg.includes("running on port")) {
+        if (!isResolved) {
+          easyOcrAvailable = true;
+          isResolved = true;
+          console.log("✅ EasyOCR daemon started successfully");
+          resolve(true);
+        }
+      }
+    });
+
+    easyOcrServerProc.stderr.on("data", (d) => {
+      const msg = d.toString();
+      if (msg.includes("running on port")) {
+        if (!isResolved) {
+          easyOcrAvailable = true;
+          isResolved = true;
+          console.log("✅ EasyOCR daemon started successfully");
+          resolve(true);
+        }
+      }
+    });
+
+    easyOcrServerProc.on("close", (code) => {
+      if (!isResolved) {
+        easyOcrAvailable = false;
+        isResolved = true;
+        console.log("⚠️  EasyOCR daemon failed to start — will use fallback OCR");
+        resolve(false);
+      }
+    });
+
+    easyOcrServerProc.on("error", () => {
+      if (!isResolved) {
+        easyOcrAvailable = false;
+        isResolved = true;
+        console.log("⚠️  EasyOCR daemon not available — Python not found or easyocr not installed");
+        resolve(false);
+      }
+    });
+  });
+}
+
+/**
+ * Run EasyOCR by querying the local HTTP daemon
+ */
+async function runEasyOCR(imageBuffer) {
+  // Write buffer to a temp file since EasyOCR daemon expects a file path
   const tmpFile = path.join(os.tmpdir(), `formsarthi_ocr_${Date.now()}.png`);
 
   try {
-    fs.writeFileSync(tmpFile, imageBuffer);
+    const sharp = require("sharp");
+    // Resize the image to speed up EasyOCR massively while retaining readability
+    const processedBuffer = await sharp(imageBuffer)
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .toBuffer();
+
+    fs.writeFileSync(tmpFile, processedBuffer);
 
     return await new Promise((resolve, reject) => {
-      const proc = spawn("python", [PADDLE_SCRIPT, tmpFile], {
-        timeout: 120000, // 2 minutes max
-        stdio: ["pipe", "pipe", "pipe"]
+      const postData = JSON.stringify({ image_path: tmpFile });
+
+      const options = {
+        hostname: '127.0.0.1',
+        port: 8089,
+        path: '/',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const req = http.request(options, (res) => {
+        let rawData = '';
+        res.on('data', (chunk) => { rawData += chunk; });
+        res.on('end', () => {
+          try { fs.unlinkSync(tmpFile); } catch (e) { /* ignore */ }
+          try {
+            const result = JSON.parse(rawData);
+            if (result.error) {
+              return reject(new Error(`EasyOCR daemon error: ${result.error}`));
+            }
+            resolve({
+              text: result.text || "",
+              confidence: result.confidence || 0
+            });
+          } catch (e) {
+            reject(new Error(`Failed to parse EasyOCR output: ${e.message}`));
+          }
+        });
       });
 
-      let stdout = "";
-      let stderr = "";
-
-      proc.stdout.on("data", (d) => { stdout += d.toString(); });
-      proc.stderr.on("data", (d) => { stderr += d.toString(); });
-
-      proc.on("close", (code) => {
-        // Clean up temp file
-        try { fs.unlinkSync(tmpFile); } catch (e) { /* ignore */ }
-
-        if (code !== 0) {
-          return reject(new Error(`PaddleOCR exited with code ${code}: ${stderr.slice(-500)}`));
-        }
-
-        try {
-          // Find the last valid JSON line in stdout (PaddleOCR may print warnings)
-          const lines = stdout.trim().split("\n");
-          let result = null;
-          for (let i = lines.length - 1; i >= 0; i--) {
-            try {
-              result = JSON.parse(lines[i]);
-              break;
-            } catch (e) { continue; }
-          }
-
-          if (!result) {
-            return reject(new Error("No valid JSON output from PaddleOCR"));
-          }
-
-          if (result.error) {
-            return reject(new Error(`PaddleOCR error: ${result.error}`));
-          }
-
-          resolve({
-            text: result.text || "",
-            confidence: result.confidence || 0
-          });
-        } catch (e) {
-          reject(new Error(`Failed to parse PaddleOCR output: ${e.message}`));
-        }
-      });
-
-      proc.on("error", (e) => {
+      req.on('error', (e) => {
         try { fs.unlinkSync(tmpFile); } catch (err) { /* ignore */ }
-        reject(new Error(`Failed to start PaddleOCR: ${e.message}`));
+        reject(new Error(`EasyOCR request failed: ${e.message}`));
       });
+
+      req.write(postData);
+      req.end();
+    });
+  } catch (err) {
+    try { fs.unlinkSync(tmpFile); } catch (e) { /* ignore */ }
+    throw err;
+  }
+}
+
+// ── PaddleOCR (via Python subprocess) ──────────────────────────
+
+async function runPaddleOCR(imageBuffer) {
+  const hasPaddle = await checkPaddleAvailable();
+  if (!hasPaddle) {
+    throw new Error("PaddleOCR daemon not available");
+  }
+
+  const tmpFile = path.join(os.tmpdir(), `formsarthi_paddle_${Date.now()}.png`);
+
+  try {
+    const sharp = require("sharp");
+    const processedBuffer = await sharp(imageBuffer)
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .toBuffer();
+
+    fs.writeFileSync(tmpFile, processedBuffer);
+
+    return await new Promise((resolve, reject) => {
+      const postData = JSON.stringify({ image_path: tmpFile });
+
+      const options = {
+        hostname: '127.0.0.1',
+        port: 8090,
+        path: '/',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const req = http.request(options, (res) => {
+        let rawData = '';
+        res.on('data', (chunk) => { rawData += chunk; });
+        res.on('end', () => {
+          try { fs.unlinkSync(tmpFile); } catch (e) { /* ignore */ }
+          try {
+            const result = JSON.parse(rawData);
+            if (result.error) {
+              return reject(new Error(`PaddleOCR daemon error: ${result.error}`));
+            }
+            resolve({
+              text: result.text || "",
+              confidence: result.confidence || 0
+            });
+          } catch (e) {
+            reject(new Error(`Failed to parse PaddleOCR output: ${e.message}`));
+          }
+        });
+      });
+
+      req.on('error', (e) => {
+        try { fs.unlinkSync(tmpFile); } catch (err) { /* ignore */ }
+        reject(new Error(`PaddleOCR request failed: ${e.message}`));
+      });
+
+      req.write(postData);
+      req.end();
     });
   } catch (err) {
     try { fs.unlinkSync(tmpFile); } catch (e) { /* ignore */ }
@@ -190,45 +332,56 @@ function callGoogleVision(imageBuffer) {
 
 // ── Tesseract Fallback ─────────────────────────────────────────
 
-let workerPromise = null;
-let tesseractChain = Promise.resolve();
+let scheduler = null;
+let schedulerPromise = null;
 
-async function getTesseractWorker() {
-  if (workerPromise) return workerPromise;
+async function getTesseractScheduler() {
+  if (schedulerPromise) return schedulerPromise;
 
-  workerPromise = (async () => {
-    console.log("⏳ Initializing Tesseract OCR worker (eng + hin)...");
-    const w = await Tesseract.createWorker(["eng", "hin"], 1, {
-      logger: process.env.NODE_ENV === "development"
-        ? (m) => { if (m.status === "recognizing text") process.stdout.write("."); }
-        : () => {},
-    });
-    await w.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
+  schedulerPromise = (async () => {
+    console.log("⏳ Initializing Tesseract OCR Scheduler with 2 workers...");
+    scheduler = Tesseract.createScheduler();
+    
+    for (let i = 0; i < 2; i++) {
+      const w = await Tesseract.createWorker(["eng", "hin"], 1, {
+        logger: process.env.NODE_ENV === "development"
+          ? (m) => { if (m.status === "recognizing text") process.stdout.write("."); }
+          : () => {},
+      });
+      await w.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO });
+      scheduler.addWorker(w);
+    }
+    
     workerReady = true;
-    console.log("✅ Tesseract OCR worker ready (eng + hin)");
-    return w;
+    console.log("✅ Tesseract OCR Scheduler ready (2 workers)");
+    return scheduler;
   })();
 
-  return workerPromise;
+  return schedulerPromise;
 }
+
+const sharp = require("sharp");
 
 async function runTesseractOCR(imageBuffer) {
-  // Use a global queue to serialize Tesseract recognition tasks,
-  // preventing concurrent/busy worker crashes.
-  return new Promise((resolve, reject) => {
-    tesseractChain = tesseractChain
-      .then(async () => {
-        const w = await getTesseractWorker();
-        const { data } = await w.recognize(imageBuffer);
-        resolve({ text: data.text || "", confidence: data.confidence || 0 });
-      })
-      .catch((err) => {
-        reject(err);
-      });
-  });
+  let processedBuffer = imageBuffer;
+  try {
+    processedBuffer = await sharp(imageBuffer)
+      .grayscale()
+      .normalize()
+      .sharpen()
+      .toBuffer();
+    console.log("  ✨ Image optimized for Tesseract");
+  } catch(e) {
+    console.warn("  ⚠️  Sharp pre-processing failed, using original image", e.message);
+  }
+
+  // Add the job to the scheduler, which handles queueing and worker assignment
+  const sched = await getTesseractScheduler();
+  const { data } = await sched.addJob("recognize", processedBuffer);
+  return { text: data.text || "", confidence: data.confidence || 0 };
 }
 
-// ── Main OCR Function (Priority: Paddle → Google Vision → Tesseract) ──
+// ── Main OCR Function (Priority: EasyOCR → PaddleOCR → Tesseract) ──
 
 async function runOCR(imageBuffer, mode = "default") {
   // 0. Fast mode (force Tesseract for quick classification)
@@ -236,22 +389,32 @@ async function runOCR(imageBuffer, mode = "default") {
     return runTesseractOCR(imageBuffer);
   }
 
-  // 1. Try PaddleOCR first
-  const hasPaddle = await checkPaddleAvailable();
-  if (hasPaddle) {
+  // 1. Try EasyOCR first
+  const hasEasyOCR = await checkEasyOcrAvailable();
+  if (hasEasyOCR) {
     try {
-      const result = await runPaddleOCR(imageBuffer);
-      console.log(`  🐉 PaddleOCR: ${result.text.length} chars, ${result.confidence}% confidence`);
+      const result = await runEasyOCR(imageBuffer);
+      console.log(`  🐉 EasyOCR: ${result.text.length} chars, ${result.confidence}% confidence`);
       if (process.env.NODE_ENV === "development") {
-        console.log("\n📝 PADDLE OCR TEXT (first 800 chars):\n" + result.text.substring(0, 800));
+        console.log("\n📝 EASY OCR TEXT (first 800 chars):\n" + result.text.substring(0, 800));
       }
       return result;
     } catch (err) {
-      console.warn(`  ⚠️  PaddleOCR failed: ${err.message}`);
+      console.warn(`  ⚠️  EasyOCR failed: ${err.message}`);
     }
   }
 
-  // 2. Try Google Vision
+  // 2. Try PaddleOCR
+  try {
+    console.log("  🔄 Falling back to PaddleOCR...");
+    const result = await runPaddleOCR(imageBuffer);
+    console.log(`  🚣 PaddleOCR: ${result.text.length} chars, ${result.confidence}% confidence`);
+    return result;
+  } catch (err) {
+    console.warn(`  ⚠️  PaddleOCR failed: ${err.message}`);
+  }
+
+  // 3. Try Google Vision (if key exists)
   if (process.env.GOOGLE_VISION_API_KEY) {
     try {
       const result = await callGoogleVision(imageBuffer);
@@ -286,10 +449,10 @@ async function runOCROnAll(imageBuffers, mode = "default") {
 }
 
 async function terminateWorker() {
-  if (worker && workerReady) {
-    await worker.terminate();
+  if (scheduler && workerReady) {
+    await scheduler.terminate();
     workerReady = false;
-    worker = null;
+    scheduler = null;
   }
 }
 

@@ -37,14 +37,11 @@ def run_ocr(image_path):
         # lang='en' for English (also supports 'hi' for Hindi)
         ocr = PaddleOCR(
             use_angle_cls=True,
-            lang='en',
-            show_log=False,
-            use_gpu=False,
-            enable_mkldnn=False,
+            lang='en'
         )
 
         # Run OCR
-        result = ocr.ocr(image_path, cls=True)
+        result = ocr.ocr(image_path)
 
         if not result or not result[0]:
             return {"text": "", "confidence": 0}

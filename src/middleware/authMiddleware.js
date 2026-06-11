@@ -4,9 +4,16 @@
 // =============================================================
 
 const jwt      = require("jsonwebtoken");
+const crypto   = require("crypto");
 const { hasKey } = require("../utils/keyStore");
 
-const JWT_SECRET = process.env.JWT_SECRET || "change_this_in_production";
+// Generate a random secret on startup if not provided
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠️  WARNING: JWT_SECRET not set in .env. A random secret was generated for this session.");
+  console.warn("⚠️  This means all logged-in users will be logged out if the server restarts.");
+}
 
 function requireAuth(req, res, next) {
   const authHeader = req.headers["authorization"];

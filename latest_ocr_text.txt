@@ -1,10 +1,21 @@
-STATE BANK OF INDIA GWALIOR MAIN BRANCH
+Rahul Kumar Sharma
 
-Account Holder: ANKIT KUMAR VERMA
-Account Number: 43210987654
-IFSC Code: SBINGOO4321
+Email: rahul.sharma@example.com | Phone: +91-9876543210 | Location: Jabalpur, MP
 
-Branch Code: 004321
+EDUCATION
 
-Address: 104, VIVEK NAGAR, GWALIOR, MP
+Global Institute of Technology — B.Tech Computer Science (2019 - 2023)
+CGPA: 8.9110
 
+TECHNICAL SKILLS
+
+Languages & Web: JavaScript (ES6+), HTMLS, CSS3, Node.js, Python
+Databases & Security: IndexedDB, AES-256 Encryption, MongoDB
+
+ACADEMIC PROJECTS
+
+FormSarthi (Privacy-First Form Filler)
+Developed a local-first application using IndexedDB for zero-server storage,
+
+PBKDF2 encryption, and integrated content layout maps for automated string
+matching processing.

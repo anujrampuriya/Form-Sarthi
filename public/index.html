@@ -2475,7 +2475,32 @@
       }
     }
 
-    // Handle Enter key for unlock password
+    // Auto-login when the correct password is typed
+    document.getElementById('unlock-password').addEventListener('input', function(e) {
+      const p = profiles.find(pr => pr.email === activeProfile);
+      if (!p || !p.encryptedProfile) return;
+      if (isProfileLocked(p.email)) return;
+      
+      const passwordEntered = this.value;
+      if (!passwordEntered || passwordEntered.length < 4) return;
+      
+      try {
+        const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
+        const derivedKey = CryptoJS.PBKDF2(passwordEntered, salt, { keySize: 256 / 32, iterations: 1000 });
+        
+        const decryptedBytes = CryptoJS.AES.decrypt(p.encryptedProfile, derivedKey.toString());
+        const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+        
+        // If decryption is successful, trigger the full login flow automatically
+        if (decryptedText && decryptedText.includes('"email"')) { 
+            verifyPin();
+        }
+      } catch(err) {
+        // Wrong password typed so far, wait for more input
+      }
+    });
+    
+    // Fallback Handle Enter key
     document.getElementById('unlock-password').addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         verifyPin();
@@ -2571,7 +2596,7 @@
         setFailedAttempts(p.email, attempts);
 
         if (attempts >= 3) {
-          const lockDuration = 3 * 60 * 1000; // 3 minutes lockout duration
+          const lockDuration = 5 * 60 * 1000; // 5 minutes lockout duration
           setLockoutExpiry(p.email, Date.now() + lockDuration);
           document.getElementById('pin-error').textContent = 'Profile locked due to 3 failed attempts.';
           setTimeout(() => {
@@ -2742,7 +2767,15 @@
       try {
         let fileObj = await dbGet("files", activeProfile + "_" + docKey);
         
-        if (!fileObj) {
+        // Decrypt if it's encrypted (doesn't start with data:)
+        if (fileObj && fileObj.fileData && !fileObj.fileData.startsWith("data:")) {
+           try {
+             const decryptedBytes = CryptoJS.AES.decrypt(fileObj.fileData, activeKey.toString());
+             fileObj.fileData = decryptedBytes.toString(CryptoJS.enc.Utf8);
+           } catch(e) { console.error("Failed to decrypt local file data"); }
+        }
+        
+        if (!fileObj || !fileObj.fileData) {
           // Attempt to fetch from backend sync server
           try {
             const res = await fetchWithAuth(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`);
@@ -2751,11 +2784,12 @@
               if (syncedFile && syncedFile.fileData) {
                 fileObj = {
                   id: activeProfile + "_" + docKey,
-                  fileData: syncedFile.fileData,
+                  fileData: syncedFile.fileData, // Keep plain in memory for viewing
                   fileType: syncedFile.fileType
                 };
-                // Store in local IndexedDB so it's cached
-                await dbPut("files", fileObj);
+                // Store in local IndexedDB encrypted so it's cached securely
+                const encryptedFileData = CryptoJS.AES.encrypt(syncedFile.fileData, activeKey.toString()).toString();
+                await dbPut("files", { ...fileObj, fileData: encryptedFileData });
               }
             }
           } catch (err) {
@@ -2882,9 +2916,11 @@
             const reader = new FileReader();
             reader.onload = async (e) => {
               try {
-                await dbPut("files", { id: activeProfile + "_" + mappedType, fileData: e.target.result, fileType: file.type });
+                // Encrypt before saving to local IndexedDB
+                const encryptedFileData = CryptoJS.AES.encrypt(e.target.result, activeKey.toString()).toString();
+                await dbPut("files", { id: activeProfile + "_" + mappedType, fileData: encryptedFileData, fileType: file.type });
                 
-                // Sync file upload to server
+                // Sync file upload to server (server encrypts it on its end)
                 try {
                   await fetchWithAuth('/api/sync/files', {
                     method: 'POST',
@@ -2892,7 +2928,7 @@
                     body: JSON.stringify({
                       email: activeProfile,
                       docKey: mappedType,
-                      fileData: e.target.result,
+                      fileData: e.target.result, // Send plain Base64 to server
                       fileType: file.type
                     })
                   });
@@ -3677,35 +3713,12 @@
       }
     }
 
-    // Global Keyboard Listeners for PIN inputs
+    // Global Escape Listener
     window.addEventListener('keydown', (e) => {
       const activeScreen = document.querySelector('.screen.active');
       if (!activeScreen) return;
-
-      const key = e.key;
-
-      if (activeScreen.id === 'screen-pin') {
-        if (activeProfile && isProfileLocked(activeProfile)) return;
-
-        if (key >= '0' && key <= '9') {
-          pressKey(key);
-        } else if (key === 'Backspace') {
-          pressKey('back');
-        } else if (key === 'Escape') {
-          show('who');
-        } else if (key === 'Enter') {
-          verifyPin();
-        }
-      } else if (activeScreen.id === 'screen-add') {
-        const activeEl = document.activeElement;
-        if (activeEl && (activeEl.id === 'new-name' || activeEl.id === 'new-official-name' || activeEl.id === 'new-email')) {
-          return; // Ignore key capture during name/email text entry
-        }
-        if (key >= '0' && key <= '9') {
-          addPinKey(key);
-        } else if (key === 'Backspace') {
-          addPinKey('back');
-        }
+      if (e.key === 'Escape' && activeScreen.id === 'screen-pin') {
+        show('who');
       }
     });
 
