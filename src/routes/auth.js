@@ -19,6 +19,7 @@ const { deriveKeyFromPIN, encryptProfileFields } = require("../utils/encrypt");
 const { decryptProfileFields }                   = require("../utils/decrypt");
 const { setKey, removeKey }                      = require("../utils/keyStore");
 const { requireAuth }                            = require("../middleware/authMiddleware");
+const { sendVerificationEmail }                  = require("../utils/mailer");
 
 const router = express.Router();
 
@@ -224,19 +225,146 @@ router.post("/google", async (req, res) => {
       });
     }
 
-    profile = db.prepare("SELECT encrypted_blob, color, avatar FROM UserProfile WHERE user_id = ?").get(user.id);
+    // NEW: Trigger Email Verification Flow
+    // Instead of immediately returning the profile, we send an email and tell the client to wait.
+    
+    // Clear old unresponded verification requests for this email
+    db.prepare("DELETE FROM GoogleVerification WHERE email = ?").run(email);
+    
+    const { v4: uuidv4 } = require('uuid');
+    const allowToken = uuidv4();
+    const denyToken = uuidv4();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 mins expiry
+    
+    // Save tokens in DB
+    db.prepare(`
+      INSERT INTO GoogleVerification (token, email, action, expires_at, responded)
+      VALUES (?, ?, ?, ?, 0)
+    `).run(allowToken, email, 'allow', expiresAt);
+    
+    db.prepare(`
+      INSERT INTO GoogleVerification (token, email, action, expires_at, responded)
+      VALUES (?, ?, ?, ?, 0)
+    `).run(denyToken, email, 'deny', expiresAt);
+    
+    // Send email asynchronously
+    sendVerificationEmail(email, name, allowToken, denyToken).catch(err => console.error("Mailer err:", err));
+
     return res.status(200).json({
+      pendingVerification: true,
+      email: email
+    });
+  } catch (err) {
+    console.error("Google Auth error:", err.message);
+    return res.status(401).json({ error: "Invalid Google token" });
+  }
+});
+
+// =============================================================
+// GET /api/auth/verify/:token
+// =============================================================
+router.get("/verify/:token", (req, res) => {
+  try {
+    const { token } = req.params;
+    const verification = db.prepare("SELECT * FROM GoogleVerification WHERE token = ?").get(token);
+    
+    if (!verification) {
+      return res.status(404).send("<h2>Invalid or expired verification link.</h2>");
+    }
+    
+    if (new Date(verification.expires_at) < new Date()) {
+      return res.status(400).send("<h2>This verification link has expired.</h2>");
+    }
+    
+    // Mark as responded
+    db.prepare("UPDATE GoogleVerification SET responded = 1 WHERE email = ?").run(verification.email);
+    
+    return res.send(`
+      <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <h2 style="color: #22c55e;">Login Verified Successfully!</h2>
+        <p>You can now return to the FormSarthi app and continue to your vault.</p>
+        <script>setTimeout(() => window.close(), 3000);</script>
+      </div>
+    `);
+  } catch(err) {
+    return res.status(500).send("Server error.");
+  }
+});
+
+// =============================================================
+// GET /api/auth/deny/:token
+// =============================================================
+router.get("/deny/:token", (req, res) => {
+  try {
+    const { token } = req.params;
+    const verification = db.prepare("SELECT * FROM GoogleVerification WHERE token = ?").get(token);
+    
+    if (!verification) {
+      return res.status(404).send("<h2>Invalid or expired link.</h2>");
+    }
+    
+    // Mark as denied
+    db.prepare("UPDATE GoogleVerification SET responded = 1 WHERE email = ?").run(verification.email);
+    // Add a record or update to signal denial. For simplicity, we just delete the 'allow' token to signal rejection
+    db.prepare("DELETE FROM GoogleVerification WHERE email = ? AND action = 'allow'").run(verification.email);
+    
+    return res.send(`
+      <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+        <h2 style="color: #ef4444;">Login Blocked</h2>
+        <p>We have blocked this login attempt. Your vault remains secure.</p>
+        <script>setTimeout(() => window.close(), 3000);</script>
+      </div>
+    `);
+  } catch(err) {
+    return res.status(500).send("Server error.");
+  }
+});
+
+// =============================================================
+// GET /api/auth/verify-status/:email
+// Polled by frontend to check if verification is complete
+// =============================================================
+router.get("/verify-status/:email", (req, res) => {
+  try {
+    const email = req.params.email.toLowerCase().trim();
+    
+    // Check if there are any unresponded tokens
+    const unresponded = db.prepare("SELECT * FROM GoogleVerification WHERE email = ? AND responded = 0 AND expires_at > datetime('now')").get(email);
+    
+    if (unresponded) {
+      return res.status(200).json({ status: "pending" });
+    }
+    
+    // If responded, check if 'allow' token still exists. If it does, user allowed. If not, user denied.
+    const allowed = db.prepare("SELECT * FROM GoogleVerification WHERE email = ? AND action = 'allow'").get(email);
+    
+    if (!allowed) {
+      // Clean up
+      db.prepare("DELETE FROM GoogleVerification WHERE email = ?").run(email);
+      return res.status(200).json({ status: "denied" });
+    }
+    
+    // Clean up
+    db.prepare("DELETE FROM GoogleVerification WHERE email = ?").run(email);
+    
+    // Send full profile data since they are verified
+    const user = db.prepare("SELECT * FROM Users WHERE email = ?").get(email);
+    const profile = db.prepare("SELECT encrypted_blob, color, avatar FROM UserProfile WHERE user_id = ?").get(user.id);
+    
+    return res.status(200).json({
+      status: "approved",
       exists: true,
-      email,
-      name,
+      email: user.email,
+      name: user.name,
       google_key: user.google_key || null,
       color: profile?.color || 'purple',
       avatar: profile?.avatar || '🪪',
       encrypted_blob: profile?.encrypted_blob || ''
     });
-  } catch (err) {
-    console.error("Google Auth error:", err.message);
-    return res.status(401).json({ error: "Invalid Google token" });
+
+  } catch(err) {
+    console.error("Status check error:", err);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 

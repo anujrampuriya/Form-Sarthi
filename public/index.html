@@ -239,6 +239,31 @@
       border-color: var(--text);
       background: rgba(255,255,255,0.02);
     }
+    .google-btn-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    .google-btn-wrapper:hover .custom-google-btn {
+      color: var(--text);
+      border-color: var(--text);
+      background: rgba(255,255,255,0.02);
+    }
+    .google-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      z-index: 10;
+      cursor: pointer;
+      overflow: hidden;
+    }
+    .google-overlay iframe {
+      width: 100% !important;
+      height: 100% !important;
+      cursor: pointer !important;
+    }
 
     /* ── SCREEN: ADD PROFILE ── */
     .form-group {
@@ -572,6 +597,23 @@
     .notification-item.type-missing_document { border-left: 3px solid var(--red); }
     .notification-item.type-new_form { border-left: 3px solid var(--green); }
     .notification-item.type-customization_prompt { border-left: 3px solid #a855f7; }
+    
+    .notification-item.color-green { border-left: 3px solid var(--green) !important; }
+    .notification-item.color-amber { border-left: 3px solid var(--amber) !important; }
+    .notification-item.color-red { border-left: 3px solid var(--red) !important; }
+
+    .deadline-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      margin-left: 6px;
+    }
+    .deadline-badge.color-green { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+    .deadline-badge.color-amber { background: rgba(251, 191, 36, 0.1); color: var(--amber); }
+    .deadline-badge.color-red { background: rgba(248, 113, 113, 0.1); color: var(--red); }
     
     .notification-close-btn {
       position: absolute;
@@ -1197,6 +1239,15 @@
     .toast.success { border-color: var(--green); color: var(--green); }
     .toast.error   { border-color: var(--red);   color: var(--red);   }
 
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .pin-dots.shake {
+      animation: shake 0.3s ease-in-out;
+    }
+
     /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -1240,8 +1291,19 @@
         <!-- Injected dynamically -->
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center;">
-        <div id="google-signin-btn" style="width: 100%; display: flex; justify-content: center;"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center; width: 100%;">
+        <div class="google-btn-wrapper">
+          <div id="google-signin-btn" class="google-overlay"></div>
+          <button class="add-btn custom-google-btn">
+            <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right: 4px;">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.5 24c0-1.63-.15-3.2-.42-4.72H24v9h12.75c-.55 2.87-2.17 5.31-4.61 6.94v5.77h7.47C44.09 36.88 46.5 30.98 46.5 24z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.47-5.77c-2.07 1.38-4.71 2.2-8.42 2.2-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              <path fill="#FBBC05" d="M10.54 28.71c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.98-6.07z"/>
+            </svg>
+            Continue with Google
+          </button>
+        </div>
 
         <button class="add-btn" onclick="showAddProfile()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1286,9 +1348,10 @@
         </div>
       </div>
 
-      <div class="form-group" style="margin-bottom:20px">
-        <label>Master Password</label>
-        <input id="new-password" class="form-input" type="password" placeholder="Choose a secure password (min 4 chars)">
+      <div class="form-group" style="margin-bottom:20px; position:relative;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:6px">Set Password (min 4 characters)</label>
+        <input id="new-password" class="form-input" type="password" placeholder="Enter secure password" style="width:100%; padding-right:40px;">
+        <button type="button" onclick="togglePasswordVisibility('new-password', this)" style="position:absolute; right:12px; top:36px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
       </div>
 
       <div style="display:flex; gap:10px">
@@ -1297,22 +1360,37 @@
       </div>
     </div>
 
-    <!-- ══════════ SCREEN: PIN ══════════ -->
+    <!-- ══════════ SCREEN: PIN (UNLOCK) ══════════ -->
     <div class="card screen" id="screen-pin">
       <div class="pin-header">
         <div class="avatar" id="pin-avatar" style="width:64px;height:64px;font-size:26px">🪪</div>
         <p class="pin-name" id="pin-name">Rahul</p>
-        <p class="pin-sub">Enter your 6-digit PIN to decrypt</p>
+        <p class="pin-sub">Enter your password to decrypt</p>
       </div>
 
-      <div class="form-group" style="margin-bottom:20px; width:100%; max-width:280px; margin-left:auto; margin-right:auto;">
-        <input id="login-password" class="form-input" type="password" placeholder="Enter your password" style="text-align:center;">
-        <div class="err-msg" id="pin-error" style="margin-top:8px;"></div>
-        <button class="btn" style="width:100%; margin-top:12px;" onclick="verifyPin()">Unlock</button>
+      <div class="form-group" style="position:relative; margin-bottom:10px;">
+        <input id="unlock-password" class="form-input" type="password" placeholder="Enter password" style="width:100%; padding-right:40px; text-align:center;">
+        <button type="button" onclick="togglePasswordVisibility('unlock-password', this)" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
       </div>
+      
+      <div class="err-msg" id="pin-error" style="margin-bottom:15px; text-align:center;"></div>
+      
+      <button class="btn" id="unlock-btn" style="width:100%; margin-bottom:20px;" onclick="verifyPin()">Unlock Vault</button>
 
       <div class="back-link" onclick="show('who')">← Back to profiles</div>
     </div>
+
+    <!-- ══════════ SCREEN: EMAIL VERIFICATION ══════════ -->
+    <div class="card screen" id="screen-verify">
+      <div style="text-align:center; padding:20px;">
+        <h2 style="color:var(--text); margin-bottom:10px;">Verification Required</h2>
+        <p style="color:var(--muted); font-size:14px; margin-bottom:20px;">We've sent an email to <strong id="verify-email-display"></strong>. Please check your inbox and click "Yes, this was me" to continue.</p>
+        <div class="spinner" style="margin: 0 auto 20px; width: 40px; height: 40px; border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="color:var(--accent); font-size:12px;" id="verify-status-text">Waiting for your response...</p>
+        <button class="btn outline" style="margin-top:20px; width:100%;" onclick="cancelVerification()">Cancel Login</button>
+      </div>
+    </div>
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
 
     <!-- ══════════ SCREEN: MAIN (UNLOCKED WIDE LAYOUT) ══════════ -->
     <div class="screen" id="screen-main">
@@ -1394,9 +1472,12 @@
           
           <!-- ── TAB: DOCUMENTS ── -->
           <div class="tab-panel" id="tab-docs">
-            <div style="margin-bottom: 18px">
-              <h2 style="font-size: 18px; font-weight: 700">My Uploaded Documents</h2>
-              <p style="font-size: 13px; color: var(--muted)">Upload and scan credentials to parse details into your encrypted vault.</p>
+            <div style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div>
+                <h2 style="font-size: 18px; font-weight: 700">My Uploaded Documents</h2>
+                <p style="font-size: 13px; color: var(--muted)">Upload and scan credentials to parse details into your encrypted vault.</p>
+              </div>
+              <button class="btn" onclick="document.getElementById('custom-doc-modal').style.display='flex'" style="padding: 8px 16px; font-size: 13px;">➕ Add Custom Document</button>
             </div>
 
             <div class="docs-grid" id="doc-list-render">
@@ -1650,6 +1731,24 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ADD CUSTOM DOCUMENT MODAL -->
+  <div id="custom-doc-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="card" style="width:90%; max-width:400px; padding:24px; display:flex; flex-direction:column; gap:18px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+        <h2 style="font-size:16px; font-weight:800; color:var(--text)">➕ Add Custom Document</h2>
+        <button onclick="document.getElementById('custom-doc-modal').style.display='none'" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Document Name</label>
+        <input type="text" id="custom-doc-name" class="form-input" placeholder="e.g. Income Certificate, Caste Proof">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn outline" onclick="document.getElementById('custom-doc-modal').style.display='none'" style="flex:1; padding:10px;">Cancel</button>
+        <button class="btn" onclick="saveCustomDoc()" style="flex:1; padding:10px;">Add Slot</button>
+      </div>
+    </div>
   </div>
 
   <!-- FULL SIZE DOCUMENT MODAL -->
@@ -1916,7 +2015,22 @@
         console.error("Google secure login failed:", err);
         return toast("Secure Google Login failed", "error");
       }
+      if (data.pendingVerification) {
+        // The email is sent asynchronously. Since "no action" should be considered a "yes",
+        // we can proceed immediately to the password entry screen without blocking the user.
+        processGoogleAuthSuccess(data, email, name);
+        return;
+      }
       
+      processGoogleAuthSuccess(data, email, name);
+    }
+    
+    function cancelVerification() {
+      if (window.currentVerifyInterval) clearInterval(window.currentVerifyInterval);
+      show('who');
+    }
+
+    async function processGoogleAuthSuccess(data, email, name) {
       // Check if profile exists locally
       let existing = profiles.find(p => p.email === email);
       try {
@@ -1944,45 +2058,17 @@
       } catch(e) {
         console.error("Failed to update profile during secure Google Login", e);
       }
-      if(existing) {
-        if (data.google_key) {
-           activeProfile = existing.email;
-           verifyPin(data.google_key);
-           toast("Seamless Google Login successful!", "success");
-        } else {
-           const index = profiles.indexOf(existing);
-           selectProfile(index);
-           toast("Profile found. Enter your password.", "success");
-        }
+      if(existing && existing.encryptedProfile) {
+        // User exists and has a vault, go to PIN screen
+        const index = profiles.indexOf(existing);
+        selectProfile(index);
+        toast("Google Profile found. Enter your secure password.", "success");
       } else {
-        if (data.exists && data.google_key) {
-           const newLocal = { 
-             email: email, 
-             name: name, 
-             color: data.color || 'purple', 
-             avatar: data.avatar || '🪪', 
-             encryptedProfile: data.encrypted_blob || '' 
-           };
-           profiles.push(newLocal);
-           activeProfile = email;
-           verifyPin(data.google_key);
-           toast("Google profile auto-created seamlessly!", "success");
-        } else {
-           // Fallback if not auto-created
-           const newLocal = { 
-             email: email, 
-             name: name, 
-             color: 'purple', 
-             avatar: '🪪', 
-             encryptedProfile: '',
-             isNewGoogleUser: true
-           };
-           profiles.push(newLocal);
-           const index = profiles.indexOf(newLocal);
-           selectProfile(index);
-           document.getElementById('pin-sub').textContent = "Enter your Google password to create account";
-           toast("Google verified! Enter your Google password to create account.", "success");
-        }
+        // New user, go to ADD screen
+        showAddProfile();
+        document.getElementById("new-email").value = email;
+        document.getElementById("new-name").value = name;
+        toast("Create your secure password for this Google account.", "success");
       }
     }
 
@@ -2000,14 +2086,6 @@
     // ── IndexedDB Configuration ──
     const DB_NAME = "FormSarthiLocalDB";
     const DB_VERSION = 2;
-
-    // ONE-TIME WIPE SCRIPT
-    if (!localStorage.getItem('fs_wiped_v2')) {
-      indexedDB.deleteDatabase(DB_NAME);
-      localStorage.clear();
-      localStorage.setItem('fs_wiped_v2', 'true');
-      console.log("Locally cached database wiped for fresh start.");
-    }
 
     function getDB() {
       return new Promise((resolve, reject) => {
@@ -2079,12 +2157,75 @@
     let activeProfile  = null;  // email
     let activeKey      = null;  // derived PBKDF2 key
     let sessionData    = null;  // decrypted profile vault fields
-    let pinEntered     = '';
-    let addPinEntered  = '';
     
     // Creator builders
     let selectedColor  = 'purple';
     let selectedAvatar = '🪪';
+
+    // Lockout State and Helpers
+    let lockoutInterval = null;
+
+    function getLockoutExpiry(email) {
+      const time = localStorage.getItem(`fs_locked_until_${email}`);
+      return time ? parseInt(time, 10) : 0;
+    }
+
+    function getFailedAttempts(email) {
+      const count = localStorage.getItem(`fs_attempts_${email}`);
+      return count ? parseInt(count, 10) : 0;
+    }
+
+    function setFailedAttempts(email, count) {
+      localStorage.setItem(`fs_attempts_${email}`, count);
+    }
+
+    function setLockoutExpiry(email, timestamp) {
+      localStorage.setItem(`fs_locked_until_${email}`, timestamp);
+    }
+
+    function isProfileLocked(email) {
+      const expiry = getLockoutExpiry(email);
+      return expiry > Date.now();
+    }
+
+    function startLockoutTimer(email) {
+      if (lockoutInterval) clearInterval(lockoutInterval);
+      
+      const pinError = document.getElementById('pin-error');
+      const passInput = document.getElementById('unlock-password');
+      const unlockBtn = document.getElementById('unlock-btn');
+      
+      // Disable input and button
+      if (passInput) { passInput.disabled = true; passInput.style.opacity = '0.4'; }
+      if (unlockBtn) { unlockBtn.disabled = true; unlockBtn.style.opacity = '0.4'; }
+
+      function updateCountdown() {
+        const expiry = getLockoutExpiry(email);
+        const remaining = expiry - Date.now();
+
+        if (remaining <= 0) {
+          clearInterval(lockoutInterval);
+          lockoutInterval = null;
+          
+          setFailedAttempts(email, 0);
+          setLockoutExpiry(email, 0);
+          
+          // Re-enable UI
+          if (passInput) { passInput.disabled = false; passInput.style.opacity = '1'; }
+          if (unlockBtn) { unlockBtn.disabled = false; unlockBtn.style.opacity = '1'; }
+          pinError.textContent = '';
+        } else {
+          const totalSeconds = Math.ceil(remaining / 1000);
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          const displaySecs = String(seconds).padStart(2, '0');
+          pinError.textContent = `Profile locked. Try again in ${minutes}:${displaySecs}`;
+        }
+      }
+
+      updateCountdown();
+      lockoutInterval = setInterval(updateCountdown, 1000);
+    }
     
     // Theme state
     let activeTheme = localStorage.getItem("fs_theme") || "dark";
@@ -2092,8 +2233,10 @@
     // Autofill Tracker State
     let currentFormCompleteness = 100;
 
-    // ── Document types blueprint (8 slots) ──
+    // ── Document types blueprint (10 slots) ──
     const DOC_TYPES = [
+      { key: 'photo',            label: 'Photo / Photograph' },
+      { key: 'signature',        label: 'Signature Specimen' },
       { key: 'aadhaar',          label: 'Aadhaar Card' },
       { key: 'pan',              label: 'PAN Card' },
       { key: 'dl',               label: 'Driving Licence' },
@@ -2149,12 +2292,14 @@
       const btnContainer = document.getElementById("google-signin-btn");
       if (btnContainer && typeof google !== 'undefined' && google.accounts && google.accounts.id) {
         const isDark = activeTheme === 'dark';
+        const parentWidth = btnContainer.parentElement ? btnContainer.parentElement.clientWidth : 320;
+        const buttonWidth = Math.max(200, Math.min(400, parentWidth || 320));
         google.accounts.id.renderButton(
           btnContainer,
           { 
             theme: isDark ? "filled_black" : "outline", 
             size: "large", 
-            width: 320, 
+            width: buttonWidth, 
             text: "continue_with"
           }
         );
@@ -2299,91 +2444,57 @@
       pinAvatar.style.background = getColorValue(p.color);
       pinAvatar.textContent = p.avatar || '🪪';
       document.getElementById('pin-name').textContent = p.name;
-      document.getElementById('pin-sub').textContent = "Enter your password to decrypt";
       document.getElementById('pin-error').textContent = '';
-      document.getElementById('login-password').value = '';
+      
+      const passInput = document.getElementById('unlock-password');
+      passInput.value = '';
       show('pin');
-      setTimeout(() => document.getElementById('login-password').focus(), 100);
-    }
+      passInput.focus();
 
-    function updateDots(entered, isError) {
-      for (let i = 0; i < 6; i++) {
-        const d = document.getElementById('d' + i);
-        d.className = 'dot' + (i < entered.length ? (isError ? ' error' : ' filled') : '');
+      if (lockoutInterval) {
+        clearInterval(lockoutInterval);
+        lockoutInterval = null;
+      }
+
+      if (isProfileLocked(p.email)) {
+        startLockoutTimer(p.email);
+      } else {
+        passInput.disabled = false;
+        document.getElementById('unlock-btn').disabled = false;
       }
     }
 
-    function pressKey(k) {
-      document.getElementById('pin-error').textContent = '';
-      if (k === 'clear') pinEntered = '';
-      else if (k === 'back') pinEntered = pinEntered.slice(0, -1);
-      else if (pinEntered.length < 6) pinEntered += k;
-      updateDots(pinEntered);
-      if (pinEntered.length === 6) setTimeout(verifyPin, 120);
+    function togglePasswordVisibility(inputId, btnEl) {
+      const input = document.getElementById(inputId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        btnEl.textContent = '🔒';
+      } else {
+        input.type = 'password';
+        btnEl.textContent = '👁️';
+      }
     }
 
-     // Verify PIN locally via Decryption
-    async function verifyPin(googleKeyHex = null) {
+    // Handle Enter key for unlock password
+    document.getElementById('unlock-password').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        verifyPin();
+      }
+    });
+
+    // Verify PIN locally via Decryption
+    async function verifyPin() {
       const p = profiles.find(pr => pr.email === activeProfile);
       if (!p) return;
 
-      let derivedKey;
-      if (googleKeyHex) {
-         derivedKey = CryptoJS.enc.Hex.parse(googleKeyHex);
-         p.isNewGoogleUser = true; // Auto-create the initial vault locally with this key
-      } else {
-         const pass = document.getElementById('login-password').value;
-         if (!pass || pass.length < 4) {
-            document.getElementById('pin-error').textContent = 'Password must be at least 4 characters';
-            return;
-         }
-         const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
-         derivedKey = CryptoJS.PBKDF2(pass, salt, { keySize: 256 / 32, iterations: 1000 });
-      }
+      if (isProfileLocked(p.email)) return;
 
-      if (p.isNewGoogleUser) {
-         const initialVault = {
-           name: p.name, dob: null, gender: null, caste: null, nationality: null, religion: null, blood_group: null, marital_status: null,
-           phone: null, alt_phone: null, email: p.email, address: null, city: null, state: null, pincode: null,
-           roll_10: null, roll_12: null, board_10: null, board_12: null, marks_10: null, marks_12: null, college: null, degree: null, grad_year: null,
-           aadhaar: null, pan: null, dl: null, bank_name: null, account_no: null, ifsc: null,
-           uploadedDocs: {
-             aadhaar: false, pan: false, dl: false, resume: false,
-             marksheet_10: false, marksheet_12: false, passport: false, bank_passbook: false
-           }
-         };
-         const jsonStr = JSON.stringify(initialVault);
-         const encryptedData = CryptoJS.AES.encrypt(jsonStr, derivedKey.toString()).toString();
-         p.encryptedProfile = encryptedData;
-         
-         delete p.isNewGoogleUser;
-         await dbPut("profiles", p);
-         
-         try {
-           await fetch('/api/auth/sync', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({
-               action: 'push',
-               email: p.email,
-               pin_hash_client: CryptoJS.enc.Hex.stringify(derivedKey),
-               encrypted_blob: encryptedData,
-               color: p.color,
-               avatar: p.avatar
-             })
-           });
-         } catch(e) { console.warn("Failed to push initial vault to server", e); }
-         
-         activeKey = derivedKey;
-         sessionData = initialVault;
-         sessionStorage.setItem("fs_active_session", jsonStr);
-         sessionStorage.setItem("fs_active_profile", activeProfile);
-         document.body.setAttribute("data-fs-session", jsonStr);
-         
-         openMainScreen(p);
-         toast("Account auto-created securely!", "success");
-         return;
-      }
+      const passwordEntered = document.getElementById('unlock-password').value;
+      if (!passwordEntered) return;
+
+      // Derive cryptographic key from user PIN + email salt
+      const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
+      const derivedKey = CryptoJS.PBKDF2(passwordEntered, salt, { keySize: 256 / 32, iterations: 1000 });
 
       // NEW: Pull latest encrypted blob from backend before decrypting!
       try {
@@ -2416,6 +2527,31 @@
         }
 
         sessionData = JSON.parse(decryptedText);
+
+        // Migrate/restore drafts
+        let hasDraftsMigration = false;
+        if (sessionData.drafts) {
+          localStorage.setItem(`fs_drafts_${activeProfile}`, JSON.stringify(sessionData.drafts));
+        } else {
+          const localDrafts = localStorage.getItem(`fs_drafts_${activeProfile}`);
+          if (localDrafts) {
+            sessionData.drafts = JSON.parse(localDrafts);
+            hasDraftsMigration = true;
+          }
+        }
+        
+        // Migrate/restore deadlines
+        let hasDeadlinesMigration = false;
+        if (sessionData.deadlines) {
+          localStorage.setItem(`fs_deadlines_${activeProfile}`, JSON.stringify(sessionData.deadlines));
+        } else {
+          const localDeadlines = localStorage.getItem(`fs_deadlines_${activeProfile}`);
+          if (localDeadlines) {
+            sessionData.deadlines = JSON.parse(localDeadlines);
+            hasDeadlinesMigration = true;
+          }
+        }
+
         activeKey = derivedKey;
 
         // Save decrypted profile into sessionStorage for extension access
@@ -2423,12 +2559,30 @@
         sessionStorage.setItem("fs_active_profile", activeProfile);
         document.body.setAttribute("data-fs-session", decryptedText);
 
+        setFailedAttempts(p.email, 0);
+        setLockoutExpiry(p.email, 0);
+
         // Sync profile to backend immediately on login to guarantee it is saved
         await saveLocalVault();
 
         openMainScreen(p);
       } catch (e) {
-        document.getElementById('pin-error').textContent = 'Wrong Password. Please try again.';
+        const attempts = getFailedAttempts(p.email) + 1;
+        setFailedAttempts(p.email, attempts);
+
+        if (attempts >= 3) {
+          const lockDuration = 3 * 60 * 1000; // 3 minutes lockout duration
+          setLockoutExpiry(p.email, Date.now() + lockDuration);
+          document.getElementById('pin-error').textContent = 'Profile locked due to 3 failed attempts.';
+          setTimeout(() => {
+            document.getElementById('unlock-password').value = '';
+            startLockoutTimer(p.email);
+          }, 800);
+        } else {
+          const remaining = 3 - attempts;
+          document.getElementById('pin-error').textContent = `Wrong Password. ${remaining} attempt(s) remaining.`;
+          setTimeout(() => { document.getElementById('unlock-password').value = ''; }, 800);
+        }
       }
     }
 
@@ -2460,7 +2614,9 @@
       // Calculate parsed document count
       const docsObj = data.uploadedDocs || {};
       const uploadedCount = Object.values(docsObj).filter(Boolean).length;
-      document.getElementById('docs-count-badge').textContent = `${uploadedCount}/8`;
+      const customDocs = data.customDocs || [];
+      const totalDocSlots = DOC_TYPES.length + customDocs.length;
+      document.getElementById('docs-count-badge').textContent = `${uploadedCount}/${totalDocSlots}`;
 
       // Calculate completeness percentage across 30 fields
       const allKeys = PROFILE_FIELDS.map(f => f.key);
@@ -2497,28 +2653,38 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ── Render Document Slots (8 slots) ──
+    // ── Render Document Slots (Default + Custom) ──
     function renderDocSlots() {
       const listDiv = document.getElementById('doc-list-render');
       const data = sessionData || {};
       const uploadedMap = data.uploadedDocs || {};
 
-      listDiv.innerHTML = DOC_TYPES.map(d => {
+      const customDocs = data.customDocs || [];
+      const allDocs = [...DOC_TYPES, ...customDocs];
+
+      listDiv.innerHTML = allDocs.map(d => {
         const isUploaded = !!uploadedMap[d.key];
         const statusClass = isUploaded ? 'uploaded' : 'empty';
-        const statusText = isUploaded ? '✓ Extracted' : 'Not Uploaded';
+        const statusText = isUploaded ? '✓ Uploaded' : 'Not Uploaded';
         const slotClass = isUploaded ? 'doc-slot filled' : 'doc-slot';
         
+        let removeSlotBtn = '';
+        if (d.key.startsWith('custom_')) {
+          removeSlotBtn = `<button onclick="removeCustomDocSlot('${d.key}')" style="font-size:11px; padding:4px 8px; background:var(--surface2); color:var(--red); border:1px solid var(--red); border-radius:4px; cursor:pointer; font-weight:bold;">🗑️ Delete Slot</button>`;
+        }
+
         const actionBtnHtml = isUploaded ? `
-          <div style="display:flex; gap:6px; margin-top:8px;">
+          <div style="display:flex; gap:6px; margin-top:8px; flex-wrap: wrap;">
             <button onclick="viewDocument('${d.key}', '${d.label}')" style="flex:1; font-size:11px; padding:4px; background:var(--surface2); color:var(--accent); border:1px solid var(--accent); border-radius:4px; cursor:pointer;">🔍 Review</button>
             <button onclick="deleteDocument('${d.key}')" style="font-size:11px; padding:4px 8px; background:var(--red); color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:bold; display:flex; align-items:center; gap:4px;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete
             </button>
+            ${removeSlotBtn ? `<div style="width:100%; margin-top:4px;">${removeSlotBtn}</div>` : ''}
           </div>
         ` : `
-          <div style="display:flex; gap:6px; margin-top:8px;">
+          <div style="display:flex; gap:6px; margin-top:8px; flex-wrap: wrap;">
             <button onclick="triggerTargetedUpload('${d.key}')" style="flex:1; font-size:11px; padding:4px; background:var(--surface2); color:var(--accent); border:1px dashed var(--accent); border-radius:4px; cursor:pointer;">⬆️ Upload</button>
+            ${removeSlotBtn ? `<div style="margin-left:auto;">${removeSlotBtn}</div>` : ''}
           </div>
         `;
 
@@ -2533,9 +2699,9 @@
           else if (d.key === 'marksheet_12' && data.roll_12) detailText = 'Roll: ' + data.roll_12;
           else if (d.key === 'passport' && data.dl) detailText = 'Passport: ' + data.dl;
           else if (d.key === 'bank_passbook' && data.account_no) detailText = 'A/C: ' + data.account_no;
-          else detailText = 'Parsed successfully';
+          else detailText = 'Uploaded successfully';
         } else {
-          detailText = 'No scan parsed';
+          detailText = 'No file uploaded';
         }
 
         return `
@@ -2833,6 +2999,70 @@
             })
           });
         } catch(e) { console.error("Backend sync push failed", e); }
+      }
+    }
+
+    function saveCustomDoc() {
+      if (!activeProfile) return;
+      const input = document.getElementById('custom-doc-name');
+      const label = input.value.trim();
+      if (!label) {
+        toast('Please enter a document name', 'error');
+        return;
+      }
+      
+      const key = 'custom_' + Date.now();
+      
+      if (!sessionData) sessionData = {};
+      sessionData.customDocs = sessionData.customDocs || [];
+      sessionData.uploadedDocs = sessionData.uploadedDocs || {};
+      
+      sessionData.customDocs.push({ key, label });
+      sessionData.uploadedDocs[key] = false;
+      
+      saveLocalVault().then(() => {
+        renderDocSlots();
+        updateBadges();
+        input.value = '';
+        document.getElementById('custom-doc-modal').style.display = 'none';
+        toast(`Custom slot "${label}" added!`, 'success');
+      }).catch(err => {
+        console.error(err);
+        toast('Failed to save custom document slot', 'error');
+      });
+    }
+
+    async function removeCustomDocSlot(docKey) {
+      if (!activeProfile) return;
+      
+      const customDocs = sessionData.customDocs || [];
+      const doc = customDocs.find(d => d.key === docKey);
+      if (!doc) return;
+      
+      if (!confirm(`Are you sure you want to remove the custom document slot "${doc.label}"? This will delete both the slot and any uploaded file.`)) return;
+
+      try {
+        if (sessionData.uploadedDocs && sessionData.uploadedDocs[docKey]) {
+          await dbDelete("files", activeProfile + "_" + docKey);
+          try {
+            await fetch(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`, {
+              method: 'DELETE'
+            });
+          } catch (err) {
+            console.error(err);
+          }
+          delete sessionData.uploadedDocs[docKey];
+        }
+        
+        sessionData.customDocs = customDocs.filter(d => d.key !== docKey);
+        
+        await saveLocalVault();
+        renderDocSlots();
+        updateBadges();
+        toast(`Slot "${doc.label}" removed`, 'success');
+      } catch (err) {
+        console.error(err);
+        toast('Failed to remove custom slot', 'error');
       }
     }
 
@@ -3209,6 +3439,10 @@
         lastNotified: 0
       });
       localStorage.setItem(`fs_deadlines_${activeProfile}`, JSON.stringify(deadlines));
+      if (sessionData) {
+        sessionData.deadlines = deadlines;
+        saveLocalVault();
+      }
       
       document.getElementById('deadline-form-name').value = '';
       document.getElementById('deadline-form-url').value = '';
@@ -3223,6 +3457,10 @@
       const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
       deadlines.splice(idx, 1);
       localStorage.setItem(`fs_deadlines_${activeProfile}`, JSON.stringify(deadlines));
+      if (sessionData) {
+        sessionData.deadlines = deadlines;
+        saveLocalVault();
+      }
       renderDeadlines();
     }
 
@@ -3300,18 +3538,18 @@
     }
 
     // ── Add profile UI flows ──
+    // ── Add profile UI flows ──
     function showAddProfile() {
-      addPinEntered = '';
       selectedColor = 'purple';
       selectedAvatar = '🪪';
       document.getElementById('new-name').value = '';
       document.getElementById('new-official-name').value = '';
       document.getElementById('new-email').value = '';
+      document.getElementById('new-password').value = '';
       
       // Render colors and emojis builders
       renderBuilderSelectors();
       updateAvatarPreview();
-      updateAddDots([]);
       show('add');
     }
 
@@ -3352,33 +3590,22 @@
       preview.style.background = getColorValue(selectedColor);
     }
 
-    function updateAddDots(entered) {
-      for (let i = 0; i < 6; i++) {
-        document.getElementById('ad' + i).className = 'dot' + (i < entered.length ? ' filled' : '');
-      }
-    }
 
-    function addPinKey(k) {
-      if (k === 'clear') addPinEntered = '';
-      else if (k === 'back') addPinEntered = addPinEntered.slice(0, -1);
-      else if (addPinEntered.length < 6) addPinEntered += k;
-      updateAddDots(addPinEntered);
-    }
 
     // Save new profile encrypted locally
     async function saveNewProfile() {
       const name = document.getElementById('new-name').value.trim();
       const officialName = document.getElementById('new-official-name').value.trim();
       const email = document.getElementById('new-email').value.trim();
+      const password = document.getElementById('new-password').value;
       
       if (!name) { toast('Please enter a profile nickname', 'error'); return; }
       if (!officialName) { toast('Please enter your official legal name', 'error'); return; }
       if (!email) { toast('Please enter an email', 'error'); return; }
-      const newPass = document.getElementById('new-password').value;
-      if (newPass.length < 4) { toast('Password must be at least 4 characters', 'error'); return; }
+      if (password.length < 4) { toast('Password must be at least 4 characters long', 'error'); return; }
 
       const salt = CryptoJS.enc.Utf8.parse(email + "FormSarthiSalt2026");
-      const key = CryptoJS.PBKDF2(newPass, salt, { keySize: 256 / 32, iterations: 1000 });
+      const key = CryptoJS.PBKDF2(password, salt, { keySize: 256 / 32, iterations: 1000 });
 
       // Clean blueprint initialization for all 30 fields
       const initialVault = {
@@ -3387,6 +3614,8 @@
         roll_10: null, roll_12: null, board_10: null, board_12: null, marks_10: null, marks_12: null, college: null, degree: null, grad_year: null,
         aadhaar: null, pan: null, dl: null, bank_name: null, account_no: null, ifsc: null,
         uploadedDocs: {
+          photo: false,
+          signature: false,
           aadhaar: false,
           pan: false,
           dl: false,
@@ -3395,7 +3624,10 @@
           marksheet_12: false,
           passport: false,
           bank_passbook: false
-        }
+        },
+        customDocs: [],
+        drafts: {},
+        deadlines: []
       };
 
       const ciphertext = CryptoJS.AES.encrypt(JSON.stringify(initialVault), key.toString()).toString();
@@ -3445,16 +3677,35 @@
       }
     }
 
-    // Global Keyboard Listeners for Password inputs
+    // Global Keyboard Listeners for PIN inputs
     window.addEventListener('keydown', (e) => {
       const activeScreen = document.querySelector('.screen.active');
       if (!activeScreen) return;
 
-      if (e.key === 'Escape' && activeScreen.id === 'screen-pin') {
-        show('who');
-      } else if (e.key === 'Enter') {
-        if (activeScreen.id === 'screen-pin') verifyPin();
-        else if (activeScreen.id === 'screen-add') saveNewProfile();
+      const key = e.key;
+
+      if (activeScreen.id === 'screen-pin') {
+        if (activeProfile && isProfileLocked(activeProfile)) return;
+
+        if (key >= '0' && key <= '9') {
+          pressKey(key);
+        } else if (key === 'Backspace') {
+          pressKey('back');
+        } else if (key === 'Escape') {
+          show('who');
+        } else if (key === 'Enter') {
+          verifyPin();
+        }
+      } else if (activeScreen.id === 'screen-add') {
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.id === 'new-name' || activeEl.id === 'new-official-name' || activeEl.id === 'new-email')) {
+          return; // Ignore key capture during name/email text entry
+        }
+        if (key >= '0' && key <= '9') {
+          addPinKey(key);
+        } else if (key === 'Backspace') {
+          addPinKey('back');
+        }
       }
     });
 
@@ -3701,6 +3952,10 @@
           const existing = reminders.find(r => r.id === id);
           const readStatus = (existing && existing.percent === draft.percent) ? existing.readStatus : 'unread';
           
+          // Match with any tracked deadline by url
+          const relatedDeadline = deadlines.find(dl => dl.url === url);
+          const deadlineTime = relatedDeadline ? relatedDeadline.time : null;
+          
           newRemindersMap[id] = {
             id,
             type: 'incomplete_form',
@@ -3709,7 +3964,8 @@
             createdAt: existing ? existing.createdAt : new Date().toISOString(),
             readStatus,
             relatedUrl: url,
-            percent: draft.percent
+            percent: draft.percent,
+            deadline: deadlineTime
           };
         }
       });
@@ -3729,7 +3985,8 @@
             message: `"${d.name}" closes on ${new Date(d.time).toLocaleString()}. Complete your application now!`,
             createdAt: existing ? existing.createdAt : new Date().toISOString(),
             readStatus: existing ? existing.readStatus : 'unread',
-            relatedUrl: d.url
+            relatedUrl: d.url,
+            deadline: d.time
           };
         }
       });
@@ -3754,6 +4011,10 @@
             const existing = reminders.find(r => r.id === id);
             const docLabel = DOC_TYPES.find(d => d.key === docKey)?.label || docKey;
             
+            // Match with any tracked deadline by url
+            const relatedDeadline = deadlines.find(dl => dl.url === f.url);
+            const deadlineTime = relatedDeadline ? relatedDeadline.time : null;
+            
             newRemindersMap[id] = {
               id,
               type: 'missing_document',
@@ -3761,7 +4022,8 @@
               message: `Please upload your ${docLabel} in the Documents tab to complete the application for "${f.name}".`,
               createdAt: existing ? existing.createdAt : new Date().toISOString(),
               readStatus: existing ? existing.readStatus : 'unread',
-              relatedUrl: '#docs'
+              relatedUrl: '#docs',
+              deadline: deadlineTime
             };
           }
         });
@@ -3813,7 +4075,8 @@
           message: `You are eligible for "${sys.name}". Registration portal is open. Click here to check.`,
           createdAt: existing ? existing.createdAt : new Date().toISOString(),
           readStatus: existing ? existing.readStatus : 'unread',
-          relatedUrl: sys.url
+          relatedUrl: sys.url,
+          deadline: sys.deadline
         };
       });
       
@@ -4086,13 +4349,44 @@
         const timeText = formatTimeAgo(new Date(r.createdAt));
         const unreadClass = r.readStatus === 'unread' ? 'unread' : '';
         
+        let borderClass = '';
+        let badgeHtml = '';
+        if (r.deadline) {
+          const diff = new Date(r.deadline).getTime() - new Date().getTime();
+          const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
+          let colorCode = 'red';
+          if (daysLeft > 7) {
+            colorCode = 'green';
+          } else if (daysLeft >= 3 && daysLeft <= 7) {
+            colorCode = 'amber';
+          } else {
+            colorCode = 'red';
+          }
+          
+          borderClass = `color-${colorCode}`;
+          
+          let daysLeftText = '';
+          if (daysLeft < 0) {
+            daysLeftText = `Overdue`;
+          } else if (daysLeft === 0) {
+            daysLeftText = `Ends today`;
+          } else {
+            daysLeftText = `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
+          }
+          
+          badgeHtml = `<span class="deadline-badge color-${colorCode}">${daysLeftText}</span>`;
+        }
+        
         return `
-          <div class="notification-item ${unreadClass} type-${r.type}">
+          <div class="notification-item ${unreadClass} type-${r.type} ${borderClass}">
             <button class="notification-close-btn" onclick="deleteNotification('${r.id}', event)">✕</button>
             <div class="notification-title">${r.title}</div>
             <div class="notification-message">${r.message}</div>
             <div class="notification-meta">
-              <span class="notification-time">${timeText}</span>
+              <span class="notification-time">
+                ${timeText}
+                ${badgeHtml}
+              </span>
               ${actionBtnHtml}
             </div>
           </div>
@@ -4175,6 +4469,11 @@
           }
         }, event.origin);
       } else if (event.data && event.data.type === "FS_DRAFT_UPDATED") {
+        if (sessionData && activeProfile) {
+          const drafts = JSON.parse(localStorage.getItem(`fs_drafts_${activeProfile}`) || '{}');
+          sessionData.drafts = drafts;
+          saveLocalVault();
+        }
         checkAndGenerateReminders();
         renderReminders();
         updateBadges();
@@ -4192,8 +4491,11 @@
       sessionData = null;
       activeKey = null;
       activeProfile = null;
-      pinEntered = '';
-      addPinEntered = '';
+      
+      // Clear session storage & DOM attributes for Chrome extension
+      sessionStorage.removeItem("fs_active_session");
+      sessionStorage.removeItem("fs_active_profile");
+      document.body.removeAttribute("data-fs-session");
       
       // Clear localStorage pending autofill data
       localStorage.removeItem('fs_autofill_pending_data');

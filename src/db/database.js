@@ -92,6 +92,16 @@ db.exec(`
     uploaded_at TEXT DEFAULT (datetime('now')),
     PRIMARY KEY (email, doc_key)
   );
+
+  -- GoogleVerification: tokens for email verification during Google login
+  CREATE TABLE IF NOT EXISTS GoogleVerification (
+    token       TEXT PRIMARY KEY,
+    email       TEXT NOT NULL,
+    action      TEXT,             -- 'allow' or 'deny'
+    created_at  TEXT DEFAULT (datetime('now')),
+    expires_at  TEXT NOT NULL,
+    responded   BOOLEAN DEFAULT 0
+  );
 `);
 
 try {
