@@ -1253,6 +1253,65 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* Custom Cursor & Antigravity Particles */
+    :root {
+      --cursor-base: #eeeee7;
+    }
+    [data-theme="light"] {
+      --cursor-base: #3C3C3C;
+    }
+
+    @media (pointer: fine) {
+      html, body {
+        cursor: none;
+      }
+      a, button, input, select, textarea, [role="button"], .clickable {
+        cursor: none !important;
+      }
+    }
+
+    #cursor {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+      z-index: 999999;
+      will-change: transform;
+      transition: opacity 0.2s ease;
+    }
+
+    #cursor.hovered {
+      mix-blend-mode: difference;
+    }
+
+    .cursor-dot-inner {
+      width: 8px;
+      height: 8px;
+      background-color: var(--cursor-base);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
+                  background-color 0.25s ease;
+    }
+
+    #cursor.hovered .cursor-dot-inner {
+      transform: translate(-50%, -50%) scale(2.5);
+      background-color: #ffffff;
+    }
+
+    .cursor-particle {
+      position: fixed;
+      top: 0;
+      left: 0;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 999998;
+      transform: translate3d(-50%, -50%, 0);
+      will-change: transform, opacity;
+    }
   </style>
   <script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth()" async defer></script>
 </head>
@@ -4526,6 +4585,141 @@
     // ── Init ──
     loadProfiles();
     initGoogleAuth();
+  </script>
+
+  <script>
+    (function() {
+      // Exit early if the client is on a touch or coarse-pointer device
+      if (window.matchMedia('(pointer: coarse)').matches) return;
+
+      // Create and append the cursor element tree
+      const cursor = document.createElement('div');
+      cursor.id = 'cursor';
+      const innerDot = document.createElement('div');
+      innerDot.className = 'cursor-dot-inner';
+      cursor.appendChild(innerDot);
+      document.body.appendChild(cursor);
+
+      // State Variables
+      let mouseX = 0;
+      let mouseY = 0;
+      let cursorX = 0;
+      let cursorY = 0;
+      const lerpFactor = 0.15; // Smooth tracking follow factor
+      const particles = [];
+
+      // Track mouse coordinates
+      window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+
+        // Spawn 2 to 3 particles on mouse move
+        const spawnCount = Math.floor(Math.random() * 2) + 2;
+        for (let i = 0; i < spawnCount; i++) {
+          createParticle(mouseX, mouseY);
+        }
+      });
+
+      // Delegated Hover Listeners for 'a' and 'button' tags
+      document.addEventListener('mouseover', (e) => {
+        const target = e.target;
+        if (!target) return;
+        if (target.tagName === 'A' || target.tagName === 'BUTTON' || target.closest('a') || target.closest('button')) {
+          cursor.classList.add('hovered');
+        }
+      });
+
+      document.addEventListener('mouseout', (e) => {
+        const target = e.target;
+        if (!target) return;
+        if (target.tagName === 'A' || target.tagName === 'BUTTON' || target.closest('a') || target.closest('button')) {
+          const relatedTarget = e.relatedTarget;
+          if (relatedTarget && (relatedTarget.closest('a') || relatedTarget.closest('button'))) {
+            return;
+          }
+          cursor.classList.remove('hovered');
+        }
+      });
+
+      // Manage viewport edge transitions
+      document.addEventListener('mouseleave', () => {
+        cursor.style.opacity = '0';
+      });
+      document.addEventListener('mouseenter', () => {
+        cursor.style.opacity = '1';
+      });
+
+      // Particle Factory
+      function createParticle(x, y) {
+        const size = 2.5 + Math.random() * 4; // Variations from 2.5px to 6.5px
+        const isOrange = Math.random() < 0.25; // 25% glowing Neon Orange, 75% Onyx/Grey
+        const color = isOrange ? '#FF5E13' : 'var(--cursor-base)';
+
+        const el = document.createElement('div');
+        el.className = 'cursor-particle';
+        el.style.width = size + 'px';
+        el.style.height = size + 'px';
+        el.style.backgroundColor = color;
+        
+        if (isOrange) {
+          el.style.boxShadow = '0 0 6px rgba(255, 94, 19, 0.6)';
+        }
+
+        document.body.appendChild(el);
+
+        particles.push({
+          element: el,
+          startX: x,
+          startY: y,
+          size: size,
+          startTime: performance.now(),
+          duration: 800 + Math.random() * 600,       // Lifetimes between 800ms and 1400ms
+          vy: 0.04 + Math.random() * 0.05,            // Floating vertical float speed
+          angleOffset: Math.random() * Math.PI * 2,   // Random starting phase angle
+          speedAngle: 0.002 + Math.random() * 0.003,  // Sine wave speed frequency
+          amplitude: 4 + Math.random() * 4            // Sinusoidal horizontal wander width
+        });
+      }
+
+      // High-performance updates via requestAnimationFrame
+      function tick(timestamp) {
+        // 1. Lerp main cursor dot position
+        cursorX += (mouseX - cursorX) * lerpFactor;
+        cursorY += (mouseY - cursorY) * lerpFactor;
+        cursor.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
+
+        // 2. Process active particles list
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          const elapsed = timestamp - p.startTime;
+
+          // Clean up DOM exactly when lifetime expires
+          if (elapsed >= p.duration) {
+            p.element.remove();
+            particles.splice(i, 1);
+            continue;
+          }
+
+          const progress = elapsed / p.duration;
+          const currentScale = 1 - progress;  // Shrink to 0px
+          const currentOpacity = 1 - progress; // Fade to 0 opacity
+
+          // Antigravity equations
+          const currentY = p.startY - (p.vy * elapsed);
+          const angle = p.angleOffset + (p.speedAngle * elapsed);
+          const currentX = p.startX + Math.sin(angle) * p.amplitude;
+
+          // Apply styles utilizing performance-oriented transforms
+          p.element.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) scale(${currentScale})`;
+          p.element.style.opacity = currentOpacity;
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      // Start render loops
+      requestAnimationFrame(tick);
+    })();
   </script>
 </body>
 </html>
