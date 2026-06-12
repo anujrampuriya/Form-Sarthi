@@ -1609,7 +1609,8 @@
                 <h2 style="font-size: 18px; font-weight: 700">Profile Vault Data</h2>
                 <p style="font-size: 13px; color: var(--muted)">Review, add or modify extracted field data stored in browser IndexedDB.</p>
               </div>
-              <div style="display:flex; gap:8px">
+              <div style="display:flex; gap:8px; align-items: center">
+                <button class="btn" onclick="document.getElementById('custom-field-modal').style.display='flex'" style="font-size:12px; padding: 8px 12px">➕ Add Custom Field</button>
                 <button class="btn outline" style="font-size:12px; padding: 8px 12px" onclick="toggleEditProfile(true)" id="edit-btn-profile">✏️ Edit data</button>
                 <button class="btn outline" style="font-size:12px; padding: 8px 12px; color:var(--red); border-color:transparent" onclick="deleteProfile()">🗑️ Delete Profile</button>
               </div>
@@ -1806,6 +1807,28 @@
       <div style="display:flex; gap:10px;">
         <button class="btn outline" onclick="document.getElementById('custom-doc-modal').style.display='none'" style="flex:1; padding:10px;">Cancel</button>
         <button class="btn" onclick="saveCustomDoc()" style="flex:1; padding:10px;">Add Slot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD CUSTOM FIELD MODAL -->
+  <div id="custom-field-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="card" style="width:90%; max-width:400px; padding:24px; display:flex; flex-direction:column; gap:18px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+        <h2 style="font-size:16px; font-weight:800; color:var(--text)">➕ Add Custom Profile Field</h2>
+        <button onclick="document.getElementById('custom-field-modal').style.display='none'" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Field Name (e.g. Passport Expiry, Religion)</label>
+        <input type="text" id="custom-field-name" class="form-input" placeholder="e.g. Guardian's Occupation">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>Field Value</label>
+        <input type="text" id="custom-field-value" class="form-input" placeholder="e.g. Business">
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn outline" onclick="document.getElementById('custom-field-modal').style.display='none'" style="flex:1; padding:10px;">Cancel</button>
+        <button class="btn" onclick="saveCustomField()" style="flex:1; padding:10px;">Add Field</button>
       </div>
     </div>
   </div>
@@ -2310,6 +2333,8 @@
     const PROFILE_FIELDS = [
       // Personal Info
       { group: 'Personal Info', label: 'Official Legal Name (for Forms)', key: 'name' },
+      { group: 'Personal Info', label: 'Father\'s Name', key: 'father_name' },
+      { group: 'Personal Info', label: 'Mother\'s Name', key: 'mother_name' },
       { group: 'Personal Info', label: 'Date of Birth', key: 'dob' },
       { group: 'Personal Info', label: 'Gender', key: 'gender', options: ['Male', 'Female', 'Transgender', 'Other'] },
       { group: 'Personal Info', label: 'Caste / Category', key: 'caste', options: ['General', 'OBC (Other Backward Class)', 'SC (Scheduled Caste)', 'ST (Scheduled Tribe)', 'EWS (Economically Weaker Section)'] },
@@ -2317,10 +2342,12 @@
       { group: 'Personal Info', label: 'Religion', key: 'religion' },
       { group: 'Personal Info', label: 'Blood Group', key: 'blood_group', options: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] },
       { group: 'Personal Info', label: 'Marital Status', key: 'marital_status', options: ['Single', 'Married', 'Divorced', 'Widowed'] },
+      { group: 'Personal Info', label: 'Allergies / Medical Conditions', key: 'allergies' },
 
       // Contact Details
       { group: 'Contact Details', label: 'Mobile Number', key: 'phone' },
       { group: 'Contact Details', label: 'Alternate Mobile', key: 'alt_phone' },
+      { group: 'Contact Details', label: 'Emergency Contact Name', key: 'emergency_contact_name' },
       { group: 'Contact Details', label: 'Email Address', key: 'email' },
       { group: 'Contact Details', label: 'Address', key: 'address' },
       { group: 'Contact Details', label: 'City', key: 'city' },
@@ -2344,7 +2371,8 @@
       { group: 'Identity & Finance', label: 'Driving License / Passport', key: 'dl' },
       { group: 'Identity & Finance', label: 'Bank Name', key: 'bank_name' },
       { group: 'Identity & Finance', label: 'Bank Account Number', key: 'account_no' },
-      { group: 'Identity & Finance', label: 'IFSC Code', key: 'ifsc' }
+      { group: 'Identity & Finance', label: 'IFSC Code', key: 'ifsc' },
+      { group: 'Identity & Finance', label: 'Health Insurance Policy No', key: 'insurance_policy' }
     ];
 
     function renderGoogleButton() {
@@ -3161,6 +3189,74 @@
       }
     }
 
+    function saveCustomField() {
+      if (!activeProfile) return;
+      const nameInput = document.getElementById('custom-field-name');
+      const valInput = document.getElementById('custom-field-value');
+      const label = nameInput.value.trim();
+      const value = valInput.value.trim();
+      
+      if (!label) {
+        toast('Please enter a field name', 'error');
+        return;
+      }
+      
+      const key = 'custom_field_' + Date.now();
+      
+      if (!sessionData) sessionData = {};
+      sessionData.customFields = sessionData.customFields || [];
+      sessionData.customFields.push({ key, label, value });
+      sessionData[key] = value || null;
+      
+      saveLocalVault().then(() => {
+        renderDataGrid();
+        toggleEditProfile(true); // refresh edit form
+        updateBadges();
+        nameInput.value = '';
+        valInput.value = '';
+        document.getElementById('custom-field-modal').style.display = 'none';
+        toast(`Custom field "${label}" added!`, 'success');
+      }).catch(err => {
+        console.error(err);
+        toast('Failed to save custom field', 'error');
+      });
+    }
+
+    async function removeCustomField(fieldKey) {
+      if (!activeProfile) return;
+      const customFields = sessionData.customFields || [];
+      const field = customFields.find(f => f.key === fieldKey);
+      if (!field) return;
+      
+      if (!confirm(`Are you sure you want to remove the custom field "${field.label}"?`)) return;
+
+      try {
+        sessionData.customFields = customFields.filter(f => f.key !== fieldKey);
+        delete sessionData[fieldKey];
+        
+        await saveLocalVault();
+        renderDataGrid();
+        toggleEditProfile(true); // refresh edit form
+        updateBadges();
+        toast(`Field "${field.label}" removed`, 'success');
+      } catch (err) {
+        console.error(err);
+        toast('Failed to remove custom field', 'error');
+      }
+    }
+
+    async function autoSaveCustomField(key, value) {
+      if (!sessionData || !sessionData.customFields) return;
+      const field = sessionData.customFields.find(f => f.key === key);
+      if (field) {
+        field.value = value.trim() || null;
+        sessionData[key] = value.trim() || null;
+        await saveLocalVault();
+        renderDataGrid();
+        updateBadges();
+      }
+    }
+
     // ── Profile Data Collapsible Grids (30 fields) ──
     function renderDataGrid() {
       const d = sessionData || {};
@@ -3197,6 +3293,32 @@
           </details>
         `;
       }
+
+      // Add custom fields group if present
+      if (d.customFields && d.customFields.length > 0) {
+        const customCells = d.customFields.map(f => {
+          const val = d[f.key];
+          return `
+            <div class="data-cell">
+              <div class="data-cell-label">${f.label}</div>
+              <div class="data-cell-val ${val ? '' : 'empty'}">${val || 'Not set'}</div>
+            </div>
+          `;
+        }).join('');
+        
+        html += `
+          <details class="profile-group" open>
+            <summary>
+              <span>Custom Fields</span>
+              <span class="group-indicator">▶</span>
+            </summary>
+            <div class="data-grid">
+              ${customCells}
+            </div>
+          </details>
+        `;
+      }
+
       renderDiv.innerHTML = html;
     }
 
@@ -3254,6 +3376,34 @@
             </details>
           `;
         }
+
+        // Render Custom Fields in Edit mode
+        const customFieldsList = d.customFields || [];
+        const customCells = customFieldsList.map(f => {
+          return `
+            <div class="edit-form-cell" style="position:relative;">
+              <label style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${f.label}</span>
+                <button onclick="removeCustomField('${f.key}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:11px; font-weight:bold; padding:0 4px;">🗑️ Delete Field</button>
+              </label>
+              <input type="text" id="edit-${f.key}" onchange="autoSaveCustomField('${f.key}', this.value)" value="${d[f.key] || ''}">
+            </div>
+          `;
+        }).join('');
+
+        html += `
+          <details class="profile-group" open>
+            <summary>
+              <span>Custom Fields</span>
+              <span class="group-indicator">▶</span>
+            </summary>
+            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 14px;">
+              <div class="edit-grid" style="margin-bottom:10px;">
+                ${customCells || '<p style="font-size:12px; color:var(--muted); margin:0;">No custom fields yet.</p>'}
+              </div>
+            </div>
+          </details>
+        `;
         
         formDiv.innerHTML = html;
         readDiv.style.display = 'none';

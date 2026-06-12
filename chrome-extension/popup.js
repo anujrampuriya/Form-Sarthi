@@ -64,17 +64,17 @@ async function loadSession() {
 
     // Display primary summary fields in the popup grid
     const fields = [
-      "name", "email", "phone", "gender", "caste",
+      "name", "father_name", "email", "phone", "gender", "caste",
       "roll_10", "roll_12", "aadhaar", "pan", "account_no"
     ];
     const labels = {
-      name: "Full Name", email: "Email", phone: "Mobile",
+      name: "Full Name", father_name: "Father's Name", email: "Email", phone: "Mobile",
       gender: "Gender", caste: "Category", roll_10: "Class 10 Roll",
       roll_12: "Class 12 Roll", aadhaar: "Aadhaar No", pan: "PAN Card",
       account_no: "Bank Account"
     };
 
-    profileGrid.innerHTML = fields.map(f => {
+    let chipsHtml = fields.map(f => {
       const val   = profile?.[f];
       const empty = !val;
       return `
@@ -84,6 +84,23 @@ async function loadSession() {
         </div>
       `;
     }).join("");
+
+    // Append custom fields if any exist
+    if (profile && profile.customFields && profile.customFields.length > 0) {
+      const customChips = profile.customFields.map(f => {
+        const val = profile[f.key];
+        const empty = !val;
+        return `
+          <div class="field-chip ${empty ? "empty" : ""}">
+            <div class="key">${f.label}</div>
+            <div class="val">${val || "—"}</div>
+          </div>
+        `;
+      }).join("");
+      chipsHtml += customChips;
+    }
+
+    profileGrid.innerHTML = chipsHtml;
 
   } catch (err) {
     showLocked(err.message || err);

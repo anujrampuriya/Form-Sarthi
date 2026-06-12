@@ -9,6 +9,8 @@ const FS_Autofill = {
   _fieldMap: [
     // Personal Info
     { label: 'Full Name',         key: 'name',          hints: ['fullname', 'full_name', 'applicant', 'candidate', 'first_name', 'student_name', 'your_name'], exact: ['name', 'fname'] },
+    { label: 'Father\'s Name',    key: 'father_name',   hints: ['father', 'father_name', 'fathers_name', 'father name', 'fathers name', 'father\'s name'] },
+    { label: 'Mother\'s Name',    key: 'mother_name',   hints: ['mother', 'mother_name', 'mothers_name', 'mother name', 'mothers name', 'mother\'s name'] },
     { label: 'Date of Birth',     key: 'dob',           hints: ['dob', 'birth', 'dateofbirth', 'date_of_birth', 'born'] },
     { label: 'Gender',            key: 'gender',        hints: ['gender', 'sex', 'gender_type'] },
     { label: 'Caste / Category',  key: 'caste',         hints: ['caste', 'category', 'social_status', 'community', 'reservation'] },
@@ -16,10 +18,12 @@ const FS_Autofill = {
     { label: 'Religion',          key: 'religion',      hints: ['religion', 'faith'] },
     { label: 'Blood Group',       key: 'blood_group',   hints: ['blood', 'bloodgroup', 'blood_group', 'bg'] },
     { label: 'Marital Status',    key: 'marital_status',hints: ['marital', 'marriage', 'married', 'marital_status'] },
+    { label: 'Allergies / Medical Conditions', key: 'allergies', hints: ['allergies', 'allergy', 'medical_conditions', 'pre_existing_conditions', 'medical_history'] },
 
     // Contact Details
     { label: 'Mobile Number',     key: 'phone',         hints: ['phone', 'mobile', 'contact', 'cell', 'telephone', 'mobileno', 'phoneno'], exact: ['tel', 'phone_no', 'mobile_no'] },
     { label: 'Alternate Mobile',  key: 'alt_phone',     hints: ['alt_phone', 'altphone', 'alternate', 'emergency_contact', 'alt_mobile'] },
+    { label: 'Emergency Contact Name', key: 'emergency_contact_name', hints: ['emergency_contact_name', 'emergency contact name', 'emergency_name', 'contact_person'] },
     { label: 'Email Address',     key: 'email',         hints: ['email', 'mail', 'emailid', 'e-mail'] },
     { label: 'Address',           key: 'address',       hints: ['address', 'addr', 'residence', 'location', 'permanent_address', 'corr_address'] },
     { label: 'City',              key: 'city',          hints: ['city', 'town', 'district'] },
@@ -43,16 +47,30 @@ const FS_Autofill = {
     { label: 'DL / Passport',     key: 'dl',            hints: ['driving', 'licence', 'license', 'dl', 'passport', 'passport_no', 'passport_number'] },
     { label: 'Bank Name',         key: 'bank_name',     hints: ['bank_name', 'bankname', 'bank_title'] },
     { label: 'Bank Account No',   key: 'account_no',    hints: ['account_no', 'accountno', 'account_number', 'acc_no', 'ac_no', 'ac_num', 'bank_account'] },
-    { label: 'IFSC Code',         key: 'ifsc',          hints: ['ifsc', 'ifsccode', 'ifsc_code', 'bank_ifsc'] }
+    { label: 'IFSC Code',         key: 'ifsc',          hints: ['ifsc', 'ifsccode', 'ifsc_code', 'bank_ifsc'] },
+    { label: 'Health Insurance Policy No', key: 'insurance_policy', hints: ['insurance_policy', 'insurance_no', 'policy_no', 'insurance_number', 'policy_number', 'health_insurance'] }
   ],
 
   // Returns array of { label, key, value } for the completeness meter
   mapFields(sessionData) {
-    return this._fieldMap.map(field => ({
+    const fields = this._fieldMap.map(field => ({
       label: field.label,
       key:   field.key,
       value: sessionData[field.key] || null,
     }));
+    
+    // Dynamically append custom fields if present
+    if (sessionData && sessionData.customFields) {
+      sessionData.customFields.forEach(custom => {
+        fields.push({
+          label: custom.label,
+          key:   custom.key,
+          value: sessionData[custom.key] || null,
+        });
+      });
+    }
+    
+    return fields;
   },
 
   // When the extension is ready — inject values into a live form
@@ -60,6 +78,17 @@ const FS_Autofill = {
   injectIntoForm(sessionData) {
     const inputs = document.querySelectorAll('input, textarea, select');
     let filled = 0;
+
+    const activeMap = [...this._fieldMap];
+    if (sessionData && sessionData.customFields) {
+      sessionData.customFields.forEach(custom => {
+        activeMap.push({
+          label: custom.label,
+          key:   custom.key,
+          hints: [custom.label.toLowerCase(), custom.key.toLowerCase()]
+        });
+      });
+    }
 
     inputs.forEach(input => {
       const hint = (
@@ -99,7 +128,7 @@ const FS_Autofill = {
         return;
       }
 
-      for (const field of this._fieldMap) {
+      for (const field of activeMap) {
         // 1. Exact matches (if provided)
         let matched = false;
         if (field.exact) {

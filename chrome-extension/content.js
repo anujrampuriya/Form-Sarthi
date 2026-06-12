@@ -13,6 +13,65 @@ let lastPercent = -1;
 let lastFilledCount = -1;
 let debouncedAutoSaveTimeout = null;
 
+function getRelevantFormInputs() {
+  const allInputs = document.querySelectorAll(
+    'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]):not([type=file]):not([type=image]):not([type=reset]), textarea, select'
+  );
+
+  return Array.from(allInputs).filter(input => {
+    // 1. Basic visibility check
+    try {
+      const style = window.getComputedStyle(input);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+        return false;
+      }
+    } catch (e) {}
+    
+    const width = input.offsetWidth || input.getBoundingClientRect().width;
+    const height = input.offsetHeight || input.getBoundingClientRect().height;
+    if (width === 0 || height === 0) {
+      return false;
+    }
+
+    // 2. Search check
+    const nameStr = (input.name || '').toLowerCase();
+    const idStr = (input.id || '').toLowerCase();
+    const placeholderStr = (input.placeholder || '').toLowerCase();
+    const ariaStr = (input.getAttribute('aria-label') || '').toLowerCase();
+    const typeStr = (input.type || '').toLowerCase();
+
+    if (typeStr === 'search') {
+      return false;
+    }
+
+    const isSearchPattern = /search|query|^q$/i.test(nameStr || idStr || placeholderStr || '');
+    if (isSearchPattern) {
+      return false;
+    }
+
+    // Check if inside a search form or container
+    try {
+      const closestForm = input.closest('form');
+      if (closestForm) {
+        const formId = (closestForm.id || '').toLowerCase();
+        const formClass = (closestForm.className || '').toLowerCase();
+        const formRole = (closestForm.getAttribute('role') || '').toLowerCase();
+        const formAction = (closestForm.getAttribute('action') || '').toLowerCase();
+        if (
+          formId.includes('search') ||
+          formClass.includes('search') ||
+          formRole === 'search' ||
+          formAction.includes('search')
+        ) {
+          return false;
+        }
+      }
+    } catch (e) {}
+
+    return true;
+  });
+}
+
 if (window.hasFormSarthiContentScript) {
   console.log("[FormSarthi] Content script already initialized on this tab.");
 } else {
@@ -120,29 +179,85 @@ if (window.hasFormSarthiContentScript) {
 
   // Target page logic (runs on non-dashboard form pages)
   if (!isDashboard) {
-    injectCompletenessMeter();
-    updateMeterUIForLockedState();
+    const isAutofillablePage = () => {
+      const inputs = getRelevantFormInputs();
+      if (inputs.length === 0) return false;
+      if (inputs.length >= 3) return true; // Unconditionally show on larger forms (registration/application forms)
 
-    chrome.runtime.sendMessage({ type: "GET_PROFILE" }, (response) => {
-      if (response && response.success && response.profile) {
-        // Retrieve and restore draft values if any
-        chrome.runtime.sendMessage({ type: "CHECK_DRAFT_RESTORE", url: window.location.href }, (restoreRes) => {
-          if (restoreRes && restoreRes.success && restoreRes.values) {
-            restoreDraftValues(restoreRes.values);
-          }
-        });
-        // Start auto-save progress loop and setup completeness meter
-        setupCompletenessMeter();
-      } else {
-        updateMeterUIForLockedState();
+      // For smaller pages (1-2 inputs, like simple login or search widgets), check if it matches our autofill hints
+      const autofillHints = [
+        'name', 'fullname', 'full_name', 'applicant', 'candidate', 'first_name',
+        'father', 'mother', 'dob', 'birth', 'dateofbirth', 'born',
+        'gender', 'sex', 'caste', 'category', 'social_status',
+        'nationality', 'religion', 'phone', 'mobile', 'contact', 'telephone',
+        'email', 'mail', 'address', 'addr', 'residence', 'pincode', 'pin', 'zip',
+        'roll', 'board', 'marks', 'college', 'degree', 'grad',
+        'aadhaar', 'aadhar', 'pan', 'dl', 'passport',
+        'bank', 'account', 'ifsc', 'insurance'
+      ];
+
+      for (const input of inputs) {
+        const nameStr = (input.name || '').toLowerCase();
+        const idStr = (input.id || '').toLowerCase();
+        const placeholderStr = (input.placeholder || '').toLowerCase();
+        const ariaStr = (input.getAttribute('aria-label') || '').toLowerCase();
+        
+        const combined = `${nameStr} ${idStr} ${placeholderStr} ${ariaStr}`;
+
+        const hasHint = autofillHints.some(h => combined.includes(h));
+        const isSearch = /search|query|^q$/i.test(nameStr || idStr || placeholderStr || '');
+
+        if (hasHint && !isSearch) {
+          return true;
+        }
       }
-    });
+
+      return false;
+    };
+
+    const runCheck = () => {
+      if (!isAutofillablePage()) {
+        const container = document.getElementById('fs-completeness-container');
+        if (container) {
+          container.remove();
+        }
+        return;
+      }
+
+      injectCompletenessMeter();
+      updateMeterUIForLockedState();
+
+      chrome.runtime.sendMessage({ type: "GET_PROFILE" }, (response) => {
+        if (response && response.success && response.profile) {
+          // Retrieve and restore draft values if any
+          chrome.runtime.sendMessage({ type: "CHECK_DRAFT_RESTORE", url: window.location.href }, (restoreRes) => {
+            if (restoreRes && restoreRes.success && restoreRes.values) {
+              restoreDraftValues(restoreRes.values);
+            }
+          });
+          // Start auto-save progress loop and setup completeness meter
+          setupCompletenessMeter();
+        } else {
+          updateMeterUIForLockedState();
+        }
+      });
+    };
+
+    // Run checks on DOM load
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', runCheck);
+    } else {
+      runCheck();
+    }
+    // Periodic fallback checks for dynamic single-page application form loads
+    setTimeout(runCheck, 1000);
+    setTimeout(runCheck, 3000);
   }
 }
 
 function restoreDraftValues(values) {
   if (!values) return;
-  const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+  const inputs = getRelevantFormInputs();
   inputs.forEach((input, index) => {
     const key = input.name || input.id || `input_idx_${index}`;
     if (values[key] !== undefined) {
@@ -199,6 +314,7 @@ function injectCompletenessMeter() {
       gap: 12px !important;
       width: 250px !important;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      cursor: pointer !important;
     }
     .fs-card.fs-hidden {
       opacity: 0 !important;
@@ -390,7 +506,21 @@ function injectCompletenessMeter() {
     sessionStorage.setItem('fs_meter_collapsed', 'true');
   });
 
+  fsCard.addEventListener('click', (e) => {
+    if (e.target.closest('#fs-close-btn')) return;
+    const remainingText = document.getElementById('fs-remaining-text');
+    if (remainingText && remainingText.textContent.includes("Unlock")) {
+      chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+    }
+  });
+
   fsFab.addEventListener('click', (e) => {
+    const fabPct = document.getElementById('fs-fab-pct');
+    if (fabPct && fabPct.textContent === "🔒") {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ type: "OPEN_DASHBOARD" });
+      return;
+    }
     e.stopPropagation();
     fsFab.classList.add('fs-hidden');
     fsCard.classList.remove('fs-hidden');
@@ -404,7 +534,7 @@ function injectCompletenessMeter() {
 }
 
 function calculateCompleteness() {
-  const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+  const inputs = getRelevantFormInputs();
   if (inputs.length === 0) return { pct: 0, filled: 0, total: 0, remaining: 0 };
   
   let filledCount = 0;
@@ -444,7 +574,7 @@ function triggerAutoSave() {
 }
 
 function saveDraftData() {
-  const inputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]), textarea, select');
+  const inputs = getRelevantFormInputs();
   if (inputs.length === 0) return;
   
   const values = {};
@@ -547,6 +677,16 @@ function fillForm(profile) {
       exclude: ['father', 'mother', 'parent', 'guardian', 'nominee', 'college', 'school', 'institute', 'university', 'bank', 'branch', 'file', 'doc', 'caste', 'category', 'husband', 'wife', 'spouse', 'sign'] 
     },
     { 
+      key: 'father_name',   
+      hints: ['father', 'father_name', 'fathers_name', 'father name', 'fathers name', 'father\'s name'],
+      exclude: [] 
+    },
+    { 
+      key: 'mother_name',   
+      hints: ['mother', 'mother_name', 'mothers_name', 'mother name', 'mothers name', 'mother\'s name'],
+      exclude: [] 
+    },
+    { 
       key: 'dob',           
       hints: ['dob', 'birth', 'dateofbirth', 'date_of_birth', 'born'],
       exclude: ['place', 'city', 'state', 'country'] 
@@ -582,6 +722,11 @@ function fillForm(profile) {
       exclude: [] 
     },
     { 
+      key: 'allergies',     
+      hints: ['allergies', 'allergy', 'medical_conditions', 'pre_existing_conditions', 'medical_history'],
+      exclude: [] 
+    },
+    { 
       key: 'phone',         
       hints: ['phone', 'mobile', 'contact', 'cell', 'telephone'],
       exclude: ['email', 'fax', 'aadhaar', 'aadhar', 'pan', 'card', 'account', 'roll', 'license', 'pincode', 'pin', 'zip', 'pf', 'uan', 'alt', 'alternate', 'emergency'] 
@@ -590,6 +735,11 @@ function fillForm(profile) {
       key: 'alt_phone',     
       hints: ['alt_phone', 'altphone', 'alternate', 'emergency_contact', 'alt_mobile', 'emergency phone', 'emergency mobile'],
       exclude: ['email'] 
+    },
+    { 
+      key: 'emergency_contact_name', 
+      hints: ['emergency_contact_name', 'emergency contact name', 'emergency_name', 'contact_person'],
+      exclude: [] 
     },
     { 
       key: 'email',         
@@ -690,8 +840,23 @@ function fillForm(profile) {
       key: 'ifsc',          
       hints: ['ifsc', 'ifsccode', 'ifsc_code', 'bank_ifsc'],
       exclude: ['account'] 
+    },
+    { 
+      key: 'insurance_policy', 
+      hints: ['insurance_policy', 'insurance_no', 'policy_no', 'insurance_number', 'policy_number', 'health_insurance'],
+      exclude: [] 
     }
   ];
+
+  if (profile.customFields && profile.customFields.length > 0) {
+    profile.customFields.forEach(custom => {
+      fieldMap.push({
+        key: custom.key,
+        hints: [custom.label.toLowerCase(), custom.key.toLowerCase()],
+        exclude: []
+      });
+    });
+  }
 
   let filled = 0;
 
@@ -699,6 +864,15 @@ function fillForm(profile) {
   const textInputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]):not([type=file]), textarea, select');
   
   textInputs.forEach(input => {
+    // Skip if search input
+    const typeStr = (input.type || '').toLowerCase();
+    const nameStr = (input.name || '').toLowerCase();
+    const idStr = (input.id || '').toLowerCase();
+    const placeholderStr = (input.placeholder || '').toLowerCase();
+    if (typeStr === 'search' || /search|query|^q$/i.test(nameStr || idStr || placeholderStr || '')) {
+      return;
+    }
+
     // Collect direct attributes
     const hintAttr = (
       (input.name || '') + ' ' +

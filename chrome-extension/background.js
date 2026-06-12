@@ -81,13 +81,22 @@ async function handleMessage(message, sender) {
         const profile = await getDecryptedSession();
         // Calculate completeness based on all 30 fields
         const allFields = [
-          "name", "dob", "gender", "caste", "nationality", "religion", "blood_group", "marital_status",
-          "phone", "alt_phone", "email", "address", "city", "state", "pincode",
+          "name", "father_name", "mother_name", "dob", "gender", "caste", "nationality", "religion", "blood_group", "marital_status", "allergies",
+          "phone", "alt_phone", "emergency_contact_name", "email", "address", "city", "state", "pincode",
           "roll_10", "roll_12", "board_10", "board_12", "marks_10", "marks_12", "college", "degree", "grad_year",
-          "aadhaar", "pan", "dl", "bank_name", "account_no", "ifsc"
+          "aadhaar", "pan", "dl", "bank_name", "account_no", "ifsc", "insurance_policy"
         ];
-        const filled = allFields.filter(f => profile[f]);
-        const percent = Math.round((filled.length / allFields.length) * 100);
+        let filledCount = allFields.filter(f => profile[f]).length;
+        let totalCount = allFields.length;
+        if (profile.customFields && profile.customFields.length > 0) {
+          profile.customFields.forEach(custom => {
+            totalCount++;
+            if (profile[custom.key]) {
+              filledCount++;
+            }
+          });
+        }
+        const percent = Math.round((filledCount / totalCount) * 100);
         return { 
           success: true, 
           profile, 
@@ -170,6 +179,17 @@ async function handleMessage(message, sender) {
       }
     }
 
+    case "OPEN_DASHBOARD": {
+      try {
+        const dashboardTab = await getDashboardTab();
+        await chrome.tabs.update(dashboardTab.id, { active: true });
+        await chrome.windows.update(dashboardTab.windowId, { focused: true });
+      } catch (err) {
+        chrome.tabs.create({ url: "http://localhost:4000/" });
+      }
+      return { success: true };
+    }
+
     default:
       return { success: false, error: `Unknown message type: ${message.type}` };
   }
@@ -183,6 +203,16 @@ function fillFormPageDirect(profile) {
       key: 'name',          
       hints: ['name', 'fullname', 'full_name', 'applicant', 'candidate'],
       exclude: ['father', 'mother', 'parent', 'guardian', 'nominee', 'college', 'school', 'institute', 'university', 'bank', 'branch', 'file', 'doc', 'caste', 'category', 'husband', 'wife', 'spouse', 'sign'] 
+    },
+    { 
+      key: 'father_name',   
+      hints: ['father', 'father_name', 'fathers_name', 'father name', 'fathers name', 'father\'s name'],
+      exclude: [] 
+    },
+    { 
+      key: 'mother_name',   
+      hints: ['mother', 'mother_name', 'mothers_name', 'mother name', 'mothers name', 'mother\'s name'],
+      exclude: [] 
     },
     { 
       key: 'dob',           
@@ -220,6 +250,11 @@ function fillFormPageDirect(profile) {
       exclude: [] 
     },
     { 
+      key: 'allergies',     
+      hints: ['allergies', 'allergy', 'medical_conditions', 'pre_existing_conditions', 'medical_history'],
+      exclude: [] 
+    },
+    { 
       key: 'phone',         
       hints: ['phone', 'mobile', 'contact', 'cell', 'telephone'],
       exclude: ['email', 'fax', 'aadhaar', 'aadhar', 'pan', 'card', 'account', 'roll', 'license', 'pincode', 'pin', 'zip', 'pf', 'uan', 'alt', 'alternate', 'emergency'] 
@@ -228,6 +263,11 @@ function fillFormPageDirect(profile) {
       key: 'alt_phone',     
       hints: ['alt_phone', 'altphone', 'alternate', 'emergency_contact', 'alt_mobile', 'emergency phone', 'emergency mobile'],
       exclude: ['email'] 
+    },
+    { 
+      key: 'emergency_contact_name', 
+      hints: ['emergency_contact_name', 'emergency contact name', 'emergency_name', 'contact_person'],
+      exclude: [] 
     },
     { 
       key: 'email',         
@@ -328,8 +368,23 @@ function fillFormPageDirect(profile) {
       key: 'ifsc',          
       hints: ['ifsc', 'ifsccode', 'ifsc_code', 'bank_ifsc'],
       exclude: ['account'] 
+    },
+    { 
+      key: 'insurance_policy', 
+      hints: ['insurance_policy', 'insurance_no', 'policy_no', 'insurance_number', 'policy_number', 'health_insurance'],
+      exclude: [] 
     }
   ];
+
+  if (profile.customFields && profile.customFields.length > 0) {
+    profile.customFields.forEach(custom => {
+      fieldMap.push({
+        key: custom.key,
+        hints: [custom.label.toLowerCase(), custom.key.toLowerCase()],
+        exclude: []
+      });
+    });
+  }
 
   let filled = 0;
 
