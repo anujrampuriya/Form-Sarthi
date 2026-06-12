@@ -181,10 +181,10 @@ if (window.hasFormSarthiContentScript) {
   if (!isDashboard) {
     const isAutofillablePage = () => {
       const inputs = getRelevantFormInputs();
-      if (inputs.length === 0) return false;
-      if (inputs.length >= 3) return true; // Unconditionally show on larger forms (registration/application forms)
+      
+      // We only show the floating tracker on forms with 3 or more visible, non-search inputs
+      if (inputs.length < 3) return false;
 
-      // For smaller pages (1-2 inputs, like simple login or search widgets), check if it matches our autofill hints
       const autofillHints = [
         'name', 'fullname', 'full_name', 'applicant', 'candidate', 'first_name',
         'father', 'mother', 'dob', 'birth', 'dateofbirth', 'born',
@@ -193,26 +193,20 @@ if (window.hasFormSarthiContentScript) {
         'email', 'mail', 'address', 'addr', 'residence', 'pincode', 'pin', 'zip',
         'roll', 'board', 'marks', 'college', 'degree', 'grad',
         'aadhaar', 'aadhar', 'pan', 'dl', 'passport',
-        'bank', 'account', 'ifsc', 'insurance'
+        'bank', 'account', 'ifsc', 'insurance', 'password', 'pass', 'pwd'
       ];
 
-      for (const input of inputs) {
+      // Check if at least one input matches our hints to verify it's a profile/form page
+      const hasMatchingField = inputs.some(input => {
         const nameStr = (input.name || '').toLowerCase();
         const idStr = (input.id || '').toLowerCase();
         const placeholderStr = (input.placeholder || '').toLowerCase();
         const ariaStr = (input.getAttribute('aria-label') || '').toLowerCase();
-        
         const combined = `${nameStr} ${idStr} ${placeholderStr} ${ariaStr}`;
+        return autofillHints.some(h => combined.includes(h));
+      });
 
-        const hasHint = autofillHints.some(h => combined.includes(h));
-        const isSearch = /search|query|^q$/i.test(nameStr || idStr || placeholderStr || '');
-
-        if (hasHint && !isSearch) {
-          return true;
-        }
-      }
-
-      return false;
+      return hasMatchingField;
     };
 
     const runCheck = () => {
