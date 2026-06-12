@@ -2942,6 +2942,375 @@
       }
     }
 
+    // PART 1 — OCR Extraction Rules (Document type wise)
+    const OCR_EXTRACT_RULES = {
+      aadhaar: {
+        name: [
+          /(?:(?:DOB|Date of Birth|जन्म)[\s\S]{0,200}?\n)([\w\s]+?)(?:\n|DOB|Male|Female)/i,
+          /^([A-Z][a-z]+(?: [A-Z][a-z]+){1,3})$/m
+        ],
+        dob: [
+          /(?:DOB|Date of Birth|जन्म तिथि)[:\s]+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i,
+          /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/
+        ],
+        aadhaar_number: [
+          /(\d{4}\s\d{4}\s\d{4})/,
+          /(\d{12})/
+        ],
+        gender: [
+          /(Male|Female|पुरुष|महिला|MALE|FEMALE)/i
+        ],
+        address: [
+          /(?:Address|पता)[:\s]+([\s\S]+?)(?=\d{4}\s\d{4}|\n\n|$)/i
+        ],
+        pincode: [
+          /\b([1-9]\d{5})\b/
+        ]
+      },
+      marksheet_10: {
+        student_name: [
+          /(?:Name of Candidate|Student Name|Name)[:\s]+([A-Z\s]+?)(?:\n|Father|Mother)/i,
+          /(?:नाम)[:\s]+([^\n]+)/i
+        ],
+        father_name: [
+          /(?:Father'?s? Name|Father)[:\s]+([A-Z\s]+?)(?:\n|Mother|Roll)/i
+        ],
+        mother_name: [
+          /(?:Mother'?s? Name|Mother)[:\s]+([A-Z\s]+?)(?:\n|Roll|Class)/i
+        ],
+        school_name: [
+          /(?:School Name|School|Institution|Vidyalaya)[:\s]+([^\n]+)/i,
+          /(?:विद्यालय)[:\s]+([^\n]+)/i
+        ],
+        roll_number: [
+          /(?:roll\s*no\.?|roll\s*number|roll\s*#)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /(?:regd\.?\s*no\.?|registration\s*no\.?|registration\s*number)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /(?:seat\s*no\.?|seat\s*number)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /(?:enrolment\s*no\.?|enrollment\s*no\.?|enrol\s*no\.?)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /\b(\d{5,10})\b/
+        ],
+        marks_obtained: [
+          /(?:Total Marks Obtained|Marks Obtained|Total)[:\s]+(\d+)/i,
+          /(?:Grand Total)[:\s]+(\d+)/i
+        ],
+        max_marks: [
+          /(?:Maximum Marks|Max\.? Marks|Out of)[:\s]+(\d+)/i
+        ],
+        percentage: [
+          /(\d{2,3}\.\d{1,2})\s*%/,
+          /(?:Percentage|प्रतिशत)[:\s]+(\d+\.?\d*)/i
+        ],
+        board: [
+          /(?:Board of|Board Name|बोर्ड)[:\s]+([^\n]+)/i,
+          /(CBSE|ICSE|MPBSE|UP Board|RBSE|Maharashtra Board)/i
+        ],
+        passing_year: [
+          /(?:Year of Passing|Passing Year)[:\s]+(\d{4})/i,
+          /(\d{4})\s*(?:Examination|Exam)/i
+        ]
+      },
+      marksheet_12: {
+        student_name: [
+          /(?:Name of Candidate|Student Name|Name)[:\s]+([A-Z\s]+?)(?:\n|Father|Mother)/i
+        ],
+        father_name: [
+          /(?:Father'?s? Name|Father)[:\s]+([A-Z\s]+?)(?:\n|Mother|Roll)/i
+        ],
+        mother_name: [
+          /(?:Mother'?s? Name|Mother)[:\s]+([A-Z\s]+?)(?:\n|Roll|Stream)/i
+        ],
+        school_name: [
+          /(?:School|College|Institution)[:\s]+([^\n]+)/i
+        ],
+        stream: [
+          /(Science|Commerce|Arts|Humanities|PCM|PCB)/i,
+          /(?:Stream|Group)[:\s]+([^\n]+)/i
+        ],
+        roll_number: [
+          /(?:roll\s*no\.?|roll\s*number|roll\s*#)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /(?:regd\.?\s*no\.?|registration\s*no\.?|registration\s*number)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /(?:seat\s*no\.?|seat\s*number)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /(?:enrolment\s*no\.?|enrollment\s*no\.?|enrol\s*no\.?)[:\s]*([A-Z0-9 .\/-]{4,20})/i,
+          /\b(\d{5,10})\b/
+        ],
+        marks_obtained: [
+          /(?:Total Marks Obtained|Marks Obtained|Total)[:\s]+(\d+)/i,
+          /(?:Grand Total)[:\s]+(\d+)/i
+        ],
+        max_marks: [
+          /(?:Maximum Marks|Max\.? Marks|Out of)[:\s]+(\d+)/i
+        ],
+        percentage: [
+          /(\d{2,3}\.\d{1,2})\s*%/,
+          /(?:Percentage)[:\s]+(\d+\.?\d*)/i
+        ],
+        board: [
+          /(CBSE|ICSE|MPBSE|UP Board|RBSE)/i
+        ],
+        passing_year: [
+          /(?:Year of Passing)[:\s]+(\d{4})/i
+        ]
+      },
+      pan_card: {
+        name: [
+          /(?:Name\n|NAME\n)([A-Z\s]+?)(?:\n)/i
+        ],
+        father_name: [
+          /(?:Father'?s? Name\n|FATHER'?S? NAME\n)([A-Z\s]+?)(?:\n)/i
+        ],
+        pan_number: [
+          /([A-Z]{5}\d{4}[A-Z]{1})/
+        ],
+        dob: [
+          /(\d{2}\/\d{2}\/\d{4})/
+        ]
+      },
+      photo: {
+        skip: true
+      },
+      caste_certificate: {
+        name: [
+          /(?:This is to certify that|certified that)[^\n]*?([A-Z][a-z]+(?: [A-Z][a-z]+)+)/i
+        ],
+        caste: [
+          /(?:belongs to|caste is|जाति)[:\s]+([^\n,]+)/i,
+          /(SC|ST|OBC|General|EWS|NT|SBC)/i
+        ],
+        father_name: [
+          /(?:S\/O|D\/O|son of|daughter of)[:\s]+([A-Z\s]+?)(?:\n|,|residing)/i
+        ]
+      },
+      income_certificate: {
+        name: [
+          /(?:This is to certify that)[^\n]*?([A-Z][a-z]+(?: [A-Z][a-z]+)+)/i
+        ],
+        annual_income: [
+          /(?:annual income|yearly income|आय)[^\n]*?(?:Rs\.?|₹|INR)\s*([\d,]+)/i,
+          /(?:Rs\.?|₹)\s*([\d,]+)\s*(?:per annum|annually|p\.a\.)/i
+        ],
+        father_name: [
+          /(?:S\/O|D\/O)[:\s]+([A-Z\s]+?)(?:\n|,)/i
+        ]
+      },
+      bank_passbook: {
+        account_no: [
+          /(?:account no|a\/c no|ac number|account number|a\/c|acc)[:\s]*(\d{9,18})\b/i,
+          /\b(\d{9,18})\b/
+        ],
+        ifsc: [
+          /\b([A-Z]{4}[A-Z0-9]{7})\b/i
+        ],
+        bank_name: [
+          /(state bank of india|sbi|hdfc|icici|punjab national bank|pnb|axis bank|canara bank)/i,
+          /(bank of [A-Za-z]+)/i,
+          /([A-Za-z]{3,20} Bank)/i
+        ]
+      },
+      resume: {
+        name: [
+          /^([A-Z][a-z]+(?: [A-Z][a-z]+){1,3})$/m
+        ],
+        email: [
+          /\b([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})\b/
+        ],
+        phone: [
+          /(?:\+91[-\s]?|0)?([6-9]\d{9})\b/
+        ],
+        college: [
+          /(?:University|College|Institute)[:\s]+([A-Za-z\s.]{5,50})/i,
+          /([A-Za-z\s.]{5,50} (?:University|College|Institute|Academy))/i
+        ],
+        degree: [
+          /(B\.?Tech|B\.?E|M\.?Tech|M\.?E|B\.?Sc|M\.?Sc|B\.?A|M\.?A|B\.?Com|M\.?Com|MBA|PhD|Doctor of Philosophy|Bachelor of [A-Za-z\s]+|Master of [A-Za-z\s]+)/i
+        ],
+        grad_year: [
+          /(?:grad year|gradyear|year of passing|passing year|grad date|completed in)[:\s]+(20\d{2})\b/i,
+          /\b(20\d{2})\b/
+        ]
+      },
+      dl: {
+        name: [
+          /(?:Name|NAME)[:\s]+([A-Za-z\s.]{4,50})/i
+        ],
+        dob: [
+          /(?:DOB|Date of Birth|जन्म तिथि)[:\s]+(\d{2}[\/\-]\d{2}[\/\-]\d{4})/i,
+          /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/
+        ],
+        dl: [
+          /\b([A-Z]{2}[-\s]?\d{2}[-\s]?(?:19|20)\d{2}[-\s]?\d{7})\b/i
+        ],
+        address: [
+          /(?:Address|Add)[:\s]+([\s\S]{10,200}?)(?=\n\n|\n[A-Z]{3,}|$)/i
+        ]
+      },
+      passport: {
+        passport_number: [
+          /\b([A-Z]\d{7})\b/i
+        ],
+        expiry_date: [
+          /(?:date of expiry|expiry date|valid upto)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i,
+          /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/
+        ],
+        nationality: [
+          /nationality[:\s]+([A-Za-z]{3,20})/i,
+          /\b(INDIAN)\b/i
+        ],
+        name: [
+          /(?:Given Names|Given Name|Name)[:\s]+([A-Za-z\s.]{3,30})/i
+        ],
+        dob: [
+          /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/
+        ]
+      }
+    };
+
+    // PART 2 — Smart extraction function
+    function extractFromOCR(ocrText, documentType) {
+      const rules = OCR_EXTRACT_RULES[documentType];
+      if (!rules || rules.skip) return {};
+
+      const extracted = {};
+      for (const [field, patterns] of Object.entries(rules)) {
+        for (const pattern of patterns) {
+          const match = ocrText.match(pattern);
+          if (match && match[1]) {
+            extracted[field] = match[1].trim()
+              .replace(/\s+/g, ' ')
+              .replace(/[^\w\s\-\.\/,@]/g, '');
+            break;
+          }
+        }
+      }
+
+      // Post-processing
+      if (extracted.name) {
+        // Remove common false positives
+        const falsePositives = ['GOVERNMENT', 'INDIA', 'BOARD', 'SCHOOL', 'COLLEGE', 'UNIVERSITY', 'DEPARTMENT'];
+        if (falsePositives.some(fp => extracted.name.toUpperCase().includes(fp))) {
+          delete extracted.name;
+        }
+      }
+
+      if (extracted.percentage) {
+        // Clean percentage
+        extracted.percentage = extracted.percentage.replace(/[^\d.]/g, '');
+      }
+
+      if (extracted.marks_obtained && extracted.max_marks) {
+        // Auto-calculate percentage if not found
+        if (!extracted.percentage) {
+          extracted.percentage = ((extracted.marks_obtained / extracted.max_marks) * 100).toFixed(2);
+        }
+      }
+
+      // Extract details from address
+      if (extracted.address) {
+        // Extract pincode (6-digit number)
+        const pinMatch = extracted.address.match(/\b([1-9]\d{5})\b/);
+        if (pinMatch) {
+          extracted.pincode = pinMatch[1];
+        }
+
+        // Extract state
+        const states = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Andaman and Nicobar", "Chandigarh", "Dadra and Nagar Haveli", "Daman and Diu", "Delhi", "Lakshadweep", "Puducherry"];
+        const upperAddr = extracted.address.toUpperCase();
+        for (const s of states) {
+          if (upperAddr.includes(s.toUpperCase())) {
+            extracted.state = s;
+            break;
+          }
+        }
+
+        // Clean address text of state & pincode to extract city
+        let cleanAddr = extracted.address;
+        if (extracted.pincode) cleanAddr = cleanAddr.replace(extracted.pincode, "");
+        if (extracted.state) cleanAddr = cleanAddr.replace(new RegExp(extracted.state, "gi"), "");
+        
+        const parts = cleanAddr.split(",").map(p => p.trim().replace(/[^\w\s]/g, "")).filter(Boolean);
+        if (parts.length > 0) {
+          const lastPart = parts[parts.length - 1];
+          if (lastPart && lastPart.length > 2 && !/^\d+$/.test(lastPart)) {
+            const words = lastPart.split(/\s+/).filter(Boolean);
+            if (words.length > 0) {
+              const cityWord = words[words.length - 1];
+              extracted.city = cityWord.charAt(0).toUpperCase() + cityWord.slice(1).toLowerCase();
+            }
+          }
+        }
+      }
+
+      console.log(`OCR extracted from ${documentType}:`, extracted);
+      return extracted;
+    }
+
+    // PART 3 — Profile field mapping (OCR result → Profile fields)
+    function mapOCRToProfile(ocrResult, documentType, existingProfile) {
+      const profile = { ...existingProfile };
+
+      // Conflict resolution — already existing data ko overwrite mat karo
+      // unless specifically yeh document type us field ka primary source hai
+
+      const PRIMARY_SOURCE = {
+        name:        ['aadhaar', 'pan_card', 'marksheet_10', 'marksheet_12', 'resume', 'dl', 'passport'],
+        dob:         ['aadhaar', 'pan_card', 'dl', 'passport'],
+        father_name: ['aadhaar', 'pan_card', 'marksheet_10'],
+        mother_name: ['marksheet_10', 'marksheet_12'],
+        aadhaar:     ['aadhaar'],
+        pan:         ['pan_card'],
+        marks_10:    ['marksheet_10'],
+        marks_12:    ['marksheet_12'],
+        board_10:    ['marksheet_10'],
+        board_12:    ['marksheet_12'],
+        roll_10:     ['marksheet_10'],
+        roll_12:     ['marksheet_12'],
+        school:      ['marksheet_10'],
+        college:     ['marksheet_12', 'resume'],
+        caste:       ['caste_certificate'],
+        income:      ['income_certificate'],
+        stream:      ['marksheet_12'],
+        pincode:     ['aadhaar', 'dl', 'resume'],
+        city:        ['aadhaar', 'dl', 'resume'],
+        state:       ['aadhaar', 'dl', 'resume'],
+        address:     ['aadhaar', 'dl', 'resume'],
+        bank_name:   ['bank_passbook'],
+        account_no:  ['bank_passbook'],
+        ifsc:        ['bank_passbook'],
+        degree:      ['resume'],
+        grad_year:   ['resume']
+      };
+
+      for (const [ocrField, value] of Object.entries(ocrResult)) {
+        // Map OCR field names to profile field names
+        const fieldMap = {
+          student_name:    'name',
+          marks_obtained:  documentType === 'marksheet_10' ? 'marks_10' : 'marks_12',
+          max_marks:       documentType === 'marksheet_10' ? 'max_marks_10' : 'max_marks_12',
+          percentage:      documentType === 'marksheet_10' ? 'marks_10' : 'marks_12',
+          board:           documentType === 'marksheet_10' ? 'board_10' : 'board_12',
+          roll_number:     documentType === 'marksheet_10' ? 'roll_10' : 'roll_12',
+          passing_year:    documentType === 'marksheet_10' ? 'year_10' : 'year_12',
+          school_name:     documentType === 'marksheet_10' ? 'school' : 'college',
+          pan_number:      'pan',
+          aadhaar_number:  'aadhaar',
+          annual_income:   'income',
+          dl_number:       'dl',
+          passport_number: 'dl'
+        };
+
+        const profileField = fieldMap[ocrField] || ocrField;
+
+        // Only update if this document is primary source for this field
+        const primarySources = PRIMARY_SOURCE[profileField];
+        if (!primarySources || primarySources.includes(documentType)) {
+          if (value && value.length > 0) {
+            profile[profileField] = value;
+          }
+        }
+      }
+
+      return profile;
+    }
+
     // ── Multi-doc upload & Parallel stateless processing ──
     async function handleUpload(files, targetDocKey = null) {
       if (!files.length) return;
@@ -3026,36 +3395,37 @@
             };
             reader.readAsDataURL(file);
 
-            // Merge parsed fields with cross-document validation
-            for (const [key, value] of Object.entries(data.fields)) {
-              if (value !== undefined && value !== null && value !== '') {
-                if (key === 'name') {
-                  // Cross-validate name: clean it client-side too
-                  const JUNK = /\b(DL|PHOTO|PHOTOGRAPH|SIGNATURE|SIGN|THUMB|IMPRESSION|SPECIMEN|HOLDER|CARD|FRONT|BACK|AADHAAR|AADHAR|PAN|INCOME|TAX|DEPARTMENT|GOVERNMENT|INDIA|UNION|REPUBLIC|DRIVING|LICENSE|LICENCE|TRANSPORT|AUTHORITY|PASSPORT|UIDAI|UNIQUE|IDENTIFICATION|PERMANENT|ACCOUNT|NUMBER|VALID|VALIDITY|ISSUE|ISSUED|DATE|EXPIRY|CLASS|COV|MCWG|LMV|HMV|BADGE|BLOOD|GROUP|ADDRESS|STATE|COUNTRY|DISTRICT|MALE|FEMALE|DOB|BIRTH|FATHER|MOTHER|HUSBAND|WIFE|GUARDIAN|S\/O|D\/O|W\/O|C\/O|SON|DAUGHTER)\b/gi;
-                  let cleanedName = value.replace(JUNK, '').replace(/[^A-Za-z\s.'\-]/g, '').replace(/\s{2,}/g, ' ').trim();
-                  if (cleanedName.replace(/[\s.]/g, '').length < 3) continue; // skip garbage name
-                  
-                  const existingName = sessionData[key];
-                  if (existingName) {
-                    // If existing name is a subset of or same length as new name, keep the shorter cleaner one
-                    const existClean = existingName.replace(/\s+/g, '').toLowerCase();
-                    const newClean = cleanedName.replace(/\s+/g, '').toLowerCase();
-                    // Keep existing if it's already clean and shorter or same
-                    if (existClean.length <= newClean.length && newClean.includes(existClean)) {
-                      continue; // existing name is cleaner, skip
-                    }
-                    // Keep new if it's a cleaner subset
-                    if (newClean.length < existClean.length && existClean.includes(newClean)) {
-                      sessionData[key] = cleanedName;
-                      continue;
-                    }
-                  }
-                  sessionData[key] = cleanedName;
-                } else {
-                  sessionData[key] = value;
-                }
+            // Determine specific document type for client-side rules matching
+            let localDocType = mappedType;
+            if (localDocType === 'pan') {
+              localDocType = 'pan_card';
+            }
+            if (localDocType === 'certificate') {
+              const textUpper = (data.text || "").toUpperCase();
+              if (textUpper.includes('INCOME') || textUpper.includes('YEARLY INCOME') || textUpper.includes('ANNUAL INCOME')) {
+                localDocType = 'income_certificate';
+              } else if (textUpper.includes('CASTE') || textUpper.includes('COMMUNITY') || textUpper.includes('JAATI') || textUpper.includes('जाति')) {
+                localDocType = 'caste_certificate';
+              }
+            } else if (localDocType.startsWith('custom_')) {
+              const customDocs = sessionData.customDocs || [];
+              const doc = customDocs.find(d => d.key === localDocType);
+              if (doc) {
+                const labelLower = doc.label.toLowerCase();
+                if (labelLower.includes('caste')) localDocType = 'caste_certificate';
+                else if (labelLower.includes('income')) localDocType = 'income_certificate';
               }
             }
+
+            // Client-side rule-wise OCR smart extraction and profile mapping
+            let ocrResult = {};
+            if (OCR_EXTRACT_RULES[localDocType]) {
+              ocrResult = extractFromOCR(data.text || "", localDocType);
+            } else {
+              ocrResult = data.fields || {};
+            }
+
+            sessionData = mapOCRToProfile(ocrResult, localDocType, sessionData);
           } else {
             document.getElementById('ocr-result').textContent += `[Error: ${file.name}]: ${data.error || 'Failed to process.'}\n`;
           }
