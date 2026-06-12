@@ -7,19 +7,17 @@
 // =============================================================
 
 async function getDecryptedSession() {
-  // Query all localhost and 127.0.0.1 tabs (ports are not supported in query patterns in MV3)
-  const tabs = await chrome.tabs.query({ 
-    url: [
-      "*://localhost/*",
-      "*://127.0.0.1/*"
-    ] 
-  });
+  // Query all tabs to avoid port matching issues with query filters
+  const tabs = await chrome.tabs.query({});
   
-  // Filter for ports 3000 and 4000
+  // Filter for localhost/127.0.0.1 and ports 3000/4000
   const validTabs = tabs.filter(tab => {
     try {
+      if (!tab.url) return false;
       const parsedUrl = new URL(tab.url);
-      return parsedUrl.port === "3000" || parsedUrl.port === "4000";
+      const isLocal = parsedUrl.hostname === "localhost" || parsedUrl.hostname === "127.0.0.1";
+      const isPort = parsedUrl.port === "3000" || parsedUrl.port === "4000";
+      return isLocal && isPort;
     } catch (e) {
       return false;
     }
@@ -44,17 +42,16 @@ async function getDecryptedSession() {
 }
 
 async function getDashboardTab() {
-  const tabs = await chrome.tabs.query({ 
-    url: [
-      "*://localhost/*",
-      "*://127.0.0.1/*"
-    ] 
-  });
+  // Query all tabs to avoid port matching issues with query filters
+  const tabs = await chrome.tabs.query({});
   
   const validTabs = tabs.filter(tab => {
     try {
+      if (!tab.url) return false;
       const parsedUrl = new URL(tab.url);
-      return parsedUrl.port === "3000" || parsedUrl.port === "4000";
+      const isLocal = parsedUrl.hostname === "localhost" || parsedUrl.hostname === "127.0.0.1";
+      const isPort = parsedUrl.port === "3000" || parsedUrl.port === "4000";
+      return isLocal && isPort;
     } catch (e) {
       return false;
     }
@@ -198,385 +195,207 @@ async function handleMessage(message, sender) {
 function fillFormPageDirect(profile) {
   if (!profile) return 0;
 
-  const fieldMap = [
-    { 
-      key: 'name',          
-      hints: ['name', 'fullname', 'full_name', 'applicant', 'candidate'],
-      exclude: ['father', 'mother', 'parent', 'guardian', 'nominee', 'college', 'school', 'institute', 'university', 'bank', 'branch', 'file', 'doc', 'caste', 'category', 'husband', 'wife', 'spouse', 'sign'] 
-    },
-    { 
-      key: 'father_name',   
-      hints: ['father', 'father_name', 'fathers_name', 'father name', 'fathers name', 'father\'s name'],
-      exclude: [] 
-    },
-    { 
-      key: 'mother_name',   
-      hints: ['mother', 'mother_name', 'mothers_name', 'mother name', 'mothers name', 'mother\'s name'],
-      exclude: [] 
-    },
-    { 
-      key: 'dob',           
-      hints: ['dob', 'birth', 'dateofbirth', 'date_of_birth', 'born'],
-      exclude: ['place', 'city', 'state', 'country'] 
-    },
-    { 
-      key: 'gender',        
-      hints: ['gender', 'sex', 'gender_type'],
-      exclude: [] 
-    },
-    { 
-      key: 'caste',         
-      hints: ['caste', 'category', 'social_status', 'community', 'reservation'],
-      exclude: ['subcaste', 'sub-caste'] 
-    },
-    { 
-      key: 'nationality',   
-      hints: ['nationality', 'citizenship', 'citizen'],
-      exclude: [] 
-    },
-    { 
-      key: 'religion',      
-      hints: ['religion', 'faith'],
-      exclude: [] 
-    },
-    { 
-      key: 'blood_group',   
-      hints: ['blood', 'bloodgroup', 'blood_group', 'bg'],
-      exclude: [] 
-    },
-    { 
-      key: 'marital_status',
-      hints: ['marital', 'marriage', 'married', 'marital_status'],
-      exclude: [] 
-    },
-    { 
-      key: 'allergies',     
-      hints: ['allergies', 'allergy', 'medical_conditions', 'pre_existing_conditions', 'medical_history'],
-      exclude: [] 
-    },
-    { 
-      key: 'phone',         
-      hints: ['phone', 'mobile', 'contact', 'cell', 'telephone'],
-      exclude: ['email', 'fax', 'aadhaar', 'aadhar', 'pan', 'card', 'account', 'roll', 'license', 'pincode', 'pin', 'zip', 'pf', 'uan', 'alt', 'alternate', 'emergency'] 
-    },
-    { 
-      key: 'alt_phone',     
-      hints: ['alt_phone', 'altphone', 'alternate', 'emergency_contact', 'alt_mobile', 'emergency phone', 'emergency mobile'],
-      exclude: ['email'] 
-    },
-    { 
-      key: 'emergency_contact_name', 
-      hints: ['emergency_contact_name', 'emergency contact name', 'emergency_name', 'contact_person'],
-      exclude: [] 
-    },
-    { 
-      key: 'email',         
-      hints: ['email', 'mail', 'emailid', 'e-mail'],
-      exclude: ['alternate', 'alt', 'recovery'] 
-    },
-    { 
-      key: 'address',       
-      hints: ['address', 'addr', 'residence', 'location', 'permanent_address', 'corr_address', 'correspondence'],
-      exclude: ['email', 'city', 'state', 'pincode', 'pin', 'zip', 'ip'] 
-    },
-    { 
-      key: 'city',          
-      hints: ['city', 'town', 'district', 'tehsil'],
-      exclude: ['state', 'country', 'pincode', 'pin', 'zip'] 
-    },
-    { 
-      key: 'state',         
-      hints: ['state', 'province', 'region'],
-      exclude: ['city', 'town', 'country', 'pincode', 'pin', 'zip'] 
-    },
-    { 
-      key: 'pincode',       
-      hints: ['pincode', 'pin', 'zip', 'postal', 'zipcode'],
-      exclude: ['personal', 'pan', 'card'] 
-    },
-    { 
-      key: 'roll_10',       
-      hints: ['roll_10', 'roll10', 'class_10_roll', 'ssc_roll', 'roll_no_10', 'matric_roll', '10th roll'],
-      exclude: ['12', '12th', 'hsc', 'grad', 'college', 'univ'] 
-    },
-    { 
-      key: 'board_10',      
-      hints: ['board_10', 'board10', 'ssc_board', 'class_10_board', 'matric_board', '10th board'],
-      exclude: ['12', '12th', 'hsc', 'grad', 'college', 'univ'] 
-    },
-    { 
-      key: 'marks_10',      
-      hints: ['marks_10', 'marks10', 'ssc_marks', 'class_10_marks', 'ssc_percent', 'matric_percent', 'percentage_10', '10th percent', '10th marks'],
-      exclude: ['12', '12th', 'hsc', 'grad', 'college', 'univ'] 
-    },
-    { 
-      key: 'roll_12',       
-      hints: ['roll_12', 'roll12', 'class_12_roll', 'hsc_roll', 'roll_no_12', 'inter_roll', '12th roll'],
-      exclude: ['10', '10th', 'ssc', 'matric', 'grad', 'college', 'univ'] 
-    },
-    { 
-      key: 'board_12',      
-      hints: ['board_12', 'board12', 'hsc_board', 'class_12_board', 'inter_board', '12th board'],
-      exclude: ['10', '10th', 'ssc', 'matric', 'grad', 'college', 'univ'] 
-    },
-    { 
-      key: 'marks_12',      
-      hints: ['marks_12', 'marks12', 'hsc_marks', 'class_12_marks', 'hsc_percent', 'inter_percent', 'percentage_12', '12th percent', '12th marks'],
-      exclude: ['10', '10th', 'ssc', 'matric', 'grad', 'college', 'univ'] 
-    },
-    { 
-      key: 'college',       
-      hints: ['college', 'institute', 'university', 'school', 'inst_name'],
-      exclude: ['10th', 'ssc', 'matric', '12th', 'hsc', 'intermediate'] 
-    },
-    { 
-      key: 'degree',        
-      hints: ['degree', 'course', 'qualification', 'program', 'stream', 'graduation'],
-      exclude: ['10th', '12th'] 
-    },
-    { 
-      key: 'grad_year',     
-      hints: ['grad_year', 'gradyear', 'year_of_passing', 'passing_year', 'grad_date'],
-      exclude: ['10th', '12th'] 
-    },
-    { 
-      key: 'aadhaar',       
-      hints: ['aadhaar', 'aadhar', 'uid', 'uidai'],
-      exclude: ['pan', 'dl', 'passport'] 
-    },
-    { 
-      key: 'pan',           
-      hints: ['pan', 'panno', 'pan_number', 'permanent_account'],
-      exclude: ['aadhar', 'aadhaar', 'dl', 'passport'] 
-    },
-    { 
-      key: 'dl',            
-      hints: ['driving', 'licence', 'license', 'dl'],
-      exclude: ['aadhar', 'aadhaar', 'pan', 'passport'] 
-    },
-    { 
-      key: 'bank_name',     
-      hints: ['bank_name', 'bankname', 'bank_title', 'bankname'],
-      exclude: ['holder', 'account'] 
-    },
-    { 
-      key: 'account_no',    
-      hints: ['account_no', 'accountno', 'account_number', 'acc_no', 'ac_no', 'ac_num', 'bank_account'],
-      exclude: ['ifsc', 'branch', 'aadhaar', 'pan'] 
-    },
-    { 
-      key: 'ifsc',          
-      hints: ['ifsc', 'ifsccode', 'ifsc_code', 'bank_ifsc'],
-      exclude: ['account'] 
-    },
-    { 
-      key: 'insurance_policy', 
-      hints: ['insurance_policy', 'insurance_no', 'policy_no', 'insurance_number', 'policy_number', 'health_insurance'],
-      exclude: [] 
-    }
-  ];
-
-  if (profile.customFields && profile.customFields.length > 0) {
-    profile.customFields.forEach(custom => {
-      fieldMap.push({
-        key: custom.key,
-        hints: [custom.label.toLowerCase(), custom.key.toLowerCase()],
-        exclude: []
-      });
-    });
-  }
-
-  let filled = 0;
-
-  // 1. Process standard input, textarea, and select elements (explicitly excluding type=file)
-  const textInputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]):not([type=file]), textarea, select');
-  
-  textInputs.forEach(input => {
-    // Collect direct attributes
-    const hintAttr = (
-      (input.name || '') + ' ' +
-      (input.id || '') + ' ' +
-      (input.placeholder || '') + ' ' +
-      (input.getAttribute('aria-label') || '') + ' ' +
-      (input.getAttribute('placeholder') || '')
-    ).toLowerCase();
-
-    let labelText = '';
-
-    // A. Check aria-labelledby (Crucial for Google Forms)
-    const ariaLabelledby = input.getAttribute('aria-labelledby');
+  // 1. Define internal helpers
+  function getLabelText(el) {
+    if (!el) return "";
+    let text = "";
+    text += (el.name || "") + " " + (el.id || "") + " " + (el.placeholder || "") + " " + (el.getAttribute("aria-label") || "") + " ";
+    const ariaLabelledby = el.getAttribute("aria-labelledby");
     if (ariaLabelledby) {
       ariaLabelledby.split(/\s+/).forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.textContent) {
-          labelText += ' ' + el.textContent;
+        const target = document.getElementById(id);
+        if (target && target.textContent) {
+          text += " " + target.textContent;
         }
       });
     }
-
-    // B. Check standard labels
-    if (input.id) {
-      const label = document.querySelector(`label[for="${input.id}"]`);
-      if (label && label.textContent) labelText += ' ' + label.textContent;
+    if (el.id) {
+      const label = document.querySelector(`label[for="${el.id}"]`);
+      if (label && label.textContent) text += " " + label.textContent;
     }
-    const parentLabel = input.closest('label');
-    if (parentLabel && parentLabel.textContent) labelText += ' ' + parentLabel.textContent;
+    const parentLabel = el.closest('label');
+    if (parentLabel && parentLabel.textContent) text += " " + parentLabel.textContent;
 
-    // C. Parent Traversal with Bleeding Prevention
-    let parent = input.parentElement;
+    let parent = el.parentElement;
     for (let i = 0; i < 6 && parent; i++) {
       if (parent.tagName === 'FORM' || parent.tagName === 'BODY') break;
-      
-      // If parent element has other text/number fields, stop to avoid matching siblings
       const siblingInputs = parent.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]):not([type=file]), textarea, select');
       if (siblingInputs.length > 1) break;
-
       if (parent.textContent) {
-        labelText += ' ' + parent.textContent;
+        text += " " + parent.textContent;
       }
       parent = parent.parentElement;
     }
-
-    let combinedHint = (hintAttr + labelText).toLowerCase().replace(/\s+/g, ' ');
-
-    // D. Google Forms date-input fallback: the parent traversal bleeding prevention
-    //    may block reaching the question heading. Do a targeted search.
-    if (input.type === 'date' && !/\b(dob|birth|born)\b/i.test(combinedHint)) {
-      const questionCard = input.closest('[role="listitem"], [data-params], .Qr7Oae, .freebirdFormviewItemStandardcontainer, .geS5n, fieldset');
-      if (questionCard) {
-        const headingEl = questionCard.querySelector('[role="heading"], .Ho3o3e, .z12as, .vR13fe, .M7eMe');
-        if (headingEl) {
-          combinedHint += ' ' + headingEl.textContent.toLowerCase();
-        }
-      }
-      if (!/\b(dob|birth|born)\b/i.test(combinedHint)) {
-        let ancestor = input.parentElement;
-        for (let d = 0; ancestor && d < 8; d++) {
-          if (ancestor.tagName === 'FORM' || ancestor.tagName === 'BODY') break;
-          const txt = (ancestor.textContent || '').toLowerCase();
-          if (txt.length < 300 && /\b(birth|dob)\b/.test(txt)) {
-            combinedHint += ' ' + txt;
-            break;
-          }
-          ancestor = ancestor.parentElement;
-        }
-      }
-    }
-
-    console.log("[FormSarthi Debug] Text Element:", input, "Combined Hint:", combinedHint);
-
-    for (const field of fieldMap) {
-      const value = profile[field.key];
-      if (!value) continue;
-
-      // Skip match if exclusion pattern triggers
-      if (field.exclude && field.exclude.some(ex => combinedHint.includes(ex))) {
-        continue;
-      }
-
-      const matched = field.hints.some(h => combinedHint.includes(h));
-      if (matched) {
-        console.log(`[FormSarthi Match] Text Field: ${field.key} -> Value: ${value}`);
-        
-        if (input.tagName === 'SELECT') {
-          const option = Array.from(input.options).find(opt => 
-            opt.value.toLowerCase() === value.toLowerCase() || 
-            opt.text.toLowerCase().includes(value.toLowerCase())
-          );
-          if (option) {
-            input.value = option.value;
-            input.dispatchEvent(new Event('change', { bubbles: true }));
-            filled++;
-          }
-        } else {
-          let finalVal = value;
-          if (input.type === 'date') {
-            finalVal = formatDateForInput(value);
-          }
-          // Use native setter for frameworks that override .value
-          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-          if (nativeSetter) {
-            nativeSetter.call(input, finalVal);
-          } else {
-            input.value = finalVal;
-          }
-          input.dispatchEvent(new Event('input',  { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-          input.dispatchEvent(new Event('focus',  { bubbles: true }));
-          input.dispatchEvent(new Event('blur',   { bubbles: true }));
-          filled++;
-        }
-        break;
-      }
-    }
-  });
-
-  // 1b. Single-date-input fallback
-  if (profile.dob) {
-    const allDateInputs = document.querySelectorAll('input[type="date"]');
-    if (allDateInputs.length === 1 && !allDateInputs[0].value) {
-      const dateInput = allDateInputs[0];
-      const formattedDate = formatDateForInput(profile.dob);
-      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-      if (nativeSetter) {
-        nativeSetter.call(dateInput, formattedDate);
-      } else {
-        dateInput.value = formattedDate;
-      }
-      dateInput.dispatchEvent(new Event('input',  { bubbles: true }));
-      dateInput.dispatchEvent(new Event('change', { bubbles: true }));
-      dateInput.dispatchEvent(new Event('focus',  { bubbles: true }));
-      dateInput.dispatchEvent(new Event('blur',   { bubbles: true }));
-      filled++;
-    }
+    return text.trim();
   }
 
-  // 2. Process Radio Button Groups (Google Forms role="radio" and standard input[type=radio])
-  const radioButtons = document.querySelectorAll('[role="radio"], input[type="radio"]');
-  radioButtons.forEach(radio => {
-    // Find the closest question block/card to match field hints
-    const questionCard = radio.closest('[role="listitem"], .Qr7Oae, .form-group');
-    if (!questionCard) return;
+  function matchFieldToProfile(labelText, profile) {
+    const t = labelText.toLowerCase().trim()
+      .replace(/[*:]/g, '')  // asterisk aur colon hatao
+      .trim();
 
-    let questionText = '';
-    // Look for heading or title inside the card
-    const headingEl = questionCard.querySelector('[role="heading"], .Ho3o3e, .z12as, .vR13fe, label');
-    if (headingEl) {
-      questionText = headingEl.textContent;
-    } else {
-      questionText = questionCard.textContent || '';
+    // ── RELATIONSHIP FIELDS — PEHLE CHECK KARO ──
+    if (t.includes("father")) return profile.father_name || '';
+    if (t.includes("mother")) return profile.mother_name || '';
+    if (t.includes("guardian") || t.includes("parent/guardian")) return profile.guardian_name || profile.father_name || '';
+    if (t.includes("husband")) return profile.husband_name || '';
+
+    // ── DOB ──
+    if (t.includes("date of birth") || t === "dob" || t.includes("d.o.b") || t.includes("birth date") || t.includes("जन्म तिथि")) return profile.dob || '';
+
+    // ── GENDER ──
+    if (t === "gender" || t === "sex" || t.includes("gender of")) return profile.gender || '';
+
+    // ── CASTE / CATEGORY ──
+    if (t.includes("caste") || t.includes("category") || t.includes("social category") || t.includes("जाति")) return profile.caste || '';
+
+    // ── MARITAL STATUS ──
+    if (t.includes("marital") || t.includes("marriage") || t.includes("married")) return profile.marital_status || '';
+
+    // ── ALLERGIES ──
+    if (t.includes("allergy") || t.includes("allergies") || t.includes("medical condition") || t.includes("medical history")) return profile.allergies || '';
+
+    // ── CANDIDATE NAME — ONLY after ruling out all above ──
+    if (t === "name" || t === "full name" || t.includes("student name") ||
+        t.includes("candidate name") || t.includes("applicant name") ||
+        t.includes("your name") || t.includes("name of student") ||
+        t.includes("name of applicant") || t.includes("नाम")) return profile.name || '';
+
+    // ── CONTACT ──
+    if (t.includes("emergency contact name") || t.includes("emergency name") || t.includes("contact person") || t.includes("emergency_contact_name")) return profile.emergency_contact_name || '';
+    if (t.includes("alternate") && (t.includes("mobile") || t.includes("phone") || t.includes("contact"))) return profile.alt_phone || '';
+    if (t.includes("mobile") || t.includes("phone") || t.includes("contact no") || t.includes("cell")) return profile.phone || '';
+    if (t.includes("whatsapp")) return profile.phone || '';
+    if (t.includes("email") || t.includes("e-mail") || t.includes("ईमेल")) return profile.email || '';
+
+    // ── ADDRESS ──
+    if (t.includes("pincode") || t.includes("pin code") || t.includes("postal code") || t.includes("zip")) return profile.pincode || '';
+    if (t.includes("district") || (t.includes("city") && !t.includes("address"))) return profile.city || '';
+    if (t === "state" || t.includes("state/ut") || t.includes("राज्य")) return profile.state || '';
+    if (t.includes("address") || t.includes("पता") || t.includes("residence")) return profile.address || '';
+    if (t.includes("country")) return profile.country || 'India';
+
+    // ── 10TH MARKS ──
+    if (t.includes("10th") || t.includes("class x") || t.includes("ssc") || t.includes("matriculation") || t.includes("class 10")) {
+      if (t.includes("roll")) return profile.roll_10 || '';
+      if (t.includes("board")) return profile.board_10 || '';
+      if (t.includes("school")) return profile.school || '';
+      if (t.includes("year") || t.includes("passing")) return profile.year_10 || '';
+      if (t.includes("max") || t.includes("total mark")) return profile.max_marks_10 || '';
+      if (t.includes("mark") || t.includes("percent") || t.includes("score") || t.includes("%")) return profile.percentage_10 || profile.marks_10 || '';
+      return profile.marks_10 || '';
     }
 
-    // Get the radio option label
-    const optionText = (radio.getAttribute('aria-label') || radio.getAttribute('value') || radio.textContent || '').trim().toLowerCase();
-    const cleanQuestion = questionText.toLowerCase().replace(/\s+/g, ' ');
+    // ── 12TH MARKS ──
+    if (t.includes("12th") || t.includes("class xii") || t.includes("hsc") || t.includes("intermediate") || t.includes("class 12")) {
+      if (t.includes("roll")) return profile.roll_12 || '';
+      if (t.includes("board")) return profile.board_12 || '';
+      if (t.includes("college") || t.includes("school")) return profile.college || '';
+      if (t.includes("year") || t.includes("passing")) return profile.year_12 || '';
+      if (t.includes("stream") || t.includes("subject")) return profile.stream || '';
+      if (t.includes("mark") || t.includes("percent") || t.includes("score") || t.includes("%")) return profile.percentage_12 || profile.marks_12 || '';
+      return profile.marks_12 || '';
+    }
 
-    for (const field of fieldMap) {
-      const value = profile[field.key];
-      if (!value) continue;
+    // ── COLLEGE / SCHOOL NAME ──
+    if (t.includes("college name") || t.includes("name of college") || t.includes("institution")) return profile.college || '';
+    if (t.includes("school name") || t.includes("name of school")) return profile.school || '';
+    if (t.includes("university")) return profile.university || profile.college || '';
 
-      // Skip match if exclusion pattern triggers
-      if (field.exclude && field.exclude.some(ex => cleanQuestion.includes(ex))) {
-        continue;
-      }
+    // ── DEGREE / COURSE / GRADUATION YEAR ──
+    if (t.includes("graduation year") || t.includes("passing year") || t.includes("year of passing") || t.includes("grad_year") || t.includes("grad year") || (t.includes("year") && t.includes("degree"))) return profile.grad_year || '';
+    if (t.includes("degree") || t.includes("course") || t.includes("program")) return profile.degree || '';
+    if (t.includes("stream") || t.includes("branch") || t.includes("specialization")) return profile.stream || '';
+    if (t.includes("semester") || t.includes("year of study")) return profile.semester || '';
 
-      const matched = field.hints.some(h => cleanQuestion.includes(h));
-      if (matched) {
-        // Check if this option corresponds to the profile value (e.g. profile gender is "Male" and option is "male")
-        if (optionText === value.toLowerCase() || optionText.includes(value.toLowerCase()) || value.toLowerCase().includes(optionText)) {
-          console.log(`[FormSarthi Match] Radio Group matched: ${field.key} -> Option: ${optionText}`);
-          if (radio.getAttribute('aria-checked') !== 'true' && !radio.checked) {
-            radio.click();
-            radio.dispatchEvent(new Event('change', { bubbles: true }));
-            filled++;
+    // ── IDENTITY ──
+    if (t.includes("aadhaar") || t.includes("aadhar") || t.includes("uid")) return profile.aadhaar || '';
+    if (t.includes("pan card") || t.includes("pan no") || t.includes("permanent account")) return profile.pan || '';
+    if (t.includes("voter") || t.includes("epic")) return profile.voter_id || '';
+
+    // ── BANK ──
+    if (t.includes("ifsc")) return profile.ifsc || '';
+    if (t.includes("account number") || t.includes("account no") || t.includes("a/c")) return profile.account_no || '';
+    if (t.includes("bank name") || t.includes("name of bank")) return profile.bank_name || '';
+
+    // ── INSURANCE ──
+    if (t.includes("insurance") || t.includes("policy no") || t.includes("policy number")) return profile.insurance_policy || '';
+
+    // ── OTHER ──
+    if (t.includes("nationality")) return profile.nationality || 'Indian';
+    if (t.includes("religion")) return profile.religion || '';
+    if (t.includes("blood group") || t.includes("blood type")) return profile.blood_group || '';
+    if (t.includes("income") || t.includes("annual income")) return profile.income || '';
+    if (t.includes("domicile") || t.includes("bonafide")) return profile.domicile_state || profile.state || '';
+
+    return null;
+  }
+
+  function fillSelectAndRadio(profile) {
+    let subFilled = 0;
+
+    // Dropdowns (select elements)
+    document.querySelectorAll('select').forEach(select => {
+      const label = getLabelText(select);
+      const value = matchFieldToProfile(label, profile);
+      if (!value) return;
+
+      // Option dhundho jo match kare
+      Array.from(select.options).forEach(option => {
+        if (option.text.toLowerCase().includes(value.toLowerCase()) ||
+            value.toLowerCase().includes(option.text.toLowerCase())) {
+          if (select.value !== option.value) {
+            select.value = option.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            subFilled++;
           }
-          break;
+        }
+      });
+    });
+
+    // Radio buttons
+    document.querySelectorAll('input[type="radio"]').forEach(radio => {
+      const label = getLabelText(radio) || radio.value;
+      const fieldLabel = getLabelText(radio.closest('fieldset') || radio.closest('[role="group"]') || radio.parentElement.parentElement);
+      const profileValue = matchFieldToProfile(fieldLabel, profile);
+
+      if (profileValue && (
+        radio.value.toLowerCase() === profileValue.toLowerCase() ||
+        label.toLowerCase() === profileValue.toLowerCase() ||
+        radio.value.toLowerCase().includes(profileValue.toLowerCase())
+      )) {
+        if (!radio.checked) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change', { bubbles: true }));
+          subFilled++;
         }
       }
-    }
-  });
+    });
 
-  // Helper date formatter scoped inside fillFormPageDirect (for browser tab execution scope)
+    // Google Forms specific radio (span buttons)
+    document.querySelectorAll('[role="radio"]').forEach(radioBtn => {
+      const radioText = radioBtn.getAttribute('data-value') || radioBtn.innerText?.trim();
+      const questionDiv = radioBtn.closest('[role="listitem"]');
+      if (!questionDiv) return;
+
+      const heading = questionDiv.querySelector('[role="heading"]');
+      if (!heading) return;
+
+      const fieldLabel = heading.innerText.trim();
+      const profileValue = matchFieldToProfile(fieldLabel, profile);
+
+      if (profileValue && radioText &&
+          radioText.toLowerCase().includes(profileValue.toLowerCase())) {
+        if (radioBtn.getAttribute('aria-checked') !== 'true') {
+          radioBtn.click();
+          subFilled++;
+        }
+      }
+    });
+
+    return subFilled;
+  }
+
   function formatDateForInput(dateStr) {
     if (!dateStr) return "";
     let cleanStr = dateStr.trim().replace(/[\s\.\-]+/g, '/');
@@ -601,6 +420,105 @@ function fillFormPageDirect(profile) {
     } catch (e) {}
     return dateStr;
   }
+
+  // 2. Perform Form Filling
+  let filled = 0;
+  const textInputs = document.querySelectorAll('input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=radio]):not([type=checkbox]):not([type=file]), textarea');
+  
+  textInputs.forEach(input => {
+    const typeStr = (input.type || '').toLowerCase();
+    const nameStr = (input.name || '').toLowerCase();
+    const idStr = (input.id || '').toLowerCase();
+    const placeholderStr = (input.placeholder || '').toLowerCase();
+    if (typeStr === 'search' || /search|query|^q$/i.test(nameStr || idStr || placeholderStr || '')) {
+      return;
+    }
+
+    const labelText = getLabelText(input);
+    let value = matchFieldToProfile(labelText, profile);
+
+    if (!value && profile.customFields && profile.customFields.length > 0) {
+      const combinedHint = labelText.toLowerCase().replace(/\s+/g, ' ');
+      for (const custom of profile.customFields) {
+        const label = custom.label.toLowerCase();
+        const key = custom.key.toLowerCase();
+        if (combinedHint.includes(label) || combinedHint.includes(key)) {
+          value = profile[custom.key];
+          if (value) break;
+        }
+      }
+    }
+
+    // Google Forms date-input fallback
+    if (!value && input.type === 'date' && profile.dob) {
+      const questionCard = input.closest('[role="listitem"], [data-params], .Qr7Oae, .freebirdFormviewItemStandardcontainer, .geS5n, fieldset');
+      let foundDobText = false;
+      if (questionCard) {
+        const txt = (questionCard.textContent || '').toLowerCase();
+        if (/\b(dob|birth|born|जन्म)\b/i.test(txt)) {
+          foundDobText = true;
+        }
+      }
+      if (!foundDobText) {
+        let ancestor = input.parentElement;
+        for (let d = 0; ancestor && d < 8; d++) {
+          if (ancestor.tagName === 'FORM' || ancestor.tagName === 'BODY') break;
+          const txt = (ancestor.textContent || '').toLowerCase();
+          if (txt.length < 300 && /\b(birth|dob|born|जन्म)\b/i.test(txt)) {
+            foundDobText = true;
+            break;
+          }
+          ancestor = ancestor.parentElement;
+        }
+      }
+      if (foundDobText) {
+        value = profile.dob;
+      }
+    }
+
+    if (value) {
+      console.log(`[FormSarthi Match] Text Field: "${labelText.substring(0, 50)}" -> Value: ${value}`);
+      let finalVal = value;
+      if (input.type === 'date') {
+        finalVal = formatDateForInput(value);
+      }
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      if (nativeSetter) {
+        nativeSetter.call(input, finalVal);
+      } else {
+        input.value = finalVal;
+      }
+      input.dispatchEvent(new Event('input',  { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new Event('focus',  { bubbles: true }));
+      input.dispatchEvent(new Event('blur',   { bubbles: true }));
+      filled++;
+    }
+  });
+
+  // 1b. Single-date-input fallback: if DOB wasn't filled and there's only one date field, fill it
+  if (profile.dob) {
+    const allDateInputs = document.querySelectorAll('input[type="date"]');
+    const emptyDateInputs = Array.from(allDateInputs).filter(inp => !inp.value);
+    if (allDateInputs.length === 1 && emptyDateInputs.length === 1) {
+      const dateInput = emptyDateInputs[0];
+      const formattedDate = formatDateForInput(profile.dob);
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      if (nativeSetter) {
+        nativeSetter.call(dateInput, formattedDate);
+      } else {
+        dateInput.value = formattedDate;
+      }
+      dateInput.dispatchEvent(new Event('input',  { bubbles: true }));
+      dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+      dateInput.dispatchEvent(new Event('focus',  { bubbles: true }));
+      dateInput.dispatchEvent(new Event('blur',   { bubbles: true }));
+      filled++;
+      console.log(`[FormSarthi Match] Single-date fallback: dob -> ${formattedDate}`);
+    }
+  }
+
+  filled += fillSelectAndRadio(profile);
 
   return filled;
 }
