@@ -29,6 +29,8 @@ const GEMINI_SCHEMA = {
       type: "OBJECT",
       properties: {
         name: { type: "STRING", description: "Full name of the individual." },
+        father_name: { type: "STRING", description: "Father's name." },
+        mother_name: { type: "STRING", description: "Mother's name." },
         dob: { type: "STRING", description: "Date of birth (DD/MM/YYYY or YYYY-MM-DD)." },
         gender: { type: "STRING", description: "Gender (Male, Female, Transgender)." },
         caste: { type: "STRING", description: "Category/Caste (General, OBC, SC, ST, EWS)." },
@@ -36,8 +38,10 @@ const GEMINI_SCHEMA = {
         religion: { type: "STRING", description: "Religion." },
         blood_group: { type: "STRING", description: "Blood group (e.g., A+, O-, B+)." },
         marital_status: { type: "STRING", description: "Marital status." },
+        allergies: { type: "STRING", description: "Allergies or medical conditions." },
         phone: { type: "STRING", description: "Primary 10-digit mobile number." },
         alt_phone: { type: "STRING", description: "Secondary mobile number." },
+        emergency_contact_name: { type: "STRING", description: "Emergency contact person's name." },
         email: { type: "STRING", description: "Email address." },
         address: { type: "STRING", description: "Complete address." },
         city: { type: "STRING", description: "City from the address." },
@@ -57,7 +61,8 @@ const GEMINI_SCHEMA = {
         dl: { type: "STRING", description: "Driving license number without spaces." },
         bank_name: { type: "STRING", description: "Bank name (e.g., State Bank of India)." },
         account_no: { type: "STRING", description: "Bank account number." },
-        ifsc: { type: "STRING", description: "11-character bank IFSC code." }
+        ifsc: { type: "STRING", description: "11-character bank IFSC code." },
+        insurance_policy: { type: "STRING", description: "Health insurance policy number." }
       },
       description: "Extracted fields. Leave field as null if not found in text."
     }
@@ -143,12 +148,12 @@ ${rawText}
 
           const result = JSON.parse(responseText.trim());
           
-          // Ensure all 30 fields are present in the response
+          // Ensure all 35 fields are present in the response
           const blueprint = {
-            name: null, dob: null, gender: null, caste: null, nationality: null, religion: null, blood_group: null, marital_status: null,
-            phone: null, alt_phone: null, email: null, address: null, city: null, state: null, pincode: null,
+            name: null, father_name: null, mother_name: null, dob: null, gender: null, caste: null, nationality: null, religion: null, blood_group: null, marital_status: null, allergies: null,
+            phone: null, alt_phone: null, emergency_contact_name: null, email: null, address: null, city: null, state: null, pincode: null,
             roll_10: null, roll_12: null, board_10: null, board_12: null, marks_10: null, marks_12: null, college: null, degree: null, grad_year: null,
-            aadhaar: null, pan: null, dl: null, bank_name: null, account_no: null, ifsc: null
+            aadhaar: null, pan: null, dl: null, bank_name: null, account_no: null, ifsc: null, insurance_policy: null
           };
           const mergedFields = Object.assign({}, blueprint, result.fields);
           

@@ -437,7 +437,32 @@ function fillFormPageDirect(profile) {
       parent = parent.parentElement;
     }
 
-    const combinedHint = (hintAttr + labelText).toLowerCase().replace(/\s+/g, ' ');
+    let combinedHint = (hintAttr + labelText).toLowerCase().replace(/\s+/g, ' ');
+
+    // D. Google Forms date-input fallback: the parent traversal bleeding prevention
+    //    may block reaching the question heading. Do a targeted search.
+    if (input.type === 'date' && !/\b(dob|birth|born)\b/i.test(combinedHint)) {
+      const questionCard = input.closest('[role="listitem"], [data-params], .Qr7Oae, .freebirdFormviewItemStandardcontainer, .geS5n, fieldset');
+      if (questionCard) {
+        const headingEl = questionCard.querySelector('[role="heading"], .Ho3o3e, .z12as, .vR13fe, .M7eMe');
+        if (headingEl) {
+          combinedHint += ' ' + headingEl.textContent.toLowerCase();
+        }
+      }
+      if (!/\b(dob|birth|born)\b/i.test(combinedHint)) {
+        let ancestor = input.parentElement;
+        for (let d = 0; ancestor && d < 8; d++) {
+          if (ancestor.tagName === 'FORM' || ancestor.tagName === 'BODY') break;
+          const txt = (ancestor.textContent || '').toLowerCase();
+          if (txt.length < 300 && /\b(birth|dob)\b/.test(txt)) {
+            combinedHint += ' ' + txt;
+            break;
+          }
+          ancestor = ancestor.parentElement;
+        }
+      }
+    }
+
     console.log("[FormSarthi Debug] Text Element:", input, "Combined Hint:", combinedHint);
 
     for (const field of fieldMap) {
@@ -454,7 +479,6 @@ function fillFormPageDirect(profile) {
         console.log(`[FormSarthi Match] Text Field: ${field.key} -> Value: ${value}`);
         
         if (input.tagName === 'SELECT') {
-          // Select option matching value
           const option = Array.from(input.options).find(opt => 
             opt.value.toLowerCase() === value.toLowerCase() || 
             opt.text.toLowerCase().includes(value.toLowerCase())
@@ -465,15 +489,19 @@ function fillFormPageDirect(profile) {
             filled++;
           }
         } else {
-          // Standard text inputs
           let finalVal = value;
           if (input.type === 'date') {
             finalVal = formatDateForInput(value);
           }
-          input.value = finalVal;
+          // Use native setter for frameworks that override .value
+          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          if (nativeSetter) {
+            nativeSetter.call(input, finalVal);
+          } else {
+            input.value = finalVal;
+          }
           input.dispatchEvent(new Event('input',  { bubbles: true }));
           input.dispatchEvent(new Event('change', { bubbles: true }));
-          // Focus and blur to trigger floating label transitions on Google Forms
           input.dispatchEvent(new Event('focus',  { bubbles: true }));
           input.dispatchEvent(new Event('blur',   { bubbles: true }));
           filled++;
@@ -482,6 +510,26 @@ function fillFormPageDirect(profile) {
       }
     }
   });
+
+  // 1b. Single-date-input fallback
+  if (profile.dob) {
+    const allDateInputs = document.querySelectorAll('input[type="date"]');
+    if (allDateInputs.length === 1 && !allDateInputs[0].value) {
+      const dateInput = allDateInputs[0];
+      const formattedDate = formatDateForInput(profile.dob);
+      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      if (nativeSetter) {
+        nativeSetter.call(dateInput, formattedDate);
+      } else {
+        dateInput.value = formattedDate;
+      }
+      dateInput.dispatchEvent(new Event('input',  { bubbles: true }));
+      dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+      dateInput.dispatchEvent(new Event('focus',  { bubbles: true }));
+      dateInput.dispatchEvent(new Event('blur',   { bubbles: true }));
+      filled++;
+    }
+  }
 
   // 2. Process Radio Button Groups (Google Forms role="radio" and standard input[type=radio])
   const radioButtons = document.querySelectorAll('[role="radio"], input[type="radio"]');

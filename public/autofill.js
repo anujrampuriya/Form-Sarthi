@@ -73,8 +73,94 @@ const FS_Autofill = {
     return fields;
   },
 
+  formatDateForInput(dateStr) {
+    if (!dateStr) return "";
+    let cleanStr = dateStr.trim().replace(/[\s\.\-]+/g, '/');
+    let parts = cleanStr.split('/');
+    if (parts.length === 3) {
+      let p0 = parseInt(parts[0], 10);
+      let p1 = parseInt(parts[1], 10);
+      let p2 = parseInt(parts[2], 10);
+      if (p0 > 1000) {
+        return `${p0}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`;
+      }
+      if (p1 <= 12 && p0 <= 31) {
+        let y = p2 < 100 ? (p2 > 50 ? 1900 : 2000) + p2 : p2;
+        return `${y}-${String(p1).padStart(2, '0')}-${String(p0).padStart(2, '0')}`;
+      }
+    }
+    try {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+    } catch (e) {}
+    return dateStr;
+  },
+
   // When the extension is ready — inject values into a live form
   // This is called from the browser extension content script
+  // Helper: build a rich hint string from multiple sources
+  _getFullHint(input) {
+    let hint = (
+      (input.name || '') + ' ' +
+      (input.id   || '') + ' ' +
+      (input.placeholder || '') + ' ' +
+      (input.getAttribute('aria-label') || '')
+    ).toLowerCase();
+
+    // 1. Check aria-labelledby (Google Forms uses this pattern)
+    const labelledBy = input.getAttribute('aria-labelledby');
+    if (labelledBy) {
+      labelledBy.split(/\s+/).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) hint += ' ' + (el.textContent || '').toLowerCase();
+      });
+    }
+
+    // 2. Check <label for="..."> elements
+    if (input.id) {
+      const label = document.querySelector(`label[for="${input.id}"]`);
+      if (label) hint += ' ' + (label.textContent || '').toLowerCase();
+    }
+
+    // 3. Traverse parent containers for label text (Google Forms nests
+    //    the label in a parent div several levels up from the input)
+    let parent = input.parentElement;
+    for (let depth = 0; parent && depth < 6; depth++) {
+      // Look for common label elements: <label>, <legend>, heading-like spans
+      const labelEl = parent.querySelector('label, legend, [data-label], [role="heading"]');
+      if (labelEl && !labelEl.contains(input)) {
+        hint += ' ' + (labelEl.textContent || '').toLowerCase();
+        break;
+      }
+      // Google Forms uses divs with role="listitem" or class containing "freebirdFormview"
+      const spanLabel = parent.querySelector('span[class*="Label"], span[class*="label"], div[class*="label"]');
+      if (spanLabel && !spanLabel.contains(input)) {
+        hint += ' ' + (spanLabel.textContent || '').toLowerCase();
+        break;
+      }
+      parent = parent.parentElement;
+    }
+
+    // 4. Last resort: check the text content of the closest ancestor container
+    //    (up to 5 levels) for any recognizable label text
+    if (!hint.includes('birth') && !hint.includes('dob') && !hint.includes('father') && !hint.includes('mother')) {
+      let ancestor = input.parentElement;
+      for (let d = 0; ancestor && d < 5; d++) {
+        const txt = (ancestor.textContent || '').toLowerCase();
+        // Only grab short containers to avoid picking up the whole page
+        if (txt.length < 200) {
+          hint += ' ' + txt;
+          break;
+        }
+        ancestor = ancestor.parentElement;
+      }
+    }
+
+    return hint;
+  },
+
   injectIntoForm(sessionData) {
     const inputs = document.querySelectorAll('input, textarea, select');
     let filled = 0;
@@ -90,13 +176,12 @@ const FS_Autofill = {
       });
     }
 
+    // Pre-scan: count date inputs for single-date-field fallback
+    const dateInputs = Array.from(inputs).filter(i => i.type === 'date');
+    const onlyOneDateInput = dateInputs.length === 1;
+
     inputs.forEach(input => {
-      const hint = (
-        (input.name || '') + ' ' +
-        (input.id   || '') + ' ' +
-        (input.placeholder || '') + ' ' +
-        (input.getAttribute('aria-label') || '')
-      ).toLowerCase();
+      const hint = this._getFullHint(input);
 
       // Guard rails based on input types
       if (input.type === 'email') {
@@ -110,20 +195,15 @@ const FS_Autofill = {
       }
       
       if (input.type === 'date') {
-        // Only allow date fields like dob
-        if (sessionData.dob && (hint.includes('dob') || hint.includes('birth'))) {
-          // Format from DD/MM/YYYY to YYYY-MM-DD for native date inputs
-          let dobVal = sessionData.dob;
-          if (dobVal.includes('/')) {
-            const parts = dobVal.split('/');
-            if (parts.length === 3) {
-              dobVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
+        if (sessionData.dob) {
+          // Match if hint contains date-of-birth keywords OR if it's the only date input
+          const isDobField = hint.includes('dob') || hint.includes('birth') || hint.includes('date of birth') || hint.includes('dateofbirth') || hint.includes('born');
+          if (isDobField || onlyOneDateInput) {
+            input.value = this.formatDateForInput(sessionData.dob);
+            input.dispatchEvent(new Event('input',  { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+            filled++;
           }
-          input.value = dobVal;
-          input.dispatchEvent(new Event('input',  { bubbles: true }));
-          input.dispatchEvent(new Event('change', { bubbles: true }));
-          filled++;
         }
         return;
       }

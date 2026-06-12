@@ -64,11 +64,12 @@ async function loadSession() {
 
     // Display primary summary fields in the popup grid
     const fields = [
-      "name", "father_name", "email", "phone", "gender", "caste",
+      "name", "father_name", "dob", "email", "phone", "gender", "caste",
       "roll_10", "roll_12", "aadhaar", "pan", "account_no"
     ];
     const labels = {
-      name: "Full Name", father_name: "Father's Name", email: "Email", phone: "Mobile",
+      name: "Full Name", father_name: "Father's Name", dob: "Date of Birth",
+      email: "Email", phone: "Mobile",
       gender: "Gender", caste: "Category", roll_10: "Class 10 Roll",
       roll_12: "Class 12 Roll", aadhaar: "Aadhaar No", pan: "PAN Card",
       account_no: "Bank Account"
