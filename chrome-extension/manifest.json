@@ -1,13 +1,14 @@
 {
   "manifest_version": 3,
   "name": "FormSarthi",
-  "version": "1.0.0",
-  "description": "Auto-fill Indian government & college forms using your securely stored profile data.",
+  "version": "2.1.0",
+  "description": "Auto-fill Indian government & college forms using your securely stored profile data. Privacy-first, vault-locked.",
 
   "permissions": [
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
 
   "host_permissions": [
@@ -15,13 +16,15 @@
     "http://localhost:4000/*",
     "http://127.0.0.1:3000/*",
     "http://127.0.0.1:4000/*",
-    "https://your-deployed-domain.com/*",
+    "https://docs.google.com/*",
+    "https://forms.gle/*",
+    "https://*.google.com/*",
     "<all_urls>"
   ],
 
   "action": {
     "default_popup": "popup.html",
-    "default_title": "FormSarthi"
+    "default_title": "FormSarthi — Smart Form Filler"
   },
 
   "background": {
@@ -33,6 +36,13 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_idle"
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": ["popup.css", "crypto-js.min.js"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

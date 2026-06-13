@@ -173,9 +173,34 @@ if (window.hasFormSarthiContentScript) {
         sendResponse({ success: false, error: err.message });
       }
       return true;
+    } else if (isDashboard && message.type === "GET_ALL_PROFILES_IDB") {
+      getAllProfilesFromIDB()
+        .then(profiles => sendResponse({ success: true, profiles }))
+        .catch(err    => sendResponse({ success: false, error: err.message }));
+      return true; // async
     }
     return true;
   });
+
+  // ── NEW: Sync profiles to extension storage on portal startup (if unlocked) ──
+  if (isDashboard) {
+    // When the portal page loads, push profile metadata to chrome.storage.local
+    // so the extension popup can list them even without the portal tab being queried.
+    window.addEventListener('load', () => {
+      // Small delay to let IndexedDB hydrate
+      setTimeout(async () => {
+        try {
+          const profiles = await getAllProfilesFromIDB();
+          if (profiles && profiles.length > 0) {
+            chrome.runtime.sendMessage({ type: 'PORTAL_PROFILES_UPDATED', profiles });
+            console.log('[FormSarthi Content] Pushed', profiles.length, 'profile(s) to extension storage.');
+          }
+        } catch (e) {
+          console.warn('[FormSarthi Content] Could not push profiles to extension:', e.message);
+        }
+      }, 800);
+    });
+  }
 
   // Target page logic (runs on non-dashboard form pages)
   if (!isDashboard) {
@@ -249,6 +274,54 @@ if (window.hasFormSarthiContentScript) {
   }
 }
 
+
+// ── NEW: Read all profile metadata from IndexedDB for extension popup ──
+// Returns safe metadata: name, email, avatar, color, completionPct, encryptedProfile
+function getAllProfilesFromIDB() {
+  const PROFILE_FIELD_KEYS = [
+    'name','father_name','mother_name','dob','gender','caste',
+    'nationality','religion','blood_group','marital_status',
+    'phone','alt_phone','email','address','city','state','pincode',
+    'roll_10','roll_12','board_10','board_12','marks_10','marks_12',
+    'college','degree','grad_year','aadhaar','pan','bank_name',
+    'account_no','ifsc',
+  ];
+
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('FormSarthiLocalDB', 2);
+    req.onerror = () => reject(new Error('Cannot open FormSarthiLocalDB'));
+    req.onsuccess = (e) => {
+      const db = e.target.result;
+      try {
+        const tx    = db.transaction('profiles', 'readonly');
+        const store = tx.objectStore('profiles');
+        const getAllReq = store.getAll();
+
+        getAllReq.onsuccess = () => {
+          const rawProfiles = getAllReq.result || [];
+          // Map to safe metadata (include encrypted blob for popup decryption)
+          const profileMeta = rawProfiles.map(p => {
+            // Attempt to compute completion pct from encryptedProfile if not stored
+            return {
+              email:            p.email,
+              name:             p.name || p.email?.split('@')[0] || 'Profile',
+              avatar:           p.avatar || '🪪',
+              color:            p.color  || 'purple',
+              encryptedProfile: p.encryptedProfile || null,
+              completionPct:    p.completionPct || 0,
+              lastUsed:         p.lastUsed || null,
+            };
+          });
+          resolve(profileMeta);
+        };
+        getAllReq.onerror = () => reject(new Error('Failed to read profiles store'));
+      } catch (err) {
+        reject(err);
+      }
+    };
+  });
+}
+
 function restoreDraftValues(values) {
   if (!values) return;
   const inputs = getRelevantFormInputs();
@@ -261,6 +334,7 @@ function restoreDraftValues(values) {
     }
   });
 }
+
 
 function injectCompletenessMeter() {
   if (document.getElementById('fs-completeness-container')) return;
