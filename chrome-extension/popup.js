@@ -1,92 +1,140 @@
 // =============================================================
-// chrome-extension/popup.js  — v2.2
-// Fixes:
-//  1. Numpad removed — alphanumeric password only
-//  2. Lock → returns to SAME profile's unlock screen (not list)
-//  3. CryptoJS loaded locally (CDN blocked by MV3)
-//  4. Full masked debug logging
+// chrome-extension/popup.js  v3.0
+//
+// Session Architecture:
+//  - Uses chrome.storage.session via background (SAVE/GET_VAULT_SESSION)
+//  - Connects port to background → popup close = instant lock
+//  - Password: max 8 chars, alphanumeric only, auto-submits at 8 chars
+//  - Enter key also submits at any length
+//  - Wrong password → shake animation, clear input, re-focus
 // =============================================================
 
-/* ── Constants (MUST match portal index.html exactly) ── */
+/* ── Constants ── */
 const SALT_SUFFIX    = 'FormSarthiSalt2026';
 const PBKDF2_KEYSIZE = 256 / 32;
 const PBKDF2_ITERS   = 1000;
-
-/* ── Storage keys ── */
 const STORAGE_PROFILES_KEY = 'fs_ext_profiles';
-const STORAGE_SESSION_KEY  = 'fs_ext_session';
-const SESSION_TIMEOUT_MS   = 15 * 60 * 1000; // 15 min
 
-/* ── App state ── */
+/* ── State ── */
 let _profiles        = [];
 let _selectedProfile = null;
 let _decryptedData   = null;
-let _sessionTimer    = null;
 let _theme           = 'dark';
+let _bgPort          = null;   // port to background (disconnect = lock)
 
-/* ── DOM refs ── */
+/* ── Screens ── */
 const screens = {
   profiles: document.getElementById('screen-profiles'),
   unlock:   document.getElementById('screen-unlock'),
   review:   document.getElementById('screen-review'),
 };
 
-// ────────────────────────────────────────────────────────────
-// SAFE DEBUG LOGGER
-// ────────────────────────────────────────────────────────────
+/* ── Masked logger ── */
 const LOG = {
   info:  (...a) => console.log   ('[FormSarthi]', ...a),
   warn:  (...a) => console.warn  ('[FormSarthi]', ...a),
   error: (...a) => console.error ('[FormSarthi]', ...a),
-  mask:  (v) => { const s = String(v||''); return s.length<=3?'***':'*'.repeat(s.length-3)+s.slice(-3); },
+  mask:  (v)    => { const s = String(v||''); return s.length<=3?'***':'*'.repeat(s.length-3)+s.slice(-3); },
 };
 
 // ────────────────────────────────────────────────────────────
 // INIT
 // ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  LOG.info('Popup opened — checking CryptoJS');
+  const initStart = performance.now();
+  LOG.info('Popup initialized');
 
+  // Sanity check CryptoJS
   if (typeof CryptoJS === 'undefined') {
     showScreen('profiles');
     document.getElementById('profiles-loading').style.display = 'none';
-    document.getElementById('profiles-empty').style.display   = 'flex';
-    document.getElementById('profiles-empty').querySelector('p').textContent =
-      '❌ CryptoJS not loaded. Re-install the extension (crypto-js.min.js missing).';
+    showEmptyState('❌ CryptoJS missing — reinstall extension.');
     return;
   }
-  LOG.info('CryptoJS OK ✓');
 
-  _theme = (await storageGet('fs_ext_theme')) || 'dark';
+  _theme = (await localGet('fs_ext_theme')) || 'dark';
   applyTheme(_theme);
 
-  // Wire up show/hide password toggle
-  const toggleBtn = document.getElementById('btn-toggle-pass');
+  wirePasswordField();
+  await tryRestoreSession();
+  LOG.info(`Popup init timing: ${(performance.now() - initStart).toFixed(2)}ms`);
+});
+
+// ────────────────────────────────────────────────────────────
+// PASSWORD FIELD WIRING
+// ────────────────────────────────────────────────────────────
+function wirePasswordField() {
   const pwdInput  = document.getElementById('password-input');
+  const toggleBtn = document.getElementById('btn-toggle-pass');
+
+  // Show/hide toggle
   if (toggleBtn && pwdInput) {
     toggleBtn.addEventListener('click', () => {
-      const isHidden = pwdInput.type === 'password';
-      pwdInput.type = isHidden ? 'text' : 'password';
-      document.getElementById('eye-open').style.display   = isHidden ? 'none'  : 'block';
-      document.getElementById('eye-closed').style.display = isHidden ? 'block' : 'none';
+      const hidden = pwdInput.type === 'password';
+      pwdInput.type = hidden ? 'text' : 'password';
+      document.getElementById('eye-open').style.display   = hidden ? 'none'  : 'block';
+      document.getElementById('eye-closed').style.display = hidden ? 'block' : 'none';
     });
   }
 
-  await tryRestoreSession();
-});
+  // Real-time: allow only alphanumeric, cap at 8 chars
+  pwdInput.addEventListener('input', async (e) => {
+    // Strip illegal chars inline
+    const clean = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+    if (e.target.value !== clean) e.target.value = clean;
 
+    // Clear previous error when user starts typing
+    setPasswordError('');
+
+    // Auto-submit when exactly 8 chars entered
+    if (clean.length === 8) {
+      LOG.info('Auto-submit at 8 chars');
+      await attemptUnlock(clean);
+    }
+  });
+
+  // Enter key → submit at any length
+  pwdInput.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      const val = pwdInput.value;
+      if (val.length > 0) await attemptUnlock(val);
+    }
+  });
+
+  // Unlock button
+  document.getElementById('btn-unlock-pass').addEventListener('click', async () => {
+    const val = document.getElementById('password-input').value;
+    if (val.length === 0) { setPasswordError('Enter your password.'); return; }
+    await attemptUnlock(val);
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// SESSION RESTORE
+// ────────────────────────────────────────────────────────────
 async function tryRestoreSession() {
-  const liveSession = await storageGet(STORAGE_SESSION_KEY);
-  if (liveSession && liveSession.decryptedData && liveSession.expiry > Date.now()) {
-    LOG.info('Live session found — restoring review screen');
-    _decryptedData   = liveSession.decryptedData;
-    _selectedProfile = liveSession.profile;
-    populateReviewScreen(_selectedProfile, _decryptedData);
-    showScreen('review');
-    startSessionTimer(Math.floor((liveSession.expiry - Date.now()) / 1000));
-    return;
+  // Ask background for live session (background reads chrome.storage.session)
+  try {
+    const resp = await bgMessage({ type: 'GET_VAULT_SESSION' });
+    if (resp?.success && resp.session?.decryptedData) {
+      const pName = resp.session.profile?.name || resp.session.profile?.email?.split('@')[0] || 'Unknown';
+      LOG.info(`Session found: true`);
+      LOG.info(`Active profile: ${pName}`);
+      LOG.info(`Session valid: true`);
+      LOG.info(`Rendering unlocked vault UI`);
+
+      _decryptedData   = resp.session.decryptedData;
+      _selectedProfile = resp.session.profile;
+      populateReviewScreen(_selectedProfile, _decryptedData);
+      showScreen('review');
+      return;
+    }
+  } catch (e) {
+    LOG.warn('Session restore failed:', e.message);
   }
-  LOG.info('No live session — loading profile list');
+
+  LOG.info(`Session found: false`);
+  LOG.info(`Rendering locked profile selector`);
   await loadProfiles();
 }
 
@@ -94,46 +142,44 @@ async function tryRestoreSession() {
 // PROFILE LIST
 // ────────────────────────────────────────────────────────────
 async function loadProfiles() {
+  const loadStart = performance.now();
   showScreen('profiles');
   document.getElementById('profiles-loading').style.display = 'flex';
   document.getElementById('profiles-empty').style.display   = 'none';
   document.getElementById('profiles-list').style.display    = 'none';
 
   try {
-    const stored = await storageGet(STORAGE_PROFILES_KEY);
-    _profiles = Array.isArray(stored) ? stored : [];
-    LOG.info(`Found ${_profiles.length} profile(s) in storage`);
+    const stored = await localGet(STORAGE_PROFILES_KEY);
+    LOG.info(`Storage retrieval complete. Cache status: ${stored ? 'Present' : 'Empty'}`);
+    _profiles = Array.isArray(stored) ? stored.filter(p => p?.email && p?.encryptedProfile) : [];
+    LOG.info(`Profiles fetched from storage: ${_profiles.length}`);
 
-    // Validate — needs encryptedProfile to be usable
-    const valid = _profiles.filter(p => p && p.email && p.encryptedProfile);
-
-    if (valid.length === 0) {
-      LOG.info('No valid profiles — fetching from portal tab');
+    if (_profiles.length === 0) {
+      LOG.info('Local storage profile cache is empty. Fallback trigger reason: No cached profiles. Requesting sync from portal...');
       try {
         const resp = await bgMessage({ type: 'GET_PROFILES_FROM_PORTAL' });
         if (resp?.success && Array.isArray(resp.profiles) && resp.profiles.length > 0) {
           _profiles = resp.profiles;
-          LOG.info(`Got ${_profiles.length} profile(s) from portal`);
-          await storageSet(STORAGE_PROFILES_KEY, _profiles);
+          await localSet(STORAGE_PROFILES_KEY, _profiles);
+          LOG.info(`Profiles fetched from portal: ${_profiles.length}`);
+        } else {
+          LOG.info('No active portal tab found to query or portal returned no profiles.');
         }
-      } catch (e) {
-        LOG.warn('Portal fallback failed:', e.message);
-      }
-    } else {
-      _profiles = valid;
+      } catch (e) { LOG.warn('Portal fetch failed:', e.message); }
     }
-  } catch (e) {
-    LOG.error('Profile load error:', e.message);
-  }
+  } catch (e) { LOG.error('Profile load error:', e.message); }
 
   document.getElementById('profiles-loading').style.display = 'none';
 
   if (_profiles.length === 0) {
-    document.getElementById('profiles-empty').style.display = 'flex';
+    showEmptyState('Open the FormSarthi portal, create a profile, then come back here.');
   } else {
+    const renderStart = performance.now();
     renderProfileList();
     document.getElementById('profiles-list').style.display = 'block';
+    LOG.info(`Profiles rendered successfully in ${(performance.now() - renderStart).toFixed(2)}ms`);
   }
+  LOG.info(`Total profile load timing: ${(performance.now() - loadStart).toFixed(2)}ms`);
 }
 
 const COLOR_MAP = {
@@ -152,7 +198,6 @@ function renderProfileList() {
   _profiles.forEach((p, idx) => {
     const card = document.createElement('div');
     card.className = 'profile-card';
-
     const bg   = COLOR_MAP[p.color] || COLOR_MAP.purple;
     const name = p.name || p.email?.split('@')[0] || 'Profile';
     const pct  = p.completionPct || 0;
@@ -169,8 +214,7 @@ function renderProfileList() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
-      </div>
-    `;
+      </div>`;
     card.addEventListener('click', () => startUnlock(idx));
     container.appendChild(card);
   });
@@ -183,119 +227,92 @@ function startUnlock(profileIdx) {
   _selectedProfile = _profiles[profileIdx];
 
   const avatarEl = document.getElementById('unlock-avatar');
-  avatarEl.textContent   = _selectedProfile.avatar || '🪪';
+  avatarEl.textContent      = _selectedProfile.avatar || '🪪';
   avatarEl.style.background = COLOR_MAP[_selectedProfile.color] || COLOR_MAP.purple;
-
   document.getElementById('unlock-name').textContent  = _selectedProfile.name || _selectedProfile.email.split('@')[0];
   document.getElementById('unlock-email').textContent = _selectedProfile.email;
-  document.getElementById('pin-error').textContent    = '';
-  document.getElementById('password-input').value     = '';
 
-  LOG.info(`Unlock screen for: ${LOG.mask(_selectedProfile.email)}`);
-  LOG.info(`Has encryptedProfile: ${!!_selectedProfile.encryptedProfile} (len=${_selectedProfile.encryptedProfile?.length})`);
+  setPasswordError('');
+  document.getElementById('password-input').value = '';
 
   showScreen('unlock');
-
-  // Auto-focus the password field
-  setTimeout(() => document.getElementById('password-input')?.focus(), 120);
-}
-
-/* ── Password unlock button ── */
-document.getElementById('btn-unlock-pass').addEventListener('click', () => {
-  const pwd = document.getElementById('password-input').value;
-  if (!pwd) {
-    showError('Please enter your password.');
-    return;
-  }
-  attemptUnlock(pwd);
-});
-
-/* ── Enter key to unlock ── */
-document.getElementById('password-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    const pwd = document.getElementById('password-input').value;
-    if (pwd) attemptUnlock(pwd);
-  }
-  // Clear error on typing
-  if (e.key !== 'Enter') {
-    document.getElementById('pin-error').textContent = '';
-  }
-});
-
-function showError(msg) {
-  document.getElementById('pin-error').textContent = msg;
+  setTimeout(() => document.getElementById('password-input')?.focus(), 150);
 }
 
 // ────────────────────────────────────────────────────────────
-// CORE DECRYPT — matches portal encryption exactly
+// DECRYPT + UNLOCK
 // ────────────────────────────────────────────────────────────
 async function attemptUnlock(passwordRaw) {
   if (!_selectedProfile?.encryptedProfile) {
-    showError('No vault found. Open portal and save your data first.');
+    setPasswordError('No vault found. Save your profile in the portal first.');
     return;
   }
 
-  // Normalize: String(), preserve leading zeros, NO parseInt/trim manipulation
-  const password = String(passwordRaw);
-
-  LOG.info(`Unlock attempt — length:${password.length} masked:${LOG.mask(password)}`);
-  LOG.info(`Blob prefix: ${_selectedProfile.encryptedProfile.slice(0,16)}…`);
-
+  const password = String(passwordRaw); // no trim — preserve exact input
   const btn = document.getElementById('btn-unlock-pass');
+
+  // Show unlocking state
   btn.disabled    = true;
   btn.textContent = 'Unlocking…';
+  document.getElementById('password-input').disabled = true;
+  setPasswordError('');
+
+  LOG.info(`Unlock attempt — len:${password.length} masked:${LOG.mask(password)}`);
 
   try {
-    // Key derivation — identical to portal line 4442-4443
-    const salt       = CryptoJS.enc.Utf8.parse(_selectedProfile.email + SALT_SUFFIX);
-    const derivedKey = CryptoJS.PBKDF2(password, salt, {
-      keySize:    PBKDF2_KEYSIZE,
-      iterations: PBKDF2_ITERS,
-    });
+    const salt = CryptoJS.enc.Utf8.parse(_selectedProfile.email + SALT_SUFFIX);
+    const key  = CryptoJS.PBKDF2(password, salt, { keySize: PBKDF2_KEYSIZE, iterations: PBKDF2_ITERS });
 
-    LOG.info(`Key prefix: ${derivedKey.toString().slice(0,8)}…`);
-
-    // AES decrypt — identical to portal line 4468
-    const decryptedBytes = CryptoJS.AES.decrypt(_selectedProfile.encryptedProfile, derivedKey.toString());
+    const decryptedBytes = CryptoJS.AES.decrypt(_selectedProfile.encryptedProfile, key.toString());
     const decryptedText  = decryptedBytes.toString(CryptoJS.enc.Utf8);
-
-    LOG.info(`Decrypted length: ${decryptedText.length}`);
 
     if (!decryptedText || decryptedText.length < 2) {
       throw new Error('Empty decrypt — wrong password');
     }
 
     let vaultData;
-    try {
-      vaultData = JSON.parse(decryptedText);
-    } catch (_) {
-      throw new Error('Vault corrupted — re-save your profile in the portal');
-    }
+    try { vaultData = JSON.parse(decryptedText); }
+    catch (_) { throw new Error('Vault corrupted — re-save your profile in the portal'); }
 
-    LOG.info('✅ Unlock SUCCESS — vault keys:', Object.keys(vaultData).slice(0,5).join(', '));
+    LOG.info('✅ Unlock SUCCESS — keys:', Object.keys(vaultData).slice(0,4).join(', '));
 
     _decryptedData = vaultData;
 
-    // Save session
-    await storageSet(STORAGE_SESSION_KEY, {
+    // Save session in background (stored in chrome.storage.session)
+    await bgMessage({
+      type:          'SAVE_VAULT_SESSION',
       profile:       _selectedProfile,
       decryptedData: _decryptedData,
-      expiry:        Date.now() + SESSION_TIMEOUT_MS,
     });
 
     populateReviewScreen(_selectedProfile, _decryptedData);
     showScreen('review');
-    startSessionTimer(Math.floor(SESSION_TIMEOUT_MS / 1000));
 
   } catch (err) {
     LOG.error('Unlock failed:', err.message);
-    showError('Wrong password. Try again.');
+    shakePasswordField();
+    setPasswordError('Wrong password. Try again.');
     document.getElementById('password-input').value = '';
-    document.getElementById('password-input').focus();
+    setTimeout(() => document.getElementById('password-input')?.focus(), 100);
   } finally {
     btn.disabled = false;
     btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Unlock`;
+    document.getElementById('password-input').disabled = false;
   }
+}
+
+function setPasswordError(msg) {
+  const el = document.getElementById('pin-error');
+  el.textContent = msg;
+}
+
+function shakePasswordField() {
+  const wrap = document.querySelector('.pass-field-group');
+  if (!wrap) return;
+  wrap.classList.remove('shake');
+  void wrap.offsetWidth; // reflow to restart animation
+  wrap.classList.add('shake');
+  setTimeout(() => wrap.classList.remove('shake'), 500);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -338,23 +355,22 @@ function populateReviewScreen(profile, data) {
 
   const filled = ALL_KEYS.filter(k => data[k] && String(data[k]).trim()).length;
   const pct    = Math.round((filled / ALL_KEYS.length) * 100);
-
   const offset = 100.5 - (pct / 100) * 100.5;
+
   document.getElementById('ring-progress').setAttribute('stroke-dashoffset', offset.toFixed(1));
-  document.getElementById('ring-pct').textContent         = `${pct}%`;
-  document.getElementById('readiness-fill').style.width   = `${pct}%`;
+  document.getElementById('ring-pct').textContent          = `${pct}%`;
+  document.getElementById('readiness-fill').style.width    = `${pct}%`;
   document.getElementById('readiness-pct-text').textContent = `${pct}%`;
 
-  const groupsEl     = document.getElementById('field-groups');
+  const groupsEl = document.getElementById('field-groups');
   groupsEl.innerHTML = '';
   const missingFields = [];
 
   FIELD_GROUPS.forEach(group => {
-    const el  = document.createElement('div');
+    const el = document.createElement('div');
     el.className = 'field-group';
-    const ok  = group.fields.filter(f => data[f.key] && String(data[f.key]).trim()).length;
-    const cls = ok === group.fields.length ? 'good' : '';
-    el.innerHTML = `<div class="field-group-header"><span class="group-icon">${group.icon}</span>${group.label}<span class="group-count ${cls}">${ok}/${group.fields.length}</span></div>`;
+    const ok = group.fields.filter(f => data[f.key] && String(data[f.key]).trim()).length;
+    el.innerHTML = `<div class="field-group-header"><span class="group-icon">${group.icon}</span>${group.label}<span class="group-count ${ok === group.fields.length ? 'good' : ''}">${ok}/${group.fields.length}</span></div>`;
 
     const grid = document.createElement('div');
     grid.className = 'field-chips';
@@ -362,7 +378,7 @@ function populateReviewScreen(profile, data) {
       const val  = data[f.key] ? String(data[f.key]).trim() : '';
       const chip = document.createElement('div');
       chip.className = 'field-chip';
-      chip.innerHTML = `<div class="chip-key">${escHtml(f.label)}</div><div class="chip-val ${val?'has-val':'empty'}">${escHtml(val ? truncate(val,16) : '—')}</div>`;
+      chip.innerHTML = `<div class="chip-key">${escHtml(f.label)}</div><div class="chip-val ${val?'has-val':'empty'}">${escHtml(val ? truncate(val, 16) : '—')}</div>`;
       grid.appendChild(chip);
       if (!val) missingFields.push(f.label);
     });
@@ -373,8 +389,8 @@ function populateReviewScreen(profile, data) {
   const missSec   = document.getElementById('missing-section');
   const missChips = document.getElementById('missing-chips');
   if (missingFields.length > 0) {
-    missSec.style.display  = 'block';
-    missChips.innerHTML = missingFields.slice(0,12).map(f=>`<span class="missing-chip">${escHtml(f)}</span>`).join('');
+    missSec.style.display = 'block';
+    missChips.innerHTML   = missingFields.slice(0, 12).map(f => `<span class="missing-chip">${escHtml(f)}</span>`).join('');
   } else {
     missSec.style.display = 'none';
   }
@@ -395,9 +411,7 @@ document.getElementById('btn-autofill').addEventListener('click', async () => {
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!activeTab?.id) throw new Error('No active tab found');
 
-    LOG.info(`Autofill on tab ${activeTab.id}: ${activeTab.url?.slice(0,60)}`);
-
-    const result = await chrome.runtime.sendMessage({
+    const result = await bgMessage({
       type:    'FILL_FORM',
       tabId:   activeTab.id,
       profile: _decryptedData,
@@ -407,14 +421,12 @@ document.getElementById('btn-autofill').addEventListener('click', async () => {
 
     if (result?.success && count > 0) {
       showFillMsg(`✅ Filled ${count} field(s) successfully!`, 'success');
-    } else if (result?.success && count === 0) {
-      showFillMsg(`ℹ️ No matching fields found on this page.`, 'info');
+    } else if (result?.success) {
+      showFillMsg('ℹ️ No matching fields found on this page.', 'info');
     } else {
       showFillMsg(result?.error || 'Autofill failed.', 'error');
     }
-    LOG.info(`Autofill result: ${count} fields filled`);
   } catch (err) {
-    LOG.error('Autofill error:', err.message);
     showFillMsg(err.message || 'Autofill error.', 'error');
   } finally {
     btn.disabled = false;
@@ -423,12 +435,10 @@ document.getElementById('btn-autofill').addEventListener('click', async () => {
 });
 
 document.getElementById('btn-refresh').addEventListener('click', async () => {
-  LOG.info('Manual refresh');
   _decryptedData   = null;
   _selectedProfile = null;
-  await storageRemove(STORAGE_SESSION_KEY);
-  await storageRemove(STORAGE_PROFILES_KEY);
-  clearSessionTimer();
+  await bgMessage({ type: 'LOCK_VAULT' });
+  await localRemove(STORAGE_PROFILES_KEY);
   await loadProfiles();
 });
 
@@ -437,44 +447,23 @@ function showFillMsg(text, type) {
   el.textContent   = text;
   el.className     = `fill-msg ${type}`;
   el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
+  setTimeout(() => { if (el) el.style.display = 'none'; }, 6000);
 }
 
 // ────────────────────────────────────────────────────────────
-// SESSION TIMER
-// ────────────────────────────────────────────────────────────
-function startSessionTimer(seconds) {
-  clearSessionTimer();
-  let remaining = seconds;
-  _sessionTimer = setInterval(async () => {
-    remaining--;
-    if (remaining <= 0) {
-      LOG.info('Session timeout — locking');
-      clearSessionTimer();
-      await lockSession();
-    }
-  }, 1000);
-}
-
-function clearSessionTimer() {
-  if (_sessionTimer) { clearInterval(_sessionTimer); _sessionTimer = null; }
-}
-
-// ────────────────────────────────────────────────────────────
-// LOCK — goes back to SAME profile's unlock screen
+// LOCK — back to same profile's unlock screen (not list)
 // ────────────────────────────────────────────────────────────
 async function lockSession() {
-  LOG.info('Locking session');
+  LOG.info('Locking vault');
   _decryptedData = null;
-  await storageRemove(STORAGE_SESSION_KEY);
-  clearSessionTimer();
+  await bgMessage({ type: 'LOCK_VAULT' });
 
-  // KEY BEHAVIOR: if we know which profile was unlocked,
-  // go directly back to that profile's unlock screen
   if (_selectedProfile) {
+    // Return to unlock screen for same profile — no need to re-select
     document.getElementById('password-input').value  = '';
-    document.getElementById('pin-error').textContent = '';
-    showScreen('unlock', true); // slide-back animation
+    document.getElementById('password-input').disabled = false;
+    setPasswordError('');
+    showScreen('unlock', true);
     setTimeout(() => document.getElementById('password-input')?.focus(), 150);
   } else {
     await loadProfiles();
@@ -482,27 +471,25 @@ async function lockSession() {
 }
 
 // ────────────────────────────────────────────────────────────
-// NAV BUTTONS
+// NAV WIRING
 // ────────────────────────────────────────────────────────────
 document.getElementById('btn-lock').addEventListener('click', lockSession);
-
+document.getElementById('btn-back-from-review').addEventListener('click', lockSession);
 document.getElementById('btn-back-from-unlock').addEventListener('click', () => {
-  _selectedProfile = null; // Forget which profile — go to full list
+  _selectedProfile = null;
   loadProfiles();
 });
-
-document.getElementById('btn-back-from-review').addEventListener('click', lockSession);
 
 document.getElementById('btn-open-portal').addEventListener('click',   () => chrome.tabs.create({ url: 'http://localhost:4000/' }));
 document.getElementById('btn-open-portal-2').addEventListener('click', () => chrome.tabs.create({ url: 'http://localhost:4000/' }));
 
 // ────────────────────────────────────────────────────────────
-// THEME TOGGLE
+// THEME
 // ────────────────────────────────────────────────────────────
 document.getElementById('btn-theme').addEventListener('click', async () => {
   _theme = _theme === 'dark' ? 'light' : 'dark';
   applyTheme(_theme);
-  await storageSet('fs_ext_theme', _theme);
+  await localSet('fs_ext_theme', _theme);
 });
 
 function applyTheme(theme) {
@@ -512,10 +499,19 @@ function applyTheme(theme) {
 }
 
 // ────────────────────────────────────────────────────────────
+// EMPTY STATE HELPER
+// ────────────────────────────────────────────────────────────
+function showEmptyState(msg) {
+  document.getElementById('profiles-empty').style.display = 'flex';
+  const p = document.getElementById('profiles-empty').querySelector('p');
+  if (p && msg) p.textContent = msg;
+}
+
+// ────────────────────────────────────────────────────────────
 // SCREEN TRANSITIONS
 // ────────────────────────────────────────────────────────────
 function showScreen(id, isBack = false) {
-  Object.values(screens).forEach(s => s.classList.remove('active','slide-back'));
+  Object.values(screens).forEach(s => s.classList.remove('active', 'slide-back'));
   const t = screens[id];
   if (!t) return;
   t.classList.add('active');
@@ -523,25 +519,20 @@ function showScreen(id, isBack = false) {
 }
 
 // ────────────────────────────────────────────────────────────
-// STORAGE HELPERS
+// STORAGE HELPERS (chrome.storage.local for profiles/theme)
 // ────────────────────────────────────────────────────────────
-function storageGet(key) {
+function localGet(key) {
   return new Promise(resolve => {
     chrome.storage.local.get(key, r => {
-      if (chrome.runtime.lastError) { LOG.warn(`storageGet(${key}):`, chrome.runtime.lastError.message); resolve(null); }
+      if (chrome.runtime.lastError) resolve(null);
       else resolve(r[key] ?? null);
     });
   });
 }
-function storageSet(key, value) {
-  return new Promise(resolve => {
-    chrome.storage.local.set({ [key]: value }, () => {
-      if (chrome.runtime.lastError) LOG.warn(`storageSet(${key}):`, chrome.runtime.lastError.message);
-      resolve();
-    });
-  });
+function localSet(key, value) {
+  return new Promise(resolve => chrome.storage.local.set({ [key]: value }, resolve));
 }
-function storageRemove(key) {
+function localRemove(key) {
   return new Promise(resolve => chrome.storage.local.remove(key, resolve));
 }
 
@@ -561,9 +552,9 @@ function bgMessage(msg) {
 // UTILITIES
 // ────────────────────────────────────────────────────────────
 function escHtml(str) {
-  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function truncate(str, max) {
-  const s = String(str||'');
-  return s.length > max ? s.slice(0, max)+'…' : s;
+  const s = String(str || '');
+  return s.length > max ? s.slice(0, max) + '…' : s;
 }
