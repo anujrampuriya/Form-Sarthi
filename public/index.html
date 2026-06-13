@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FormSarthi — Privacy-First Form Filler</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
   <!-- Flatpickr for custom date/time picker with OK/Set button -->
@@ -16,7 +19,13 @@
   <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.js"></script>
 
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
       /* Dark mode variables (Default) */
@@ -71,10 +80,14 @@
       padding: 40px 24px;
       transition: background 0.3s, color 0.3s;
       background-image: radial-gradient(circle at top right, var(--glow-1), transparent 35%),
-                        radial-gradient(circle at bottom left, var(--glow-2), transparent 40%);
+        radial-gradient(circle at bottom left, var(--glow-2), transparent 40%);
     }
 
-    .app { width: 100%; max-width: var(--card-max-width); transition: max-width 0.3s ease; }
+    .app {
+      width: 100%;
+      max-width: var(--card-max-width);
+      transition: max-width 0.3s ease;
+    }
 
     #logo-image {
       background: transparent !important;
@@ -89,6 +102,7 @@
       height: auto;
       object-fit: contain;
     }
+
     #header-logo-image {
       background: transparent !important;
       border: none !important;
@@ -108,6 +122,7 @@
       padding: 0;
       background-image: none;
     }
+
     body.unlocked-layout .app {
       max-width: 1300px;
       margin: 0 auto;
@@ -119,21 +134,42 @@
       text-align: center;
       margin-bottom: 24px;
     }
+
     .logo-mark {
       display: inline-flex;
       align-items: center;
       gap: 12px;
     }
+
     .logo-icon {
-      width: 44px; height: 44px;
+      width: 44px;
+      height: 44px;
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       box-shadow: 0 4px 15px rgba(94, 234, 212, 0.2);
     }
-    .logo-icon svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; }
-    .logo-text { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
-    .logo-text span { color: var(--accent); }
+
+    .logo-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+    }
+
+    .logo-text {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text span {
+      color: var(--accent);
+    }
 
     /* ── GENERAL CARD ── */
     .card {
@@ -144,8 +180,13 @@
       box-shadow: var(--shadow);
     }
 
-    .screen { display: none; }
-    .screen.active { display: block; }
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
 
     /* Theme btn for locked view */
     .locked-theme-toggle {
@@ -165,6 +206,7 @@
       gap: 6px;
       transition: all 0.2s;
     }
+
     .locked-theme-toggle:hover {
       background: var(--surface2);
       border-color: var(--border2);
@@ -172,13 +214,18 @@
 
     /* ── SCREEN: WHO ── */
     .who-title {
-      font-size: 22px; font-weight: 700;
-      text-align: center; margin-bottom: 6px;
+      font-size: 22px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 6px;
       letter-spacing: -0.5px;
     }
+
     .who-sub {
-      font-size: 14px; color: var(--muted);
-      text-align: center; margin-bottom: 28px;
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+      margin-bottom: 28px;
     }
 
     .profile-grid {
@@ -200,6 +247,7 @@
       gap: 10px;
       transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
     }
+
     .profile-btn:hover {
       border-color: var(--accent);
       transform: translateY(-2px);
@@ -207,17 +255,26 @@
     }
 
     .avatar {
-      width: 52px; height: 52px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 600;
       flex-shrink: 0;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
     .profile-name {
-      font-size: 13px; font-weight: 600; color: var(--text);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100%;
     }
 
     .add-btn {
@@ -231,23 +288,30 @@
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       transition: all 0.2s;
     }
+
     .add-btn:hover {
       color: var(--text);
       border-color: var(--text);
-      background: rgba(255,255,255,0.02);
+      background: rgba(255, 255, 255, 0.02);
     }
+
     .google-btn-wrapper {
       position: relative;
       width: 100%;
     }
+
     .google-btn-wrapper:hover .custom-google-btn {
       color: var(--text);
       border-color: var(--text);
-      background: rgba(255,255,255,0.02);
+      background: rgba(255, 255, 255, 0.02);
     }
+
     .google-overlay {
       position: absolute;
       top: 0;
@@ -259,6 +323,7 @@
       cursor: pointer;
       overflow: hidden;
     }
+
     .google-overlay iframe {
       width: 100% !important;
       height: 100% !important;
@@ -269,6 +334,7 @@
     .form-group {
       margin-bottom: 16px;
     }
+
     .form-group label {
       display: block;
       font-size: 12px;
@@ -278,6 +344,7 @@
       letter-spacing: 0.5px;
       margin-bottom: 6px;
     }
+
     .form-input {
       width: 100%;
       background: var(--surface2);
@@ -290,6 +357,7 @@
       outline: none;
       transition: border-color 0.2s;
     }
+
     .form-input:focus {
       border-color: var(--accent);
     }
@@ -305,36 +373,50 @@
       align-items: center;
       gap: 16px;
     }
+
     .avatar-preview {
-      width: 64px; height: 64px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       font-size: 28px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: linear-gradient(135deg, #8b5cf6, #a78bfa);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       flex-shrink: 0;
       transition: background 0.3s;
     }
+
     .builder-selectors {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
+
     .builder-row {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
     }
+
     .color-dot {
-      width: 22px; height: 22px;
+      width: 22px;
+      height: 22px;
       border-radius: 50%;
       cursor: pointer;
       border: 2px solid transparent;
       transition: transform 0.1s, border-color 0.2s;
     }
-    .color-dot:hover { transform: scale(1.1); }
-    .color-dot.selected { border-color: var(--text); }
+
+    .color-dot:hover {
+      transform: scale(1.1);
+    }
+
+    .color-dot.selected {
+      border-color: var(--text);
+    }
 
     .emoji-option {
       font-size: 18px;
@@ -343,8 +425,15 @@
       border-radius: 6px;
       transition: transform 0.1s, background 0.2s;
     }
-    .emoji-option:hover { transform: scale(1.25); background: rgba(255,255,255,0.08); }
-    .emoji-option.selected { background: rgba(255,255,255,0.15); }
+
+    .emoji-option:hover {
+      transform: scale(1.25);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .emoji-option.selected {
+      background: rgba(255, 255, 255, 0.15);
+    }
 
     /* ── SCREEN: PIN ── */
     body.pin-active {
@@ -354,12 +443,14 @@
       padding: 12px 16px;
       justify-content: stretch;
     }
+
     body.pin-active .app {
       max-width: 600px;
       height: 100%;
       display: flex;
       flex-direction: column;
     }
+
     body.pin-active #logo-container {
       margin-bottom: 12px;
       flex-shrink: 1;
@@ -368,9 +459,11 @@
       display: flex !important;
       justify-content: center;
     }
+
     body.pin-active #logo-image {
       width: auto;
-      max-width: 300px; /* Made the logo much bigger and prominent */
+      max-width: 300px;
+      /* Made the logo much bigger and prominent */
       max-height: 18vh;
       object-fit: contain;
     }
@@ -384,33 +477,53 @@
       min-height: 0;
       padding: 12px 20px;
     }
-    #screen-pin.active { display: flex; }
+
+    #screen-pin.active {
+      display: flex;
+    }
 
     .pin-header {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 10px; margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
     }
-    .pin-name { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-    .pin-sub { font-size: 14px; color: var(--muted); }
+
+    .pin-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .pin-sub {
+      font-size: 14px;
+      color: var(--muted);
+    }
 
     .pin-dots {
-      display: flex; gap: 14px;
+      display: flex;
+      gap: 14px;
       justify-content: center;
       margin-bottom: 12px;
     }
+
     .dot {
-      width: 14px; height: 14px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       border: 2px solid var(--border2);
       background: transparent;
       transition: background 0.15s, border-color 0.15s, transform 0.15s;
     }
+
     .dot.filled {
       background: var(--accent);
       border-color: var(--accent);
       transform: scale(1.15);
       box-shadow: 0 0 10px rgba(94, 234, 212, 0.4);
     }
+
     .dot.error {
       background: var(--red);
       border-color: var(--red);
@@ -434,24 +547,34 @@
       max-width: 260px;
       margin: 0 auto 20px;
     }
+
     .num {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: 50%;
-      width: 56px; height: 56px;
+      width: 56px;
+      height: 56px;
       font-family: inherit;
-      font-size: 26px; font-weight: 700;
+      font-size: 26px;
+      font-weight: 700;
       color: var(--text);
       cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin: 0 auto;
       transition: background 0.15s, transform 0.1s, border-color 0.15s;
     }
+
     .num:hover {
       background: var(--border2);
       border-color: var(--accent);
     }
-    .num:active { transform: scale(0.92); }
+
+    .num:active {
+      transform: scale(0.92);
+    }
+
     .num.sm {
       font-size: 13px;
       font-weight: 700;
@@ -459,52 +582,160 @@
       border: none;
       background: transparent;
       border-radius: var(--radius-sm);
-      width: auto; height: 56px;
+      width: auto;
+      height: 56px;
     }
-    .num.sm:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+    .num.sm:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+    }
 
     .back-link {
       text-align: center;
-      font-size: 14px; color: var(--muted);
+      font-size: 14px;
+      color: var(--muted);
       cursor: pointer;
       font-weight: 600;
       transition: color 0.2s;
     }
-    .back-link:hover { color: var(--text); }
+
+    .back-link:hover {
+      color: var(--text);
+    }
 
     /* ── PIN screen responsive scaling ── */
     @media (max-height: 700px) {
-      body.pin-active #logo-image { max-width: 250px; }
-      #screen-pin .pin-header { gap: 4px; margin-bottom: 10px; }
-      #screen-pin .pin-header .avatar { width: 48px !important; height: 48px !important; font-size: 20px !important; }
-      #screen-pin .pin-name { font-size: 16px; }
-      #screen-pin .pin-sub { font-size: 12px; }
-      #screen-pin .pin-dots { gap: 10px; margin-bottom: 4px; }
-      #screen-pin .dot { width: 11px; height: 11px; }
-      #screen-pin .err-msg { min-height: 14px; margin-bottom: 6px; font-size: 11px; }
-      #screen-pin .numpad { gap: 6px; max-width: 200px; margin-bottom: 8px; }
-      #screen-pin .num { width: 44px; height: 44px; font-size: 20px; font-weight: 700; }
-      #screen-pin .num.sm { height: 44px; font-size: 11px; }
-      #screen-pin .back-link { font-size: 12px; }
+      body.pin-active #logo-image {
+        max-width: 250px;
+      }
+
+      #screen-pin .pin-header {
+        gap: 4px;
+        margin-bottom: 10px;
+      }
+
+      #screen-pin .pin-header .avatar {
+        width: 48px !important;
+        height: 48px !important;
+        font-size: 20px !important;
+      }
+
+      #screen-pin .pin-name {
+        font-size: 16px;
+      }
+
+      #screen-pin .pin-sub {
+        font-size: 12px;
+      }
+
+      #screen-pin .pin-dots {
+        gap: 10px;
+        margin-bottom: 4px;
+      }
+
+      #screen-pin .dot {
+        width: 11px;
+        height: 11px;
+      }
+
+      #screen-pin .err-msg {
+        min-height: 14px;
+        margin-bottom: 6px;
+        font-size: 11px;
+      }
+
+      #screen-pin .numpad {
+        gap: 6px;
+        max-width: 200px;
+        margin-bottom: 8px;
+      }
+
+      #screen-pin .num {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      #screen-pin .num.sm {
+        height: 44px;
+        font-size: 11px;
+      }
+
+      #screen-pin .back-link {
+        font-size: 12px;
+      }
     }
+
     @media (max-height: 550px) {
-      body.pin-active #logo-image { max-width: 180px; }
-      #screen-pin .pin-header { gap: 2px; margin-bottom: 6px; }
-      #screen-pin .pin-header .avatar { width: 36px !important; height: 36px !important; font-size: 16px !important; }
-      #screen-pin .pin-name { font-size: 14px; }
-      #screen-pin .pin-sub { font-size: 11px; }
-      #screen-pin .pin-dots { gap: 8px; margin-bottom: 2px; }
-      #screen-pin .dot { width: 9px; height: 9px; }
-      #screen-pin .err-msg { min-height: 12px; margin-bottom: 4px; font-size: 10px; }
-      #screen-pin .numpad { gap: 4px; max-width: 170px; margin-bottom: 6px; }
-      #screen-pin .num { width: 36px; height: 36px; font-size: 16px; font-weight: 700; }
-      #screen-pin .num.sm { height: 36px; font-size: 10px; }
-      #screen-pin .back-link { font-size: 11px; }
+      body.pin-active #logo-image {
+        max-width: 180px;
+      }
+
+      #screen-pin .pin-header {
+        gap: 2px;
+        margin-bottom: 6px;
+      }
+
+      #screen-pin .pin-header .avatar {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+      }
+
+      #screen-pin .pin-name {
+        font-size: 14px;
+      }
+
+      #screen-pin .pin-sub {
+        font-size: 11px;
+      }
+
+      #screen-pin .pin-dots {
+        gap: 8px;
+        margin-bottom: 2px;
+      }
+
+      #screen-pin .dot {
+        width: 9px;
+        height: 9px;
+      }
+
+      #screen-pin .err-msg {
+        min-height: 12px;
+        margin-bottom: 4px;
+        font-size: 10px;
+      }
+
+      #screen-pin .numpad {
+        gap: 4px;
+        max-width: 170px;
+        margin-bottom: 6px;
+      }
+
+      #screen-pin .num {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      #screen-pin .num.sm {
+        height: 36px;
+        font-size: 10px;
+      }
+
+      #screen-pin .back-link {
+        font-size: 11px;
+      }
     }
 
     /* ── UNLOCKED DASHBOARD STYLING ── */
     .main-header {
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 16px 20px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -512,20 +743,40 @@
       margin-bottom: 24px;
       box-shadow: var(--shadow);
     }
-    .brand { display: flex; align-items: center; gap: 10px; }
-    .header-actions { display: flex; align-items: center; gap: 12px; }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
     /* ── REMINDERS & NOTIFICATIONS DROP-DOWN ── */
     .notification-container {
       user-select: none;
     }
+
     #notification-dropdown {
       animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
+
     @keyframes dropdownFadeIn {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
+
     .notification-item {
       display: flex;
       flex-direction: column;
@@ -537,13 +788,16 @@
       position: relative;
       transition: all 0.2s;
     }
+
     .notification-item:hover {
       background: rgba(255, 255, 255, 0.02);
       border-color: var(--border2);
     }
+
     .notification-item.unread {
       background: rgba(94, 234, 212, 0.03);
     }
+
     .notification-item.unread::after {
       content: '';
       position: absolute;
@@ -555,17 +809,21 @@
       border-radius: 50%;
       box-shadow: 0 0 8px var(--accent);
     }
+
     .notification-title {
       font-size: 13px;
       font-weight: 700;
       color: var(--text);
-      padding-right: 24px; /* space for close button */
+      padding-right: 24px;
+      /* space for close button */
     }
+
     .notification-message {
       font-size: 12px;
       color: var(--muted);
       line-height: 1.4;
     }
+
     .notification-meta {
       display: flex;
       justify-content: space-between;
@@ -573,9 +831,11 @@
       margin-top: 4px;
       font-size: 11px;
     }
+
     .notification-time {
       color: var(--muted);
     }
+
     .notification-action {
       background: transparent;
       border: 1px solid var(--border2);
@@ -587,20 +847,44 @@
       cursor: pointer;
       transition: all 0.2s;
     }
+
     .notification-action:hover {
       border-color: var(--accent);
       color: var(--accent);
       background: rgba(94, 234, 212, 0.04);
     }
-    .notification-item.type-incomplete_form { border-left: 3px solid var(--accent); }
-    .notification-item.type-deadline { border-left: 3px solid var(--amber); }
-    .notification-item.type-missing_document { border-left: 3px solid var(--red); }
-    .notification-item.type-new_form { border-left: 3px solid var(--green); }
-    .notification-item.type-customization_prompt { border-left: 3px solid #a855f7; }
-    
-    .notification-item.color-green { border-left: 3px solid var(--green) !important; }
-    .notification-item.color-amber { border-left: 3px solid var(--amber) !important; }
-    .notification-item.color-red { border-left: 3px solid var(--red) !important; }
+
+    .notification-item.type-incomplete_form {
+      border-left: 3px solid var(--accent);
+    }
+
+    .notification-item.type-deadline {
+      border-left: 3px solid var(--amber);
+    }
+
+    .notification-item.type-missing_document {
+      border-left: 3px solid var(--red);
+    }
+
+    .notification-item.type-new_form {
+      border-left: 3px solid var(--green);
+    }
+
+    .notification-item.type-customization_prompt {
+      border-left: 3px solid #a855f7;
+    }
+
+    .notification-item.color-green {
+      border-left: 3px solid var(--green) !important;
+    }
+
+    .notification-item.color-amber {
+      border-left: 3px solid var(--amber) !important;
+    }
+
+    .notification-item.color-red {
+      border-left: 3px solid var(--red) !important;
+    }
 
     .deadline-badge {
       display: inline-flex;
@@ -611,10 +895,22 @@
       border-radius: 4px;
       margin-left: 6px;
     }
-    .deadline-badge.color-green { background: rgba(52, 211, 153, 0.1); color: var(--green); }
-    .deadline-badge.color-amber { background: rgba(251, 191, 36, 0.1); color: var(--amber); }
-    .deadline-badge.color-red { background: rgba(248, 113, 113, 0.1); color: var(--red); }
-    
+
+    .deadline-badge.color-green {
+      background: rgba(52, 211, 153, 0.1);
+      color: var(--green);
+    }
+
+    .deadline-badge.color-amber {
+      background: rgba(251, 191, 36, 0.1);
+      color: var(--amber);
+    }
+
+    .deadline-badge.color-red {
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--red);
+    }
+
     .notification-close-btn {
       position: absolute;
       top: 10px;
@@ -632,11 +928,12 @@
       border-radius: 50%;
       transition: background 0.2s, color 0.2s;
     }
+
     .notification-close-btn:hover {
       background: rgba(248, 113, 113, 0.1);
       color: var(--red);
     }
-    
+
     .pill {
       background: rgba(94, 234, 212, 0.1);
       border: 1px solid rgba(94, 234, 212, 0.25);
@@ -646,21 +943,27 @@
       font-size: 12px;
       font-weight: 700;
     }
-    .btn-theme, .btn-action {
+
+    .btn-theme,
+    .btn-action {
       background: var(--surface2);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 8px 16px;
       border-radius: var(--radius-sm);
       font-family: inherit;
-      font-size: 13px; font-weight: 600;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
     }
-    .btn-theme:hover, .btn-action:hover {
+
+    .btn-theme:hover,
+    .btn-action:hover {
       background: var(--border2);
       border-color: var(--accent);
     }
+
     .lock-btn {
       background: var(--accent2);
       color: #fff;
@@ -668,11 +971,13 @@
       padding: 8px 16px;
       border-radius: var(--radius-sm);
       font-family: inherit;
-      font-size: 13px; font-weight: 700;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s;
       box-shadow: 0 4px 10px rgba(139, 92, 246, 0.15);
     }
+
     .lock-btn:hover {
       opacity: 0.9;
       transform: translateY(-1px);
@@ -684,6 +989,7 @@
       gap: 24px;
       align-items: start;
     }
+
     @media (max-width: 950px) {
       .dashboard-grid {
         grid-template-columns: 1fr;
@@ -708,23 +1014,38 @@
       border-radius: var(--radius-sm);
       margin-bottom: 20px;
     }
+
     .avatar-circle {
-      width: 48px; height: 48px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       font-size: 22px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
+
     .profile-details h3 {
-      font-size: 15px; font-weight: 700;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;
+      font-size: 15px;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
     }
+
     .profile-details p {
-      font-size: 12px; color: var(--muted);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;
+      font-size: 12px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 180px;
       margin-bottom: 2px;
     }
+
     .switch-profile-link {
       font-size: 11px;
       color: var(--accent);
@@ -734,6 +1055,7 @@
       text-decoration: underline;
       transition: opacity 0.2s;
     }
+
     .switch-profile-link:hover {
       opacity: 0.8;
     }
@@ -743,6 +1065,7 @@
       flex-direction: column;
       gap: 8px;
     }
+
     .nav-item {
       display: flex;
       align-items: center;
@@ -760,16 +1083,19 @@
       text-align: left;
       transition: all 0.2s;
     }
+
     .nav-item:hover {
       color: var(--text);
       background: var(--surface2);
       border-color: var(--border);
     }
+
     .nav-item.active {
       color: var(--accent);
       background: rgba(94, 234, 212, 0.08);
       border-color: rgba(94, 234, 212, 0.2);
     }
+
     .nav-item .badge {
       background: var(--surface2);
       color: var(--text);
@@ -779,6 +1105,7 @@
       font-weight: 700;
       border: 1px solid var(--border);
     }
+
     .nav-item.active .badge {
       background: var(--accent);
       color: #070d19;
@@ -794,8 +1121,13 @@
       min-height: 500px;
     }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
 
     /* ── DOCS TAB & SLOTS ── */
     .docs-grid {
@@ -804,6 +1136,7 @@
       gap: 14px;
       margin-bottom: 24px;
     }
+
     .doc-slot {
       background: var(--surface2);
       border: 1px solid var(--border);
@@ -815,34 +1148,54 @@
       gap: 12px;
       transition: transform 0.2s, border-color 0.2s;
     }
+
     .doc-slot:hover {
       transform: translateY(-2px);
       border-color: var(--border2);
     }
+
     .doc-slot.filled {
       border-color: rgba(52, 211, 153, 0.2);
     }
+
     .doc-slot-header {
       display: flex;
       align-items: center;
       gap: 10px;
     }
+
     .doc-slot-icon {
-      width: 32px; height: 32px;
+      width: 32px;
+      height: 32px;
       background: rgba(139, 92, 246, 0.1);
       border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex-shrink: 0;
     }
-    .doc-slot-icon svg { width: 16px; height: 16px; stroke: var(--accent2); fill: none; stroke-width: 2.2; }
+
+    .doc-slot-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--accent2);
+      fill: none;
+      stroke-width: 2.2;
+    }
+
     .doc-slot.filled .doc-slot-icon {
       background: rgba(52, 211, 153, 0.1);
     }
+
     .doc-slot.filled .doc-slot-icon svg {
       stroke: var(--green);
     }
-    .doc-slot-title { font-size: 14px; font-weight: 700; }
-    
+
+    .doc-slot-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
     .doc-slot-status {
       font-size: 11px;
       padding: 3px 8px;
@@ -850,8 +1203,16 @@
       font-weight: 600;
       width: fit-content;
     }
-    .doc-slot-status.empty { background: rgba(255,255,255,0.05); color: var(--muted); }
-    .doc-slot-status.uploaded { background: rgba(52, 211, 153, 0.1); color: var(--green); }
+
+    .doc-slot-status.empty {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+    }
+
+    .doc-slot-status.uploaded {
+      background: rgba(52, 211, 153, 0.1);
+      color: var(--green);
+    }
 
     .doc-slot-detail {
       font-size: 11px;
@@ -872,24 +1233,50 @@
       transition: all 0.2s;
       position: relative;
     }
+
     .upload-zone:hover {
       border-color: var(--accent);
       background: rgba(94, 234, 212, 0.02);
     }
+
     .upload-zone input {
-      position: absolute; inset: 0;
-      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
     }
+
     .upload-icon {
-      width: 48px; height: 48px;
+      width: 48px;
+      height: 48px;
       background: rgba(94, 234, 212, 0.08);
       border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin: 0 auto 12px;
     }
-    .upload-icon svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 2.2; }
-    .upload-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-    .upload-hint { font-size: 12px; color: var(--muted); }
+
+    .upload-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 2.2;
+    }
+
+    .upload-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .upload-hint {
+      font-size: 12px;
+      color: var(--muted);
+    }
 
     /* ── OCR PROCESS BOX ── */
     .ocr-box {
@@ -899,7 +1286,13 @@
       padding: 16px;
       margin-top: 16px;
     }
-    .ocr-label { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+
+    .ocr-label {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
     .progress-bar {
       height: 6px;
       background: var(--border);
@@ -907,6 +1300,7 @@
       overflow: hidden;
       margin-bottom: 12px;
     }
+
     .progress-fill {
       height: 100%;
       background: linear-gradient(90deg, var(--accent), var(--accent2));
@@ -914,9 +1308,11 @@
       width: 0%;
       transition: width 0.3s;
     }
+
     .ocr-result {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; color: var(--muted);
+      font-size: 11px;
+      color: var(--muted);
       line-height: 1.6;
       max-height: 140px;
       overflow-y: auto;
@@ -927,7 +1323,12 @@
     }
 
     /* ── AUTOFILL TAB ── */
-    .url-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .url-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
     .url-input {
       flex: 1;
       background: var(--surface2);
@@ -935,11 +1336,15 @@
       border-radius: var(--radius-sm);
       padding: 12px 16px;
       font-family: inherit;
-      font-size: 14px; color: var(--text);
+      font-size: 14px;
+      color: var(--text);
       outline: none;
       transition: border-color 0.2s;
     }
-    .url-input:focus { border-color: var(--accent); }
+
+    .url-input:focus {
+      border-color: var(--accent);
+    }
 
     .btn {
       background: var(--accent);
@@ -947,24 +1352,32 @@
       border-radius: var(--radius-sm);
       padding: 12px 24px;
       font-family: inherit;
-      font-size: 14px; font-weight: 700; color: #070d19;
+      font-size: 14px;
+      font-weight: 700;
+      color: #070d19;
       cursor: pointer;
       transition: all 0.2s;
       box-shadow: 0 4px 12px rgba(94, 234, 212, 0.15);
     }
+
     .btn:hover {
       opacity: 0.92;
       transform: translateY(-1px);
     }
-    .btn:active { transform: translateY(0); }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
     .btn.outline {
       background: transparent;
       border: 1px solid var(--border2);
       color: var(--text);
       box-shadow: none;
     }
+
     .btn.outline:hover {
-      background: rgba(255,255,255,0.03);
+      background: rgba(255, 255, 255, 0.03);
       border-color: var(--text);
     }
 
@@ -976,26 +1389,88 @@
       padding: 18px;
       margin-bottom: 20px;
     }
-    .meter-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .meter-label { font-size: 14px; font-weight: 700; }
-    .meter-pct { font-size: 16px; color: var(--accent); font-weight: 800; }
-    .meter-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
-    .meter-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.5s; }
+
+    .meter-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .meter-label {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .meter-pct {
+      font-size: 16px;
+      color: var(--accent);
+      font-weight: 800;
+    }
+
+    .meter-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--green);
+      transition: width 0.5s;
+    }
 
     /* field checklist */
-    .field-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; max-height: 350px; overflow-y: auto; padding-right: 4px; }
+    .field-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+      max-height: 350px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
     .field-row {
-      display: flex; align-items: center; gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 10px 14px;
       font-size: 13px;
     }
-    .field-key { color: var(--muted); flex: 1; font-weight: 600; }
-    .field-arrow { color: var(--border2); }
-    .field-val { color: var(--green); font-family: 'JetBrains Mono', monospace; font-size: 12px; flex: 1.5; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .field-val.missing { color: var(--red); font-family: inherit; font-size: 12px; font-style: italic; }
+
+    .field-key {
+      color: var(--muted);
+      flex: 1;
+      font-weight: 600;
+    }
+
+    .field-arrow {
+      color: var(--border2);
+    }
+
+    .field-val {
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      flex: 1.5;
+      text-align: right;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .field-val.missing {
+      color: var(--red);
+      font-family: inherit;
+      font-size: 12px;
+      font-style: italic;
+    }
 
     /* ── PROFILE COLLAPSIBLE SECTIONS ── */
     details.profile-group {
@@ -1006,9 +1481,11 @@
       overflow: hidden;
       transition: border-color 0.2s;
     }
+
     details.profile-group:hover {
       border-color: var(--border2);
     }
+
     details.profile-group summary {
       list-style: none;
       padding: 14px 18px;
@@ -1020,16 +1497,21 @@
       align-items: center;
       user-select: none;
     }
-    details.profile-group summary::-webkit-details-marker { display: none; }
-    
+
+    details.profile-group summary::-webkit-details-marker {
+      display: none;
+    }
+
     .group-indicator {
       font-size: 10px;
       color: var(--muted);
       transition: transform 0.2s;
     }
+
     details.profile-group[open] .group-indicator {
       transform: rotate(90deg);
     }
+
     details.profile-group[open] summary {
       border-bottom: 1px solid var(--border);
     }
@@ -1040,15 +1522,38 @@
       gap: 12px;
       padding: 16px;
     }
+
     .data-cell {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 12px;
     }
-    .data-cell-label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: 4px; }
-    .data-cell-val { font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .data-cell-val.empty { color: var(--border2); font-style: italic; font-family: inherit; font-size: 12px; font-weight: 500; }
+
+    .data-cell-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .data-cell-val {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .data-cell-val.empty {
+      color: var(--border2);
+      font-style: italic;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+    }
 
     /* profile manual edit */
     .edit-grid {
@@ -1057,6 +1562,7 @@
       gap: 12px;
       padding: 16px;
     }
+
     .edit-form-cell label {
       display: block;
       font-size: 11px;
@@ -1065,6 +1571,7 @@
       text-transform: uppercase;
       margin-bottom: 6px;
     }
+
     .edit-form-cell input {
       width: 100%;
       background: var(--surface);
@@ -1077,7 +1584,10 @@
       outline: none;
       transition: border-color 0.2s;
     }
-    .edit-form-cell input:focus { border-color: var(--accent); }
+
+    .edit-form-cell input:focus {
+      border-color: var(--accent);
+    }
 
     /* ── DOC TOOLS ── */
     .tool-card {
@@ -1086,15 +1596,20 @@
       border-radius: var(--radius-sm);
       padding: 20px;
     }
+
     .tool-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
       margin-bottom: 14px;
     }
+
     @media (max-width: 600px) {
-      .tool-row { grid-template-columns: 1fr; }
+      .tool-row {
+        grid-template-columns: 1fr;
+      }
     }
+
     .tool-cell label {
       display: block;
       font-size: 12px;
@@ -1103,7 +1618,9 @@
       margin-bottom: 6px;
       text-transform: uppercase;
     }
-    .tool-cell select, .tool-cell input {
+
+    .tool-cell select,
+    .tool-cell input {
       width: 100%;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -1116,7 +1633,14 @@
     }
 
     /* ── LIST GROUPS ── */
-    .list-group { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+    .list-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
     .list-item {
       background: var(--surface2);
       border: 1px solid var(--border);
@@ -1128,7 +1652,10 @@
       align-items: center;
       transition: border-color 0.2s;
     }
-    .list-item:hover { border-color: var(--border2); }
+
+    .list-item:hover {
+      border-color: var(--border2);
+    }
 
     /* ── DEADLINES TAB ── */
     .deadline-creator {
@@ -1141,17 +1668,20 @@
       gap: 12px;
       margin-bottom: 20px;
     }
+
     .deadline-inputs-row {
       display: grid;
       grid-template-columns: 1.5fr 1.5fr 1.2fr auto;
       gap: 10px;
       align-items: flex-end;
     }
+
     @media (max-width: 750px) {
       .deadline-inputs-row {
         grid-template-columns: 1fr;
       }
     }
+
     .deadline-inputs-row input {
       background: var(--surface);
     }
@@ -1167,57 +1697,88 @@
       align-items: flex-start;
       gap: 14px;
     }
+
     .security-banner-icon {
       font-size: 28px;
     }
+
     .security-banner-text h3 {
-      font-size: 16px; font-weight: 700; margin-bottom: 4px;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
     }
+
     .security-banner-text p {
-      font-size: 13px; color: var(--muted); line-height: 1.6;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
     }
-    
+
     .security-features {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
     }
+
     @media (max-width: 700px) {
-      .security-features { grid-template-columns: 1fr; }
+      .security-features {
+        grid-template-columns: 1fr;
+      }
     }
+
     .security-card {
       background: var(--surface2);
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 16px;
     }
+
     .security-card h4 {
-      font-size: 14px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
+
     .security-card p {
-      font-size: 12px; color: var(--muted); line-height: 1.6;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
     }
 
     /* ── TOAST ── */
     .toast {
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
-      background: var(--surface2); border: 1px solid var(--border2);
-      border-radius: var(--radius-sm); padding: 14px 24px;
-      font-size: 14px; color: var(--text); font-weight: 600;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999;
-      box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 14px 24px;
+      font-size: 14px;
+      color: var(--text);
+      font-weight: 600;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 9999;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
       white-space: nowrap;
     }
+
     .hero-illustration {
       text-align: center;
       margin: 0 0 20px 0;
       position: relative;
     }
+
     .hero-illustration svg {
       width: 80px;
       height: auto;
-      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
     }
+
     .scanner-line {
       position: absolute;
       width: 70px;
@@ -1229,44 +1790,105 @@
       box-shadow: 0 0 8px var(--accent);
       animation: scan 2s infinite ease-in-out;
     }
+
     @keyframes scan {
-      0% { top: 10%; opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { top: 90%; opacity: 0; }
+      0% {
+        top: 10%;
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 1;
+      }
+
+      90% {
+        opacity: 1;
+      }
+
+      100% {
+        top: 90%;
+        opacity: 0;
+      }
     }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-    .toast.success { border-color: var(--green); color: var(--green); }
-    .toast.error   { border-color: var(--red);   color: var(--red);   }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .toast.error {
+      border-color: var(--red);
+      color: var(--red);
+    }
 
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-6px); }
-      40%, 80% { transform: translateX(6px); }
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      20%,
+      60% {
+        transform: translateX(-6px);
+      }
+
+      40%,
+      80% {
+        transform: translateX(6px);
+      }
     }
+
     .pin-dots.shake {
       animation: shake 0.3s ease-in-out;
     }
 
     /* Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 99px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
 
     /* Custom Cursor & Antigravity Particles */
     :root {
       --cursor-base: #eeeee7;
     }
+
     [data-theme="light"] {
       --cursor-base: #3C3C3C;
     }
 
     @media (pointer: fine) {
-      html, body {
+
+      html,
+      body {
         cursor: none;
       }
-      a, button, input, select, textarea, [role="button"], .clickable {
+
+      a,
+      button,
+      input,
+      select,
+      textarea,
+      [role="button"],
+      .clickable {
         cursor: none !important;
       }
     }
@@ -1293,8 +1915,8 @@
       background-color: var(--cursor-base);
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), 
-                  background-color 0.25s ease;
+      transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1),
+        background-color 0.25s ease;
     }
 
     #cursor.hovered .cursor-dot-inner {
@@ -1323,6 +1945,7 @@
       font-size: 13px;
       margin-bottom: 20px;
     }
+
     .opp-filter-bar {
       display: flex;
       justify-content: space-between;
@@ -1331,11 +1954,13 @@
       margin-bottom: 24px;
       flex-wrap: wrap;
     }
+
     .opp-filters {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
     }
+
     .opp-filter-btn {
       background: var(--surface2);
       border: 1px solid var(--border);
@@ -1347,24 +1972,29 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
+
     .opp-filter-btn:hover {
       border-color: var(--border2);
       background: var(--surface);
     }
+
     .opp-filter-btn.active-filter {
       background: var(--accent);
       color: #110e0b;
       border-color: var(--accent);
     }
+
     [data-theme="light"] .opp-filter-btn.active-filter {
       color: #ffffff;
     }
+
     .opp-search-wrapper {
       position: relative;
       flex: 1;
       max-width: 320px;
       min-width: 200px;
     }
+
     .opp-search-input {
       width: 100%;
       background: var(--surface2);
@@ -1376,16 +2006,19 @@
       outline: none;
       transition: all 0.2s ease;
     }
+
     .opp-search-input:focus {
       border-color: var(--accent);
       box-shadow: 0 0 10px rgba(94, 234, 212, 0.15);
     }
+
     .opp-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 20px;
       margin-top: 10px;
     }
+
     .opp-card {
       position: relative;
       background: var(--surface);
@@ -1397,11 +2030,13 @@
       gap: 16px;
       transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     }
+
     .opp-card:hover {
       transform: translateY(-4px);
       border-color: var(--border2);
       box-shadow: var(--shadow);
     }
+
     .opp-cat-pill {
       font-size: 11px;
       font-weight: 700;
@@ -1412,31 +2047,56 @@
       display: inline-block;
       width: fit-content;
     }
+
     .opp-cat-pill.scholarship {
       background: rgba(59, 130, 246, 0.12);
       color: #60a5fa;
     }
+
     .opp-cat-pill.internship {
       background: rgba(16, 185, 129, 0.12);
       color: #34d399;
     }
+
     .opp-cat-pill.scheme {
       background: rgba(139, 92, 246, 0.12);
       color: #a78bfa;
     }
+
     .opp-cat-pill.admission {
       background: rgba(245, 158, 11, 0.12);
       color: #fbbf24;
     }
+
     .opp-cat-pill.competition {
       background: rgba(236, 72, 153, 0.12);
       color: #f472b6;
     }
-    [data-theme="light"] .opp-cat-pill.scholarship { background: rgba(59, 130, 246, 0.15); color: #1d4ed8; }
-    [data-theme="light"] .opp-cat-pill.internship { background: rgba(16, 185, 129, 0.15); color: #047857; }
-    [data-theme="light"] .opp-cat-pill.scheme { background: rgba(139, 92, 246, 0.15); color: #6d28d9; }
-    [data-theme="light"] .opp-cat-pill.admission { background: rgba(245, 158, 11, 0.15); color: #b45309; }
-    [data-theme="light"] .opp-cat-pill.competition { background: rgba(236, 72, 153, 0.15); color: #be185d; }
+
+    [data-theme="light"] .opp-cat-pill.scholarship {
+      background: rgba(59, 130, 246, 0.15);
+      color: #1d4ed8;
+    }
+
+    [data-theme="light"] .opp-cat-pill.internship {
+      background: rgba(16, 185, 129, 0.15);
+      color: #047857;
+    }
+
+    [data-theme="light"] .opp-cat-pill.scheme {
+      background: rgba(139, 92, 246, 0.15);
+      color: #6d28d9;
+    }
+
+    [data-theme="light"] .opp-cat-pill.admission {
+      background: rgba(245, 158, 11, 0.15);
+      color: #b45309;
+    }
+
+    [data-theme="light"] .opp-cat-pill.competition {
+      background: rgba(236, 72, 153, 0.15);
+      color: #be185d;
+    }
 
     .opp-eligible-badge {
       font-size: 11px;
@@ -1444,18 +2104,22 @@
       padding: 4px 8px;
       border-radius: 8px;
     }
+
     .opp-eligible-badge.yes {
       background: rgba(52, 211, 153, 0.1);
       color: var(--green);
     }
+
     .opp-eligible-badge.no {
       background: rgba(248, 113, 113, 0.1);
       color: var(--red);
     }
+
     .opp-eligible-badge.unknown {
       background: rgba(251, 191, 36, 0.1);
       color: var(--amber);
     }
+
     .opp-deadline-badge {
       font-size: 11px;
       font-weight: 600;
@@ -1465,12 +2129,14 @@
       border-radius: 8px;
       border: 1px solid var(--border);
     }
+
     .opp-deadline-badge.urgent {
       color: var(--red);
       background: rgba(248, 113, 113, 0.08);
       border-color: rgba(248, 113, 113, 0.2);
       animation: pulse-border 2s infinite;
     }
+
     .opp-empty {
       display: flex;
       flex-direction: column;
@@ -1484,25 +2150,38 @@
       color: var(--muted);
       gap: 12px;
     }
+
     .opp-empty span {
       font-size: 48px;
     }
+
     .opp-empty div {
       font-size: 16px;
       font-weight: 700;
       color: var(--text);
     }
+
     .opp-empty p {
       font-size: 13px;
     }
+
     @keyframes pulse-border {
-      0% { border-color: rgba(248, 113, 113, 0.2); }
-      50% { border-color: rgba(248, 113, 113, 0.6); }
-      100% { border-color: rgba(248, 113, 113, 0.2); }
+      0% {
+        border-color: rgba(248, 113, 113, 0.2);
+      }
+
+      50% {
+        border-color: rgba(248, 113, 113, 0.6);
+      }
+
+      100% {
+        border-color: rgba(248, 113, 113, 0.2);
+      }
     }
   </style>
   <script src="https://accounts.google.com/gsi/client" onload="initGoogleAuth()" async defer></script>
 </head>
+
 <body>
 
 
@@ -1523,37 +2202,48 @@
     <div class="card screen active" id="screen-who">
       <div class="hero-illustration">
         <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <rect x="20" y="10" width="60" height="80" rx="4" fill="var(--surface2)" stroke="var(--border)" stroke-width="2"/>
-          <line x1="30" y1="30" x2="70" y2="30" stroke="var(--muted)" stroke-width="3" stroke-linecap="round"/>
-          <line x1="30" y1="45" x2="60" y2="45" stroke="var(--muted)" stroke-width="3" stroke-linecap="round"/>
-          <line x1="30" y1="60" x2="65" y2="60" stroke="var(--muted)" stroke-width="3" stroke-linecap="round"/>
-          <rect x="55" y="70" width="15" height="15" rx="2" fill="var(--accent)" opacity="0.5"/>
+          <rect x="20" y="10" width="60" height="80" rx="4" fill="var(--surface2)" stroke="var(--border)"
+            stroke-width="2" />
+          <line x1="30" y1="30" x2="70" y2="30" stroke="var(--muted)" stroke-width="3" stroke-linecap="round" />
+          <line x1="30" y1="45" x2="60" y2="45" stroke="var(--muted)" stroke-width="3" stroke-linecap="round" />
+          <line x1="30" y1="60" x2="65" y2="60" stroke="var(--muted)" stroke-width="3" stroke-linecap="round" />
+          <rect x="55" y="70" width="15" height="15" rx="2" fill="var(--accent)" opacity="0.5" />
         </svg>
         <div class="scanner-line"></div>
       </div>
       <p class="who-title">Form<span style="color: var(--accent);">Sarthi</span></p>
-      <p class="who-sub" style="margin-bottom: 24px">Your privacy-first, AI-powered form filling companion. Select your profile to unlock the vault.</p>
+      <p class="who-sub" style="margin-bottom: 24px">Your privacy-first, AI-powered form filling companion. Select your
+        profile to unlock the vault.</p>
 
       <div class="profile-grid" id="profile-grid">
         <!-- Injected dynamically -->
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center; width: 100%;">
+      <div
+        style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px; align-items: center; width: 100%;">
         <div class="google-btn-wrapper">
           <div id="google-signin-btn" class="google-overlay"></div>
           <button class="add-btn custom-google-btn">
             <svg width="16" height="16" viewBox="0 0 48 48" style="margin-right: 4px;">
-              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.5 24c0-1.63-.15-3.2-.42-4.72H24v9h12.75c-.55 2.87-2.17 5.31-4.61 6.94v5.77h7.47C44.09 36.88 46.5 30.98 46.5 24z"/>
-              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.47-5.77c-2.07 1.38-4.71 2.2-8.42 2.2-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              <path fill="#FBBC05" d="M10.54 28.71c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.98-6.07z"/>
+              <path fill="#EA4335"
+                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+              <path fill="#4285F4"
+                d="M46.5 24c0-1.63-.15-3.2-.42-4.72H24v9h12.75c-.55 2.87-2.17 5.31-4.61 6.94v5.77h7.47C44.09 36.88 46.5 30.98 46.5 24z" />
+              <path fill="#34A853"
+                d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.47-5.77c-2.07 1.38-4.71 2.2-8.42 2.2-6.26 0-11.57-4.22-13.46-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+              <path fill="#FBBC05"
+                d="M10.54 28.71c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.98-6.07z" />
             </svg>
             Continue with Google
           </button>
         </div>
 
         <button class="add-btn" onclick="showAddProfile()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
           Add new profile manually
         </button>
       </div>
@@ -1596,9 +2286,13 @@
       </div>
 
       <div class="form-group" style="margin-bottom:20px; position:relative;">
-        <label style="display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:6px">Set Password (max 8 characters, alphanumeric)</label>
-        <input id="new-password" class="form-input" type="password" placeholder="Enter secure password" maxlength="8" style="width:100%; padding-right:40px;">
-        <button type="button" onclick="togglePasswordVisibility('new-password', this)" style="position:absolute; right:12px; top:36px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
+        <label
+          style="display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:6px">Set
+          Password (max 8 characters, alphanumeric)</label>
+        <input id="new-password" class="form-input" type="password" placeholder="Enter secure password" maxlength="8"
+          style="width:100%; padding-right:40px;">
+        <button type="button" onclick="togglePasswordVisibility('new-password', this)"
+          style="position:absolute; right:12px; top:36px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
       </div>
 
       <div style="display:flex; gap:10px">
@@ -1616,13 +2310,16 @@
       </div>
 
       <div class="form-group" style="position:relative; margin-bottom:10px;">
-        <input id="unlock-password" class="form-input" type="password" placeholder="Enter password" maxlength="8" style="width:100%; padding-right:40px; text-align:center;">
-        <button type="button" onclick="togglePasswordVisibility('unlock-password', this)" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
+        <input id="unlock-password" class="form-input" type="password" placeholder="Enter password" maxlength="8"
+          style="width:100%; padding-right:40px; text-align:center;">
+        <button type="button" onclick="togglePasswordVisibility('unlock-password', this)"
+          style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
       </div>
-      
+
       <div class="err-msg" id="pin-error" style="margin-bottom:15px; text-align:center;"></div>
-      
-      <button class="btn" id="unlock-btn" style="width:100%; margin-bottom:20px;" onclick="verifyPin()">Unlock Vault</button>
+
+      <button class="btn" id="unlock-btn" style="width:100%; margin-bottom:20px;" onclick="verifyPin()">Unlock
+        Vault</button>
 
       <div class="back-link" onclick="show('who')">← Back to profiles</div>
     </div>
@@ -1631,13 +2328,27 @@
     <div class="card screen" id="screen-verify">
       <div style="text-align:center; padding:20px;">
         <h2 style="color:var(--text); margin-bottom:10px;">Verification Required</h2>
-        <p style="color:var(--muted); font-size:14px; margin-bottom:20px;">We've sent an email to <strong id="verify-email-display"></strong>. Please check your inbox and click "Yes, this was me" to continue.</p>
-        <div class="spinner" style="margin: 0 auto 20px; width: 40px; height: 40px; border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="color:var(--muted); font-size:14px; margin-bottom:20px;">We've sent an email to <strong
+            id="verify-email-display"></strong>. Please check your inbox and click "Yes, this was me" to continue.</p>
+        <div class="spinner"
+          style="margin: 0 auto 20px; width: 40px; height: 40px; border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite;">
+        </div>
         <p style="color:var(--accent); font-size:12px;" id="verify-status-text">Waiting for your response...</p>
-        <button class="btn outline" style="margin-top:20px; width:100%;" onclick="cancelVerification()">Cancel Login</button>
+        <button class="btn outline" style="margin-top:20px; width:100%;" onclick="cancelVerification()">Cancel
+          Login</button>
       </div>
     </div>
-    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+    <style>
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
 
     <!-- ══════════ SCREEN: MAIN (UNLOCKED WIDE LAYOUT) ══════════ -->
     <div class="screen" id="screen-main">
@@ -1648,19 +2359,28 @@
         <div class="header-actions">
           <!-- Notification Bell -->
           <div class="notification-container" style="position: relative; display: inline-block;">
-            <button class="btn-theme" id="notification-bell-btn" onclick="toggleNotificationsDropdown(); event.stopPropagation();" style="position: relative; padding: 8px 12px; font-size: 16px; display: flex; align-items: center; justify-content: center;">
+            <button class="btn-theme" id="notification-bell-btn"
+              onclick="toggleNotificationsDropdown(); event.stopPropagation();"
+              style="position: relative; padding: 8px 12px; font-size: 16px; display: flex; align-items: center; justify-content: center;">
               🔔
-              <span id="notification-badge" class="badge" style="position: absolute; top: -5px; right: -5px; background: var(--red); color: #fff; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; display: none;">0</span>
+              <span id="notification-badge" class="badge"
+                style="position: absolute; top: -5px; right: -5px; background: var(--red); color: #fff; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; display: none;">0</span>
             </button>
-            
+
             <!-- Notifications Dropdown -->
-            <div id="notification-dropdown" class="card" style="display: none; position: absolute; right: 0; top: 45px; width: 350px; max-height: 400px; overflow-y: auto; z-index: 1000; padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; gap: 8px;">
+            <div id="notification-dropdown" class="card"
+              style="display: none; position: absolute; right: 0; top: 45px; width: 350px; max-height: 400px; overflow-y: auto; z-index: 1000; padding: 16px; border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--surface);">
+              <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; gap: 8px;">
                 <h3 style="font-size: 14px; font-weight: 700;">Reminders</h3>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                  <button onclick="markAllNotificationsAsRead()" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer;">Mark all read</button>
+                  <button onclick="markAllNotificationsAsRead()"
+                    style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer;">Mark
+                    all read</button>
                   <span style="color: var(--border2); font-size: 10px;">|</span>
-                  <button onclick="openSurveyModal(); event.stopPropagation();" style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 2px;">⚙️ Customize</button>
+                  <button onclick="openSurveyModal(); event.stopPropagation();"
+                    style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 2px;">⚙️
+                    Customize</button>
                 </div>
               </div>
               <div id="notification-list" style="display: flex; flex-direction: column; gap: 10px;">
@@ -1720,15 +2440,18 @@
 
         <!-- Main Panel Content -->
         <main class="main-content">
-          
+
           <!-- ── TAB: DOCUMENTS ── -->
           <div class="tab-panel" id="tab-docs">
-            <div style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div
+              style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
               <div>
                 <h2 style="font-size: 18px; font-weight: 700">My Uploaded Documents</h2>
-                <p style="font-size: 13px; color: var(--muted)">Upload and scan credentials to parse details into your encrypted vault.</p>
+                <p style="font-size: 13px; color: var(--muted)">Upload and scan credentials to parse details into your
+                  encrypted vault.</p>
               </div>
-              <button class="btn" onclick="document.getElementById('custom-doc-modal').style.display='flex'" style="padding: 8px 16px; font-size: 13px;">➕ Add Custom Document</button>
+              <button class="btn" onclick="document.getElementById('custom-doc-modal').style.display='flex'"
+                style="padding: 8px 16px; font-size: 13px;">➕ Add Custom Document</button>
             </div>
 
             <div class="docs-grid" id="doc-list-render">
@@ -1738,15 +2461,22 @@
             <div class="upload-zone" id="upload-zone">
               <input type="file" id="file-input" accept="image/*,.pdf" multiple onchange="handleUpload(this.files)">
               <div class="upload-icon">
-                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <svg viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
               </div>
               <div class="upload-title">Scan and parse new documents</div>
-              <div class="upload-hint">Upload Aadhaar, PAN, DL, Resume, Passport, Marksheets, or Passbooks (PDF, JPG, PNG)</div>
+              <div class="upload-hint">Upload Aadhaar, PAN, DL, Resume, Passport, Marksheets, or Passbooks (PDF, JPG,
+                PNG)</div>
             </div>
 
             <div class="ocr-box" id="ocr-box" style="display:none">
               <div class="ocr-label" id="ocr-label">Processing...</div>
-              <div class="progress-bar"><div class="progress-fill" id="ocr-progress"></div></div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="ocr-progress"></div>
+              </div>
               <div class="ocr-result" id="ocr-result"></div>
             </div>
           </div>
@@ -1760,11 +2490,13 @@
                 gap: 24px;
                 margin-top: 15px;
               }
+
               @media (min-width: 1024px) {
                 .autofill-layout {
                   grid-template-columns: 420px 1fr;
                 }
               }
+
               .preview-card {
                 background: var(--surface);
                 border: 1px solid var(--border);
@@ -1775,6 +2507,7 @@
                 flex-direction: column;
                 height: 600px;
               }
+
               .preview-header {
                 display: flex;
                 justify-content: space-between;
@@ -1783,6 +2516,7 @@
                 padding-bottom: 8px;
                 border-bottom: 1px solid var(--border);
               }
+
               .preview-title {
                 font-size: 14px;
                 font-weight: 700;
@@ -1791,11 +2525,13 @@
                 align-items: center;
                 gap: 8px;
               }
+
               .preview-actions {
                 display: flex;
                 align-items: center;
                 gap: 12px;
               }
+
               .preview-btn-link {
                 font-size: 12px;
                 color: var(--accent);
@@ -1803,9 +2539,11 @@
                 font-weight: 600;
                 transition: color 0.2s;
               }
+
               .preview-btn-link:hover {
                 color: var(--accent2);
               }
+
               .iframe-container {
                 flex: 1;
                 background: #ffffff;
@@ -1814,9 +2552,13 @@
                 border: 1px solid var(--border);
                 position: relative;
               }
+
               .iframe-placeholder {
                 position: absolute;
-                top: 0; left: 0; right: 0; bottom: 0;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
@@ -1828,6 +2570,7 @@
                 z-index: 2;
                 transition: opacity 0.3s ease;
               }
+
               .iframe-placeholder svg {
                 width: 48px;
                 height: 48px;
@@ -1838,11 +2581,13 @@
 
             <div style="margin-bottom:18px">
               <h2 style="font-size: 18px; font-weight: 700">Smart Form Autofill</h2>
-              <p style="font-size: 13px; color: var(--muted)">Enter form URL (e.g. JEE, NEET, or any job application) to see and autofill it right here.</p>
+              <p style="font-size: 13px; color: var(--muted)">Enter form URL (e.g. JEE, NEET, or any job application) to
+                see and autofill it right here.</p>
             </div>
 
             <div class="url-row" style="margin-bottom: 20px;">
-              <input type="text" id="form-url" class="url-input" placeholder="https://forms.gle/... or form website link" />
+              <input type="text" id="form-url" class="url-input"
+                placeholder="https://forms.gle/... or form website link" />
               <button class="btn" onclick="analyzeForm()">Analyze Form</button>
             </div>
 
@@ -1850,24 +2595,39 @@
               <!-- Left side: Analysis results & Actions -->
               <div class="autofill-sidebar">
                 <div id="meter-section" style="display:none">
-                  <div class="meter-card" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; margin-bottom: 20px;">
+                  <div class="meter-card"
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; margin-bottom: 20px;">
                     <div>
-                      <div class="meter-label" style="font-size: 14px; margin-bottom: 4px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Form Completeness</div>
-                      <div class="meter-pct" id="meter-pct" style="font-size: 28px; font-weight: 800; color: var(--text); transition: color 0.5s;">0%</div>
+                      <div class="meter-label"
+                        style="font-size: 14px; margin-bottom: 4px; color: var(--muted); font-weight: 600; text-transform: uppercase;">
+                        Form Completeness</div>
+                      <div class="meter-pct" id="meter-pct"
+                        style="font-size: 28px; font-weight: 800; color: var(--text); transition: color 0.5s;">0%</div>
                     </div>
-                    
-                    <div class="speedometer-container" style="position: relative; width: 140px; height: 70px; overflow: hidden;">
+
+                    <div class="speedometer-container"
+                      style="position: relative; width: 140px; height: 70px; overflow: hidden;">
                       <svg viewBox="0 0 200 100" style="width: 100%; height: 100%; display: block;">
-                        <path d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="20" stroke-linecap="round"/>
-                        <path id="speedo-fill" d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--green)" stroke-width="20" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04" style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;"/>
+                        <path d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="20"
+                          stroke-linecap="round" />
+                        <path id="speedo-fill" d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--green)"
+                          stroke-width="20" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04"
+                          style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;" />
                       </svg>
-                      <div id="speedo-needle" style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 60px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>
-                      <div style="position: absolute; bottom: 0px; left: 50%; width: 16px; height: 16px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+                      <div id="speedo-needle"
+                        style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 60px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);">
+                      </div>
+                      <div
+                        style="position: absolute; bottom: 0px; left: 50%; width: 16px; height: 16px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                      </div>
                     </div>
                   </div>
 
-                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Detected Fields Map</div>
-                  <div class="field-list" id="field-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;"></div>
+                  <div
+                    style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">
+                    Detected Fields Map</div>
+                  <div class="field-list" id="field-list"
+                    style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;"></div>
 
                   <div style="display: flex; gap: 10px;">
                     <button class="btn" style="flex: 1" onclick="fillForm()">⚡ Auto Fill Form</button>
@@ -1876,10 +2636,12 @@
                 </div>
 
                 <!-- Guidance state when no form is analyzed yet -->
-                <div id="autofill-guidance-card" class="card" style="padding: 24px; text-align: center; color: var(--muted);">
+                <div id="autofill-guidance-card" class="card"
+                  style="padding: 24px; text-align: center; color: var(--muted);">
                   <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
                   <div style="font-weight: 600; color: var(--text); margin-bottom: 6px;">Ready to Scan</div>
-                  <div style="font-size: 12px; line-height: 1.4;">Paste a link to any form and click "Analyze Form" to preview and fill.</div>
+                  <div style="font-size: 12px; line-height: 1.4;">Paste a link to any form and click "Analyze Form" to
+                    preview and fill.</div>
                 </div>
               </div>
 
@@ -1891,18 +2653,29 @@
                     <span>Live Form View</span>
                   </div>
                   <div class="preview-actions">
-                    <button onclick="analyzeForm()" style="background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px; transition: all 0.2s;" title="Reload Form">🔄</button>
+                    <button onclick="analyzeForm()"
+                      style="background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px; transition: all 0.2s;"
+                      title="Reload Form">🔄</button>
                     <a id="open-external-btn" class="preview-btn-link" href="#" target="_blank">Open External ↗</a>
                   </div>
                 </div>
-                <div class="iframe-container" style="flex: 1; background: #f0ebf8; border-radius: var(--radius-sm); overflow-y: auto; border: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px;" id="mock-form-container">
+                <div class="iframe-container"
+                  style="flex: 1; background: #f0ebf8; border-radius: var(--radius-sm); overflow-y: auto; border: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px;"
+                  id="mock-form-container">
                   <div id="iframe-placeholder-el" class="iframe-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
                     <div style="font-weight: 600; color: var(--text); margin-bottom: 4px;">Embedded Form Preview</div>
-                    <div style="font-size: 12px; max-width: 250px;">Please enter and analyze a form URL to load the live preview here.</div>
+                    <div style="font-size: 12px; max-width: 250px;">Please enter and analyze a form URL to load the live
+                      preview here.</div>
                   </div>
                 </div>
-                <div style="font-size: 11px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; gap: 4px;">
+                <div
+                  style="font-size: 11px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; gap: 4px;">
                   <span>💡</span>
                   <span>Form is rendered locally to bypass cross-origin browser and login restrictions.</span>
                 </div>
@@ -1915,12 +2688,17 @@
             <div style="margin-bottom:18px; display: flex; justify-content: space-between; align-items: center">
               <div>
                 <h2 style="font-size: 18px; font-weight: 700">Profile Vault Data</h2>
-                <p style="font-size: 13px; color: var(--muted)">Review, add or modify extracted field data stored in browser IndexedDB.</p>
+                <p style="font-size: 13px; color: var(--muted)">Review, add or modify extracted field data stored in
+                  browser IndexedDB.</p>
               </div>
               <div style="display:flex; gap:8px; align-items: center">
-                <button class="btn" onclick="document.getElementById('custom-field-modal').style.display='flex'" style="font-size:12px; padding: 8px 12px">➕ Add Custom Field</button>
-                <button class="btn outline" style="font-size:12px; padding: 8px 12px" onclick="toggleEditProfile(true)" id="edit-btn-profile">✏️ Edit data</button>
-                <button class="btn outline" style="font-size:12px; padding: 8px 12px; color:var(--red); border-color:transparent" onclick="deleteProfile()">🗑️ Delete Profile</button>
+                <button class="btn" onclick="document.getElementById('custom-field-modal').style.display='flex'"
+                  style="font-size:12px; padding: 8px 12px">➕ Add Custom Field</button>
+                <button class="btn outline" style="font-size:12px; padding: 8px 12px" onclick="toggleEditProfile(true)"
+                  id="edit-btn-profile">✏️ Edit data</button>
+                <button class="btn outline"
+                  style="font-size:12px; padding: 8px 12px; color:var(--red); border-color:transparent"
+                  onclick="deleteProfile()">🗑️ Delete Profile</button>
               </div>
             </div>
 
@@ -1945,7 +2723,8 @@
           <div class="tab-panel" id="tab-tools">
             <div style="margin-bottom:18px">
               <h2 style="font-size: 18px; font-weight: 700">Document Image Tools</h2>
-              <p style="font-size: 13px; color: var(--muted)">Convert formats, resize resolution, and compress images directly client-side.</p>
+              <p style="font-size: 13px; color: var(--muted)">Convert formats, resize resolution, and compress images
+                directly client-side.</p>
             </div>
 
             <div class="tool-card">
@@ -1981,7 +2760,8 @@
                 </div>
               </div>
 
-              <button class="btn" style="width:100%; margin-top:10px" onclick="runDocTool()">Process & Download Document ↗</button>
+              <button class="btn" style="width:100%; margin-top:10px" onclick="runDocTool()">Process & Download Document
+                ↗</button>
             </div>
           </div>
 
@@ -1989,30 +2769,35 @@
           <div class="tab-panel" id="tab-deadlines">
             <div style="margin-bottom:18px">
               <h2 style="font-size: 18px; font-weight: 700">Application Deadlines & Reminders</h2>
-              <p style="font-size: 13px; color: var(--muted)">Track application closing dates. Get alerts before deadlines expire.</p>
+              <p style="font-size: 13px; color: var(--muted)">Track application closing dates. Get alerts before
+                deadlines expire.</p>
             </div>
 
             <div class="deadline-creator">
-              <div style="font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase">Add Form Deadline</div>
+              <div style="font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase">Add Form
+                Deadline</div>
               <div class="deadline-inputs-row">
                 <div style="display:flex; flex-direction:column; gap:4px">
                   <label style="font-size:11px; font-weight:700">Form / Portal Name</label>
-                  <input type="text" id="deadline-form-name" class="form-input" placeholder="e.g. JEE Main 2027 Registration" style="padding:10px">
+                  <input type="text" id="deadline-form-name" class="form-input"
+                    placeholder="e.g. JEE Main 2027 Registration" style="padding:10px">
                 </div>
                 <div style="display:flex; flex-direction:column; gap:4px">
                   <label style="font-size:11px; font-weight:700">Form Link</label>
-                  <input type="text" id="deadline-form-url" class="form-input" placeholder="https://jeemain.nta.nic.in" style="padding:10px">
+                  <input type="text" id="deadline-form-url" class="form-input" placeholder="https://jeemain.nta.nic.in"
+                    style="padding:10px">
                 </div>
                 <div style="display:flex; flex-direction:column; gap:4px">
                   <label style="font-size:11px; font-weight:700">Closing Date & Time</label>
-                  <input type="text" id="deadline-time" class="form-input" placeholder="Select Date & Time..." style="padding:10px">
+                  <input type="text" id="deadline-time" class="form-input" placeholder="Select Date & Time..."
+                    style="padding:10px">
                 </div>
                 <button class="btn" onclick="addDeadline()" style="padding: 10px 20px">Add</button>
               </div>
             </div>
 
             <script>
-              document.addEventListener('DOMContentLoaded', function() {
+              document.addEventListener('DOMContentLoaded', function () {
                 flatpickr("#deadline-time", {
                   enableTime: true,
                   dateFormat: "Y-m-d H:i",
@@ -2028,7 +2813,9 @@
               });
             </script>
 
-            <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Tracked Portals</div>
+            <div
+              style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">
+              Tracked Portals</div>
             <div class="list-group" id="deadline-list-render">
               <!-- Rendered deadlines list -->
             </div>
@@ -2036,10 +2823,12 @@
 
           <!-- ── TAB: OPPORTUNITY HUB ── -->
           <div class="tab-panel" id="tab-opportunity">
-            <div style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div
+              style="margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
               <div>
                 <h2 style="font-size: 18px; font-weight: 700">🌟 Opportunity Hub</h2>
-                <p style="font-size: 13px; color: var(--muted)">Discover scholarships, internships, schemes, admissions, and competitions matching your profile.</p>
+                <p style="font-size: 13px; color: var(--muted)">Discover scholarships, internships, schemes, admissions,
+                  and competitions matching your profile.</p>
               </div>
             </div>
 
@@ -2048,14 +2837,20 @@
             <div class="opp-filter-bar">
               <div class="opp-filters">
                 <button class="opp-filter-btn" id="opp-filter-all" onclick="setOppFilter('all', this)">All</button>
-                <button class="opp-filter-btn" id="opp-filter-scholarship" onclick="setOppFilter('scholarship', this)">🎓 Scholarships</button>
-                <button class="opp-filter-btn" id="opp-filter-internship" onclick="setOppFilter('internship', this)">💼 Internships</button>
-                <button class="opp-filter-btn" id="opp-filter-scheme" onclick="setOppFilter('scheme', this)">🏛️ Govt Schemes</button>
-                <button class="opp-filter-btn" id="opp-filter-admission" onclick="setOppFilter('admission', this)">🏫 Admissions</button>
-                <button class="opp-filter-btn" id="opp-filter-competition" onclick="setOppFilter('competition', this)">🏆 Competitions</button>
+                <button class="opp-filter-btn" id="opp-filter-scholarship"
+                  onclick="setOppFilter('scholarship', this)">🎓 Scholarships</button>
+                <button class="opp-filter-btn" id="opp-filter-internship" onclick="setOppFilter('internship', this)">💼
+                  Internships</button>
+                <button class="opp-filter-btn" id="opp-filter-scheme" onclick="setOppFilter('scheme', this)">🏛️ Govt
+                  Schemes</button>
+                <button class="opp-filter-btn" id="opp-filter-admission" onclick="setOppFilter('admission', this)">🏫
+                  Admissions</button>
+                <button class="opp-filter-btn" id="opp-filter-competition"
+                  onclick="setOppFilter('competition', this)">🏆 Competitions</button>
               </div>
               <div class="opp-search-wrapper">
-                <input type="text" id="opp-search" class="opp-search-input" placeholder="Search opportunities..." onkeyup="renderOpportunities()" />
+                <input type="text" id="opp-search" class="opp-search-input" placeholder="Search opportunities..."
+                  onkeyup="renderOpportunities()" />
               </div>
             </div>
 
@@ -2075,9 +2870,11 @@
             <div style="margin-bottom:18px; display: flex; justify-content: space-between; align-items: center">
               <div>
                 <h2 style="font-size: 18px; font-weight: 700">Autofill History Logs</h2>
-                <p style="font-size: 13px; color: var(--muted)">Locally logged list of form applications visited and autofilled.</p>
+                <p style="font-size: 13px; color: var(--muted)">Locally logged list of form applications visited and
+                  autofilled.</p>
               </div>
-              <button class="btn outline" style="font-size:12px; padding:6px 12px" onclick="clearHistory()">Clear History Logs</button>
+              <button class="btn outline" style="font-size:12px; padding:6px 12px" onclick="clearHistory()">Clear
+                History Logs</button>
             </div>
 
             <div class="list-group" id="history-list-render">
@@ -2089,44 +2886,58 @@
           <div class="tab-panel" id="tab-security">
             <div style="margin-bottom:18px">
               <h2 style="font-size: 18px; font-weight: 700">Local Security Shield</h2>
-              <p style="font-size: 13px; color: var(--muted)">FormSarthi operates as a zero-knowledge local-first vault. Here's how your data stays safe.</p>
+              <p style="font-size: 13px; color: var(--muted)">FormSarthi operates as a zero-knowledge local-first vault.
+                Here's how your data stays safe.</p>
             </div>
 
             <div class="security-banner">
               <div class="security-banner-icon">🛡️</div>
               <div class="security-banner-text">
                 <h3>Zero Server-Side Storage</h3>
-                <p>Your documents, identity details, bank specifications, and login PIN never leave this device. The backend server acts only as a stateless utility engine for running OCR processing and converting image configurations.</p>
+                <p>Your documents, identity details, bank specifications, and login PIN never leave this device. The
+                  backend server acts only as a stateless utility engine for running OCR processing and converting image
+                  configurations.</p>
               </div>
             </div>
 
             <div class="security-features">
               <div class="security-card">
                 <h4>🔒 AES-256 Bit Encryption</h4>
-                <p>All database elements are encrypted in your browser's private IndexedDB storage using AES-256 standard encryption. Decryption only takes place in active system memory when successfully unlocked.</p>
+                <p>All database elements are encrypted in your browser's private IndexedDB storage using AES-256
+                  standard encryption. Decryption only takes place in active system memory when successfully unlocked.
+                </p>
               </div>
 
               <div class="security-card">
                 <h4>🔑 PBKDF2 Key Derivation</h4>
-                <p>Decryption keys are generated dynamically inside the browser client using PBKDF2 with 1,000 hash iterations. The key is derived directly from your unique email address salt and your private 6-digit PIN.</p>
+                <p>Decryption keys are generated dynamically inside the browser client using PBKDF2 with 1,000 hash
+                  iterations. The key is derived directly from your unique email address salt and your private 6-digit
+                  PIN.</p>
               </div>
 
               <div class="security-card">
                 <h4>🧠 Stateless Session Access</h4>
-                <p>When you unlock your vault, a decrypted copy is held briefly inside window <code>sessionStorage</code>. The Chrome Extension reads from this local memory tab-to-tab, completely bypassing API networks.</p>
+                <p>When you unlock your vault, a decrypted copy is held briefly inside window
+                  <code>sessionStorage</code>. The Chrome Extension reads from this local memory tab-to-tab, completely
+                  bypassing API networks.</p>
               </div>
 
               <div class="security-card">
                 <h4>🚫 Zero Data Profiling</h4>
-                <p>No analytics engines, trackers, or databases monitor your filled fields. FormSarthi is fully private and run locally by you, keeping your documents and metadata 100% isolated.</p>
+                <p>No analytics engines, trackers, or databases monitor your filled fields. FormSarthi is fully private
+                  and run locally by you, keeping your documents and metadata 100% isolated.</p>
               </div>
             </div>
 
             <!-- ── ABOUT FORMSARTHI ── -->
-            <div class="about-section" style="margin-top: 40px; padding: 20px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border);">
+            <div class="about-section"
+              style="margin-top: 40px; padding: 20px; background: var(--surface2); border-radius: var(--radius); border: 1px solid var(--border);">
               <h3 style="margin-bottom: 10px; color: var(--accent);">About FormSarthi</h3>
               <p style="font-size: 14px; color: var(--muted); line-height: 1.5;">
-                FormSarthi is your private, stateless utility engine for form filling. Designed for Indian students and citizens, it seamlessly processes and encrypts your data locally, ensuring your PAN, Aadhaar, and other sensitive details never leave your device unencrypted. We utilize on-device OCR and document analysis to make filling out tedious online applications a breeze.
+                FormSarthi is your private, stateless utility engine for form filling. Designed for Indian students and
+                citizens, it seamlessly processes and encrypts your data locally, ensuring your PAN, Aadhaar, and other
+                sensitive details never leave your device unencrypted. We utilize on-device OCR and document analysis to
+                make filling out tedious online applications a breeze.
               </p>
             </div>
           </div>
@@ -2138,29 +2949,38 @@
   </div>
 
   <!-- ADD CUSTOM DOCUMENT MODAL -->
-  <div id="custom-doc-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-    <div class="card" style="width:90%; max-width:400px; padding:24px; display:flex; flex-direction:column; gap:18px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+  <div id="custom-doc-modal"
+    style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="card"
+      style="width:90%; max-width:400px; padding:24px; display:flex; flex-direction:column; gap:18px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
         <h2 style="font-size:16px; font-weight:800; color:var(--text)">➕ Add Custom Document</h2>
-        <button onclick="document.getElementById('custom-doc-modal').style.display='none'" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+        <button onclick="document.getElementById('custom-doc-modal').style.display='none'"
+          style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
       </div>
       <div class="form-group" style="margin-bottom: 0;">
         <label>Document Name</label>
         <input type="text" id="custom-doc-name" class="form-input" placeholder="e.g. Income Certificate, Caste Proof">
       </div>
       <div style="display:flex; gap:10px;">
-        <button class="btn outline" onclick="document.getElementById('custom-doc-modal').style.display='none'" style="flex:1; padding:10px;">Cancel</button>
+        <button class="btn outline" onclick="document.getElementById('custom-doc-modal').style.display='none'"
+          style="flex:1; padding:10px;">Cancel</button>
         <button class="btn" onclick="saveCustomDoc()" style="flex:1; padding:10px;">Add Slot</button>
       </div>
     </div>
   </div>
 
   <!-- ADD CUSTOM FIELD MODAL -->
-  <div id="custom-field-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-    <div class="card" style="width:90%; max-width:400px; padding:24px; display:flex; flex-direction:column; gap:18px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+  <div id="custom-field-modal"
+    style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="card"
+      style="width:90%; max-width:400px; padding:24px; display:flex; flex-direction:column; gap:18px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
         <h2 style="font-size:16px; font-weight:800; color:var(--text)">➕ Add Custom Profile Field</h2>
-        <button onclick="document.getElementById('custom-field-modal').style.display='none'" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+        <button onclick="document.getElementById('custom-field-modal').style.display='none'"
+          style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
       </div>
       <div class="form-group" style="margin-bottom: 0;">
         <label>Field Name (e.g. Passport Expiry, Religion)</label>
@@ -2171,38 +2991,53 @@
         <input type="text" id="custom-field-value" class="form-input" placeholder="e.g. Business">
       </div>
       <div style="display:flex; gap:10px;">
-        <button class="btn outline" onclick="document.getElementById('custom-field-modal').style.display='none'" style="flex:1; padding:10px;">Cancel</button>
+        <button class="btn outline" onclick="document.getElementById('custom-field-modal').style.display='none'"
+          style="flex:1; padding:10px;">Cancel</button>
         <button class="btn" onclick="saveCustomField()" style="flex:1; padding:10px;">Add Field</button>
       </div>
     </div>
   </div>
 
   <!-- CAMERA CAPTURE MODAL -->
-  <div id="camera-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); align-items:center; justify-content:center;">
-    <div class="card" style="width:90%; max-width:550px; padding:24px; display:flex; flex-direction:column; gap:16px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
-        <h2 id="camera-modal-title" style="font-size:16px; font-weight:800; color:var(--text)">📷 Capture Document Photo</h2>
-        <button onclick="closeCameraCapture()" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+  <div id="camera-modal"
+    style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); align-items:center; justify-content:center;">
+    <div class="card"
+      style="width:90%; max-width:550px; padding:24px; display:flex; flex-direction:column; gap:16px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+        <h2 id="camera-modal-title" style="font-size:16px; font-weight:800; color:var(--text)">📷 Capture Document Photo
+        </h2>
+        <button onclick="closeCameraCapture()"
+          style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
       </div>
-      
+
       <!-- Camera selector if multiple devices are found -->
       <div id="camera-device-select-container" style="display:none; flex-direction:column; gap:6px;">
-        <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;">Select Camera</label>
-        <select id="camera-device-select" onchange="switchCamera(this.value)" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;"></select>
+        <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;">Select
+          Camera</label>
+        <select id="camera-device-select" onchange="switchCamera(this.value)"
+          style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;"></select>
       </div>
 
       <!-- Video Feed Container -->
-      <div style="position:relative; width:100%; aspect-ratio:4/3; background:#000; border-radius:var(--radius); overflow:hidden; border:2px solid var(--border);">
-        <video id="camera-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scaleX(1);"></video>
+      <div
+        style="position:relative; width:100%; aspect-ratio:4/3; background:#000; border-radius:var(--radius); overflow:hidden; border:2px solid var(--border);">
+        <video id="camera-video" autoplay playsinline
+          style="width:100%; height:100%; object-fit:cover; transform: scaleX(1);"></video>
         <!-- Overlay to guide document positioning -->
-        <div style="position:absolute; inset:20px; border:2px dashed rgba(255,255,255,0.4); border-radius:6px; pointer-events:none; display:flex; align-items:center; justify-content:center;">
-          <span style="color:rgba(255,255,255,0.6); font-size:11px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px;">Align Document Inside Frame</span>
+        <div
+          style="position:absolute; inset:20px; border:2px dashed rgba(255,255,255,0.4); border-radius:6px; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+          <span
+            style="color:rgba(255,255,255,0.6); font-size:11px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px;">Align
+            Document Inside Frame</span>
         </div>
       </div>
-      
+
       <div style="display:flex; gap:10px;">
         <button class="btn outline" onclick="closeCameraCapture()" style="flex:1; padding:10px;">Cancel</button>
-        <button class="btn" onclick="capturePhoto()" style="flex:1; padding:10px; display:flex; align-items:center; justify-content:center; gap:6px;">📸 Capture & Upload</button>
+        <button class="btn" onclick="capturePhoto()"
+          style="flex:1; padding:10px; display:flex; align-items:center; justify-content:center; gap:6px;">📸 Capture &
+          Upload</button>
       </div>
     </div>
   </div>
@@ -2210,38 +3045,54 @@
 
 
   <!-- FULL SIZE DOCUMENT MODAL -->
-  <div id="doc-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; flex-direction:column;">
+  <div id="doc-modal"
+    style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; flex-direction:column;">
     <div style="width:100%; padding:20px; display:flex; justify-content:space-between; align-items:center;">
       <h2 id="doc-modal-title" style="color:#fff; font-size:20px;">Document Review</h2>
-      <button onclick="document.getElementById('doc-modal').style.display='none'" style="background:var(--red); color:#fff; border:none; padding:8px 16px; border-radius:var(--radius-sm); font-weight:bold; cursor:pointer;">Close ✕</button>
+      <button onclick="document.getElementById('doc-modal').style.display='none'"
+        style="background:var(--red); color:#fff; border:none; padding:8px 16px; border-radius:var(--radius-sm); font-weight:bold; cursor:pointer;">Close
+        ✕</button>
     </div>
-    <div style="flex:1; width:90%; max-width:1000px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:20px;">
-      <img id="doc-modal-img" style="display:none; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;" />
-      <iframe id="doc-modal-pdf" style="display:none; width:100%; height:100%; border:none; border-radius:8px; background:#fff;"></iframe>
+    <div
+      style="flex:1; width:90%; max-width:1000px; display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:20px;">
+      <img id="doc-modal-img"
+        style="display:none; max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;" />
+      <iframe id="doc-modal-pdf"
+        style="display:none; width:100%; height:100%; border:none; border-radius:8px; background:#fff;"></iframe>
     </div>
   </div>
 
   <!-- SURVEY CUSTOMIZATION MODAL -->
-  <div id="survey-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
-    <div class="card" style="width:90%; max-width:500px; max-height:85vh; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px; position:relative; box-shadow:var(--shadow); border:1px solid var(--border); background:var(--surface);">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; position:sticky; top:0; background:var(--surface); z-index:1;">
+  <div id="survey-modal"
+    style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+    <div class="card"
+      style="width:90%; max-width:500px; max-height:85vh; overflow-y:auto; padding:24px; display:flex; flex-direction:column; gap:18px; position:relative; box-shadow:var(--shadow); border:1px solid var(--border); background:var(--surface);">
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; position:sticky; top:0; background:var(--surface); z-index:1;">
         <h2 style="font-size:18px; font-weight:800; color:var(--text)">⚙️ Customize Notifications</h2>
-        <button onclick="closeSurveyModal()" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+        <button onclick="closeSurveyModal()"
+          style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
       </div>
-      
-      <p style="font-size:13px; color:var(--muted); line-height:1.5;">Tell us about yourself to personalize your notifications, dynamic form reminders, and eligibility alerts.</p>
-      
+
+      <p style="font-size:13px; color:var(--muted); line-height:1.5;">Tell us about yourself to personalize your
+        notifications, dynamic form reminders, and eligibility alerts.</p>
+
       <div style="display:flex; flex-direction:column; gap:14px;">
-        
+
         <!-- Age & Caste Row -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div style="display:flex; flex-direction:column; gap:6px;">
-            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Age</label>
-            <input type="number" id="survey-age" min="10" max="60" placeholder="e.g. 20" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Age</label>
+            <input type="number" id="survey-age" min="10" max="60" placeholder="e.g. 20"
+              style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
           </div>
           <div style="display:flex; flex-direction:column; gap:6px;">
-            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Category / Caste</label>
-            <select id="survey-caste" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Category
+              / Caste</label>
+            <select id="survey-caste"
+              style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
               <option value="general">General (UR)</option>
               <option value="obc">OBC</option>
               <option value="sc">SC</option>
@@ -2254,16 +3105,22 @@
         <!-- Education Level & 12th Stream Row -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
           <div style="display:flex; flex-direction:column; gap:6px;">
-            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Education Level</label>
-            <select id="survey-qualification" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Education
+              Level</label>
+            <select id="survey-qualification"
+              style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
               <option value="school">High School (Class 10th / 12th)</option>
               <option value="college">College Student (B.Tech / Undergrad)</option>
               <option value="graduate">Graduate / Post-Graduate</option>
             </select>
           </div>
           <div style="display:flex; flex-direction:column; gap:6px;">
-            <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">12th Subject Stream</label>
-            <select id="survey-stream" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
+            <label
+              style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">12th
+              Subject Stream</label>
+            <select id="survey-stream"
+              style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;">
               <option value="pcm">Science - PCM (Physics, Chemistry, Maths)</option>
               <option value="pcb">Science - PCB (Physics, Chemistry, Biology)</option>
               <option value="pcmb">Science - PCMB (Maths & Biology)</option>
@@ -2277,58 +3134,87 @@
 
         <!-- Target Fields -->
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target Fields & Interests</label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-engineering" value="engineering" checked style="accent-color:var(--accent); cursor:pointer;">
+          <label
+            style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target
+            Fields & Interests</label>
+          <div
+            style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-engineering" value="engineering" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Engineering & Tech
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-medical" value="medical" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-medical" value="medical" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Medicine & Healthcare
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-architecture" value="architecture" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-architecture" value="architecture" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Architecture
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-defense" value="defense" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-defense" value="defense" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Defense Services
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-agriculture" value="agriculture" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-agriculture" value="agriculture" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Agriculture & Biotech
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-commerce" value="commerce" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-commerce" value="commerce" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Commerce, CA & CS
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-business" value="business" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-business" value="business" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Business & Management
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-law" value="law" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-law" value="law" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Law (LLB)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-design" value="design" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-design" value="design" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Design & Fashion
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-humanities" value="humanities" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-humanities" value="humanities" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Humanities & Social Sciences
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-government" value="government" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-government" value="government" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Govt Jobs (UPSC/SSC)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-interest-corporate" value="corporate" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-interest-corporate" value="corporate" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Corporate / IT Jobs
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text); grid-column: span 2;">
-              <input type="checkbox" id="survey-interest-scholarships" value="scholarships" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text); grid-column: span 2;">
+              <input type="checkbox" id="survey-interest-scholarships" value="scholarships" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               Scholarships & Financial Aid
             </label>
           </div>
@@ -2336,84 +3222,124 @@
 
         <!-- Target Exams -->
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target Exams & Schemes</label>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-jee" value="jee" checked style="accent-color:var(--accent); cursor:pointer;">
+          <label
+            style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Target
+            Exams & Schemes</label>
+          <div
+            style="display:grid; grid-template-columns:1fr 1fr; gap:8px; background:var(--surface2); border:1px solid var(--border); padding:12px; border-radius:var(--radius-sm);">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-jee" value="jee" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               JEE Main / Advanced
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-neet" value="neet" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-neet" value="neet" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               NEET UG
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-gate" value="gate" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-gate" value="gate" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               GATE
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-cat" value="cat" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-cat" value="cat" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               CAT
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-bitsat" value="bitsat" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-bitsat" value="bitsat" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               BITSAT
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-nata" value="nata" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nata" value="nata" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               NATA (Architecture)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-nda" value="nda" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nda" value="nda" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               NDA (Defense)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-icar" value="icar" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-icar" value="icar" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               ICAR AIEEA (Agriculture)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-ca" value="ca" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-ca" value="ca" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               CA Foundation
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-cseet" value="cseet" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-cseet" value="cseet" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               CSEET (CS Entrance)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-ipmat" value="ipmat" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-ipmat" value="ipmat" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               IPMAT (Management)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-clat" value="clat" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-clat" value="clat" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               CLAT (Law Entrance)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-nift" value="nift" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nift" value="nift" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               NIFT / NID (Design)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-nchmct" value="nchmct" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-nchmct" value="nchmct" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               NCHMCT JEE (Hotel Mgmt)
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-cuet" value="cuet" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-cuet" value="cuet" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               CUET UG
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
-              <input type="checkbox" id="survey-exam-upsc" value="upsc" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text);">
+              <input type="checkbox" id="survey-exam-upsc" value="upsc" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               UPSC / SSC CGL
             </label>
-            <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text); grid-column: span 2;">
-              <input type="checkbox" id="survey-exam-scholarships" value="scholarships" checked style="accent-color:var(--accent); cursor:pointer;">
+            <label
+              style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text); grid-column: span 2;">
+              <input type="checkbox" id="survey-exam-scholarships" value="scholarships" checked
+                style="accent-color:var(--accent); cursor:pointer;">
               National / State Scholarships
             </label>
           </div>
         </div>
 
       </div>
-      
-      <div style="display:flex; gap:10px; margin-top:8px; position:sticky; bottom:0; background:var(--surface); padding-top:8px; border-top:1px solid var(--border); z-index:1;">
-        <button class="btn outline" onclick="closeSurveyModal()" style="flex:1; padding:10px; font-size:13px;">Cancel</button>
-        <button class="btn" onclick="saveSurveyPreferences()" style="flex:1; padding:10px; font-size:13px;">Save Preferences</button>
+
+      <div
+        style="display:flex; gap:10px; margin-top:8px; position:sticky; bottom:0; background:var(--surface); padding-top:8px; border-top:1px solid var(--border); z-index:1;">
+        <button class="btn outline" onclick="closeSurveyModal()"
+          style="flex:1; padding:10px; font-size:13px;">Cancel</button>
+        <button class="btn" onclick="saveSurveyPreferences()" style="flex:1; padding:10px; font-size:13px;">Save
+          Preferences</button>
       </div>
     </div>
   </div>
@@ -2431,22 +3357,22 @@
       try {
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function (c) {
           return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
         return JSON.parse(jsonPayload);
-      } catch(e) { return null; }
+      } catch (e) { return null; }
     }
 
     async function mockGoogleLogin() {
       // Simulate Google returning a successful payload
       const email = "demo.user@gmail.com";
       const name = "Demo User";
-      
+
       const allProfiles = await dbGetAll("profiles");
       const existing = allProfiles.find(p => p.email === email);
-      
-      if(existing) {
+
+      if (existing) {
         const index = allProfiles.indexOf(existing);
         selectProfile(index);
         toast("Mock Google Profile found. Enter your secure PIN.", "success");
@@ -2480,10 +3406,10 @@
         processGoogleAuthSuccess(data, email, name);
         return;
       }
-      
+
       processGoogleAuthSuccess(data, email, name);
     }
-    
+
     function cancelVerification() {
       if (window.currentVerifyInterval) clearInterval(window.currentVerifyInterval);
       show('who');
@@ -2494,30 +3420,30 @@
       let existing = profiles.find(p => p.email === email);
       try {
         if (data.exists && !existing) {
-           // Add them to local profiles so they can enter their PIN
-           const newLocal = { 
-             email: email, 
-             name: name, 
-             color: data.color || 'purple', 
-             avatar: data.avatar || '🪪', 
-             encryptedProfile: data.encrypted_blob || '' 
-           };
-           await dbPut("profiles", newLocal);
-           profiles.push(newLocal);
-           existing = newLocal;
+          // Add them to local profiles so they can enter their PIN
+          const newLocal = {
+            email: email,
+            name: name,
+            color: data.color || 'purple',
+            avatar: data.avatar || '🪪',
+            encryptedProfile: data.encrypted_blob || ''
+          };
+          await dbPut("profiles", newLocal);
+          profiles.push(newLocal);
+          existing = newLocal;
         } else if (data.exists && existing) {
-           // Update local blob if backend has one
-           if (data.encrypted_blob) {
-              existing.encryptedProfile = data.encrypted_blob;
-              existing.color = data.color || existing.color;
-              existing.avatar = data.avatar || existing.avatar;
-              await dbPut("profiles", existing);
-           }
+          // Update local blob if backend has one
+          if (data.encrypted_blob) {
+            existing.encryptedProfile = data.encrypted_blob;
+            existing.color = data.color || existing.color;
+            existing.avatar = data.avatar || existing.avatar;
+            await dbPut("profiles", existing);
+          }
         }
-      } catch(e) {
+      } catch (e) {
         console.error("Failed to update profile during secure Google Login", e);
       }
-      if(existing && existing.encryptedProfile) {
+      if (existing && existing.encryptedProfile) {
         // User exists and has a vault, go to PIN screen
         const index = profiles.indexOf(existing);
         selectProfile(index);
@@ -2617,12 +3543,12 @@
     // into chrome.storage.local so the extension popup can work
     // even when no portal tab is open.
     const EXT_PROFILE_FIELDS = [
-      'name','father_name','mother_name','dob','gender','caste',
-      'nationality','religion','blood_group','marital_status',
-      'phone','alt_phone','email','address','city','state','pincode',
-      'roll_10','roll_12','board_10','board_12','marks_10','marks_12',
-      'college','degree','grad_year','aadhaar','pan','bank_name',
-      'account_no','ifsc',
+      'name', 'father_name', 'mother_name', 'dob', 'gender', 'caste',
+      'nationality', 'religion', 'blood_group', 'marital_status',
+      'phone', 'alt_phone', 'email', 'address', 'city', 'state', 'pincode',
+      'roll_10', 'roll_12', 'board_10', 'board_12', 'marks_10', 'marks_12',
+      'college', 'degree', 'grad_year', 'aadhaar', 'pan', 'bank_name',
+      'account_no', 'ifsc',
     ];
 
     async function syncProfilesToExtension() {
@@ -2634,27 +3560,27 @@
         try {
           const allProfiles = await dbGetAll("profiles");
           const metaList = allProfiles.map(p => ({
-            email:            p.email,
-            name:             p.name || p.email?.split('@')[0] || 'Profile',
-            avatar:           p.avatar || '🪪',
-            color:            p.color  || 'purple',
+            email: p.email,
+            name: p.name || p.email?.split('@')[0] || 'Profile',
+            avatar: p.avatar || '🪪',
+            color: p.color || 'purple',
             encryptedProfile: p.encryptedProfile || null,
-            completionPct:    p.completionPct    || 0,
-            lastUsed:         p.lastUsed         || null,
+            completionPct: p.completionPct || 0,
+            lastUsed: p.lastUsed || null,
           }));
           chrome.storage.local.set({ 'fs_ext_profiles': metaList });
-        } catch (_) {}
+        } catch (_) { }
       }
     }
 
 
-    let profiles       = [];
-    let activeProfile  = null;  // email
-    let activeKey      = null;  // derived PBKDF2 key
-    let sessionData    = null;  // decrypted profile vault fields
-    
+    let profiles = [];
+    let activeProfile = null;  // email
+    let activeKey = null;  // derived PBKDF2 key
+    let sessionData = null;  // decrypted profile vault fields
+
     // Creator builders
-    let selectedColor  = 'purple';
+    let selectedColor = 'purple';
     let selectedAvatar = '🪪';
 
     // Lockout State and Helpers
@@ -2685,11 +3611,11 @@
 
     function startLockoutTimer(email) {
       if (lockoutInterval) clearInterval(lockoutInterval);
-      
+
       const pinError = document.getElementById('pin-error');
       const passInput = document.getElementById('unlock-password');
       const unlockBtn = document.getElementById('unlock-btn');
-      
+
       // Disable input and button
       if (passInput) { passInput.disabled = true; passInput.style.opacity = '0.4'; }
       if (unlockBtn) { unlockBtn.disabled = true; unlockBtn.style.opacity = '0.4'; }
@@ -2701,10 +3627,10 @@
         if (remaining <= 0) {
           clearInterval(lockoutInterval);
           lockoutInterval = null;
-          
+
           setFailedAttempts(email, 0);
           setLockoutExpiry(email, 0);
-          
+
           // Re-enable UI
           if (passInput) { passInput.disabled = false; passInput.style.opacity = '1'; }
           if (unlockBtn) { unlockBtn.disabled = false; unlockBtn.style.opacity = '1'; }
@@ -2721,25 +3647,25 @@
       updateCountdown();
       lockoutInterval = setInterval(updateCountdown, 1000);
     }
-    
+
     // Theme state
     let activeTheme = localStorage.getItem("fs_theme") || "dark";
-    
+
     // Autofill Tracker State
     let currentFormCompleteness = 100;
 
     // ── Document types blueprint (10 slots) ──
     const DOC_TYPES = [
-      { key: 'photo',            label: 'Photo / Photograph' },
-      { key: 'signature',        label: 'Signature Specimen' },
-      { key: 'aadhaar',          label: 'Aadhaar Card' },
-      { key: 'pan',              label: 'PAN Card' },
-      { key: 'dl',               label: 'Driving Licence' },
-      { key: 'resume',           label: 'Resume / CV' },
-      { key: 'marksheet_10',     label: 'Class 10 Marksheet' },
-      { key: 'marksheet_12',     label: 'Class 12 Marksheet' },
-      { key: 'passport',         label: 'Indian Passport' },
-      { key: 'bank_passbook',    label: 'Bank Passbook' }
+      { key: 'photo', label: 'Photo / Photograph' },
+      { key: 'signature', label: 'Signature Specimen' },
+      { key: 'aadhaar', label: 'Aadhaar Card' },
+      { key: 'pan', label: 'PAN Card' },
+      { key: 'dl', label: 'Driving Licence' },
+      { key: 'resume', label: 'Resume / CV' },
+      { key: 'marksheet_10', label: 'Class 10 Marksheet' },
+      { key: 'marksheet_12', label: 'Class 12 Marksheet' },
+      { key: 'passport', label: 'Indian Passport' },
+      { key: 'bank_passbook', label: 'Bank Passbook' }
     ];
 
     // ── Grouped fields blueprint (30 fields) ──
@@ -2796,10 +3722,10 @@
         const buttonWidth = Math.max(200, Math.min(400, parentWidth || 320));
         google.accounts.id.renderButton(
           btnContainer,
-          { 
-            theme: isDark ? "filled_black" : "outline", 
-            size: "large", 
-            width: buttonWidth, 
+          {
+            theme: isDark ? "filled_black" : "outline",
+            size: "large",
+            width: buttonWidth,
             text: "continue_with"
           }
         );
@@ -2844,7 +3770,7 @@
         headerLogoImg.src = theme === 'dark' ? 'themes/dark%20theme%20logo.png' : 'themes/light%20theme%20logo.png';
         headerLogoImg.style.mixBlendMode = theme === 'dark' ? 'normal' : 'multiply';
       }
-      
+
       // Update google sign-in button theme to match the rest of the application
       renderGoogleButton();
     }
@@ -2853,10 +3779,10 @@
     function show(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById('screen-' + screenId).classList.add('active');
-      
+
       // Toggle pin-active class for responsive logo hiding
       document.body.classList.toggle('pin-active', screenId === 'pin');
-      
+
       // Control body class based on locked / unlocked screen
       if (screenId === 'main') {
         document.body.classList.add('unlocked-layout');
@@ -2873,7 +3799,7 @@
     function goBack() { show('who'); loadProfiles(); }
 
     // ── Toast Notifications ──
-    function toast(msg, type='') {
+    function toast(msg, type = '') {
       const t = document.getElementById('toast');
       t.textContent = msg;
       t.className = 'toast show ' + type;
@@ -2899,7 +3825,7 @@
       try {
         profiles = await dbGetAll("profiles");
         renderProfileGrid();
-        
+
         // Sync to extension storage on every portal load
         syncProfilesToExtension();
 
@@ -2949,7 +3875,7 @@
       pinAvatar.textContent = p.avatar || '🪪';
       document.getElementById('pin-name').textContent = p.name;
       document.getElementById('pin-error').textContent = '';
-      
+
       const passInput = document.getElementById('unlock-password');
       passInput.value = '';
       show('pin');
@@ -2980,32 +3906,32 @@
     }
 
     // Auto-login when the correct password is typed
-    document.getElementById('unlock-password').addEventListener('input', function(e) {
+    document.getElementById('unlock-password').addEventListener('input', function (e) {
       const p = profiles.find(pr => pr.email === activeProfile);
       if (!p || !p.encryptedProfile) return;
       if (isProfileLocked(p.email)) return;
-      
+
       const passwordEntered = this.value;
       if (!passwordEntered || passwordEntered.length < 4) return;
-      
+
       try {
         const salt = CryptoJS.enc.Utf8.parse(p.email + "FormSarthiSalt2026");
         const derivedKey = CryptoJS.PBKDF2(passwordEntered, salt, { keySize: 256 / 32, iterations: 1000 });
-        
+
         const decryptedBytes = CryptoJS.AES.decrypt(p.encryptedProfile, derivedKey.toString());
         const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
-        
+
         // If decryption is successful, trigger the full login flow automatically
-        if (decryptedText && decryptedText.includes('"email"')) { 
-            verifyPin();
+        if (decryptedText && decryptedText.includes('"email"')) {
+          verifyPin();
         }
-      } catch(err) {
+      } catch (err) {
         // Wrong password typed so far, wait for more input
       }
     });
-    
+
     // Fallback Handle Enter key
-    document.getElementById('unlock-password').addEventListener('keypress', function(e) {
+    document.getElementById('unlock-password').addEventListener('keypress', function (e) {
       if (e.key === 'Enter') {
         verifyPin();
       }
@@ -3039,19 +3965,19 @@
         if (res.ok) {
           const data = await res.json();
           if (data.profile && data.profile.encrypted_blob) {
-             p.encryptedProfile = data.profile.encrypted_blob;
-             p.color = data.profile.color || p.color;
-             p.avatar = data.profile.avatar || p.avatar;
-             await dbPut("profiles", p);
-             syncProfilesToExtension(); // sync to extension storage
+            p.encryptedProfile = data.profile.encrypted_blob;
+            p.color = data.profile.color || p.color;
+            p.avatar = data.profile.avatar || p.avatar;
+            await dbPut("profiles", p);
+            syncProfilesToExtension(); // sync to extension storage
           }
         }
-      } catch(e) { console.error("Backend pull failed", e); }
+      } catch (e) { console.error("Backend pull failed", e); }
 
       try {
         const decryptedBytes = CryptoJS.AES.decrypt(p.encryptedProfile, derivedKey.toString());
         const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
-        
+
         if (!decryptedText) {
           throw new Error("Wrong PIN");
         }
@@ -3069,7 +3995,7 @@
             hasDraftsMigration = true;
           }
         }
-        
+
         // Migrate/restore deadlines
         let hasDeadlinesMigration = false;
         if (sessionData.deadlines) {
@@ -3121,10 +4047,10 @@
       const mainAvatar = document.getElementById('main-avatar');
       mainAvatar.style.background = getColorValue(p.color);
       mainAvatar.textContent = p.avatar || '🪪';
-      
+
       document.getElementById('main-name').textContent = p.name;
       document.getElementById('main-email').textContent = p.email;
-      
+
       // Default to docs tab
       switchTab('profile', document.getElementById('nav-profile'));
       renderDocSlots();
@@ -3140,7 +4066,7 @@
 
     function updateBadges() {
       const data = sessionData || {};
-      
+
       // Calculate parsed document count
       const docsObj = data.uploadedDocs || {};
       const uploadedCount = Object.values(docsObj).filter(Boolean).length;
@@ -3205,7 +4131,7 @@
         const statusClass = isUploaded ? 'uploaded' : 'empty';
         const statusText = isUploaded ? '✓ Uploaded' : 'Not Uploaded';
         const slotClass = isUploaded ? 'doc-slot filled' : 'doc-slot';
-        
+
         let removeSlotBtn = '';
         if (d.key.startsWith('custom_')) {
           removeSlotBtn = `<button onclick="removeCustomDocSlot('${d.key}')" style="font-size:11px; padding:4px 8px; background:var(--surface2); color:var(--red); border:1px solid var(--red); border-radius:4px; cursor:pointer; font-weight:bold;">🗑️ Delete Slot</button>`;
@@ -3268,7 +4194,7 @@
       currentUploadTarget = docKey;
       const inp = document.getElementById('targeted-upload-input');
       inp.value = ''; // reset so same file can be re-selected
-      inp.onchange = function() {
+      inp.onchange = function () {
         if (this.files.length) {
           handleUpload(this.files, currentUploadTarget);
         }
@@ -3280,15 +4206,15 @@
       if (!activeProfile) return;
       try {
         let fileObj = await dbGet("files", activeProfile + "_" + docKey);
-        
+
         // Decrypt if it's encrypted (doesn't start with data:)
         if (fileObj && fileObj.fileData && !fileObj.fileData.startsWith("data:")) {
-           try {
-             const decryptedBytes = CryptoJS.AES.decrypt(fileObj.fileData, activeKey.toString());
-             fileObj.fileData = decryptedBytes.toString(CryptoJS.enc.Utf8);
-           } catch(e) { console.error("Failed to decrypt local file data"); }
+          try {
+            const decryptedBytes = CryptoJS.AES.decrypt(fileObj.fileData, activeKey.toString());
+            fileObj.fileData = decryptedBytes.toString(CryptoJS.enc.Utf8);
+          } catch (e) { console.error("Failed to decrypt local file data"); }
         }
-        
+
         if (!fileObj || !fileObj.fileData) {
           // Attempt to fetch from backend sync server
           try {
@@ -3318,7 +4244,7 @@
         document.getElementById('doc-modal-title').textContent = docLabel + " Review";
         const imgEl = document.getElementById('doc-modal-img');
         const pdfEl = document.getElementById('doc-modal-pdf');
-        
+
         if (fileObj.fileType && fileObj.fileType.includes("pdf")) {
           imgEl.style.display = 'none';
           pdfEl.style.display = 'block';
@@ -3338,11 +4264,11 @@
     async function deleteDocument(docKey) {
       if (!activeProfile) return;
       if (!confirm("Are you sure you want to delete this document?")) return;
-      
+
       try {
         // Delete from files store
         await dbDelete("files", activeProfile + "_" + docKey);
-        
+
         // Delete from backend sync
         try {
           await fetchWithAuth(`/api/sync/files?email=${encodeURIComponent(activeProfile)}&docKey=${encodeURIComponent(docKey)}`, {
@@ -3351,17 +4277,17 @@
         } catch (err) {
           console.error("Failed to delete synced file from server:", err);
         }
-        
+
         // Remove from sessionData uploaded flag
         if (sessionData && sessionData.uploadedDocs) {
           sessionData.uploadedDocs[docKey] = false;
         }
-        
+
         // Save vault and re-render
         await saveLocalVault();
         renderDocSlots();
         updateBadges();
-        
+
         toast("Document deleted successfully", "success");
       } catch (err) {
         console.error("Failed to delete document:", err);
@@ -3652,7 +4578,7 @@
         let cleanAddr = extracted.address;
         if (extracted.pincode) cleanAddr = cleanAddr.replace(extracted.pincode, "");
         if (extracted.state) cleanAddr = cleanAddr.replace(new RegExp(extracted.state, "gi"), "");
-        
+
         const parts = cleanAddr.split(",").map(p => p.trim().replace(/[^\w\s]/g, "")).filter(Boolean);
         if (parts.length > 0) {
           const lastPart = parts[parts.length - 1];
@@ -3678,49 +4604,49 @@
       // unless specifically yeh document type us field ka primary source hai
 
       const PRIMARY_SOURCE = {
-        name:        ['aadhaar', 'pan_card', 'marksheet_10', 'marksheet_12', 'resume', 'dl', 'passport'],
-        dob:         ['aadhaar', 'pan_card', 'dl', 'passport'],
+        name: ['aadhaar', 'pan_card', 'marksheet_10', 'marksheet_12', 'resume', 'dl', 'passport'],
+        dob: ['aadhaar', 'pan_card', 'dl', 'passport'],
         father_name: ['aadhaar', 'pan_card', 'marksheet_10'],
         mother_name: ['marksheet_10', 'marksheet_12'],
-        aadhaar:     ['aadhaar'],
-        pan:         ['pan_card'],
-        marks_10:    ['marksheet_10'],
-        marks_12:    ['marksheet_12'],
-        board_10:    ['marksheet_10'],
-        board_12:    ['marksheet_12'],
-        roll_10:     ['marksheet_10'],
-        roll_12:     ['marksheet_12'],
-        school:      ['marksheet_10'],
-        college:     ['marksheet_12', 'resume'],
-        caste:       ['caste_certificate'],
-        income:      ['income_certificate'],
-        stream:      ['marksheet_12'],
-        pincode:     ['aadhaar', 'dl', 'resume'],
-        city:        ['aadhaar', 'dl', 'resume'],
-        state:       ['aadhaar', 'dl', 'resume'],
-        address:     ['aadhaar', 'dl', 'resume'],
-        bank_name:   ['bank_passbook'],
-        account_no:  ['bank_passbook'],
-        ifsc:        ['bank_passbook'],
-        degree:      ['resume'],
-        grad_year:   ['resume']
+        aadhaar: ['aadhaar'],
+        pan: ['pan_card'],
+        marks_10: ['marksheet_10'],
+        marks_12: ['marksheet_12'],
+        board_10: ['marksheet_10'],
+        board_12: ['marksheet_12'],
+        roll_10: ['marksheet_10'],
+        roll_12: ['marksheet_12'],
+        school: ['marksheet_10'],
+        college: ['marksheet_12', 'resume'],
+        caste: ['caste_certificate'],
+        income: ['income_certificate'],
+        stream: ['marksheet_12'],
+        pincode: ['aadhaar', 'dl', 'resume'],
+        city: ['aadhaar', 'dl', 'resume'],
+        state: ['aadhaar', 'dl', 'resume'],
+        address: ['aadhaar', 'dl', 'resume'],
+        bank_name: ['bank_passbook'],
+        account_no: ['bank_passbook'],
+        ifsc: ['bank_passbook'],
+        degree: ['resume'],
+        grad_year: ['resume']
       };
 
       for (const [ocrField, value] of Object.entries(ocrResult)) {
         // Map OCR field names to profile field names
         const fieldMap = {
-          student_name:    'name',
-          marks_obtained:  documentType === 'marksheet_10' ? 'marks_10' : 'marks_12',
-          max_marks:       documentType === 'marksheet_10' ? 'max_marks_10' : 'max_marks_12',
-          percentage:      documentType === 'marksheet_10' ? 'marks_10' : 'marks_12',
-          board:           documentType === 'marksheet_10' ? 'board_10' : 'board_12',
-          roll_number:     documentType === 'marksheet_10' ? 'roll_10' : 'roll_12',
-          passing_year:    documentType === 'marksheet_10' ? 'year_10' : 'year_12',
-          school_name:     documentType === 'marksheet_10' ? 'school' : 'college',
-          pan_number:      'pan',
-          aadhaar_number:  'aadhaar',
-          annual_income:   'income',
-          dl_number:       'dl',
+          student_name: 'name',
+          marks_obtained: documentType === 'marksheet_10' ? 'marks_10' : 'marks_12',
+          max_marks: documentType === 'marksheet_10' ? 'max_marks_10' : 'max_marks_12',
+          percentage: documentType === 'marksheet_10' ? 'marks_10' : 'marks_12',
+          board: documentType === 'marksheet_10' ? 'board_10' : 'board_12',
+          roll_number: documentType === 'marksheet_10' ? 'roll_10' : 'roll_12',
+          passing_year: documentType === 'marksheet_10' ? 'year_10' : 'year_12',
+          school_name: documentType === 'marksheet_10' ? 'school' : 'college',
+          pan_number: 'pan',
+          aadhaar_number: 'aadhaar',
+          annual_income: 'income',
+          dl_number: 'dl',
           passport_number: 'dl'
         };
 
@@ -3763,7 +4689,7 @@
             body: formData
           });
           const data = await res.json();
-          
+
           progressVal += progressStep;
           document.getElementById('ocr-progress').style.width = `${Math.min(progressVal, 100)}%`;
 
@@ -3788,11 +4714,11 @@
                 mappedType = 'marksheet_10';
               }
             }
-            
+
             if (targetDocKey) {
               mappedType = targetDocKey; // Override with the specific target slot
             }
-            
+
             sessionData.uploadedDocs[mappedType] = true;
 
             // Save file data for full size review
@@ -3802,7 +4728,7 @@
                 // Encrypt before saving to local IndexedDB
                 const encryptedFileData = CryptoJS.AES.encrypt(e.target.result, activeKey.toString()).toString();
                 await dbPut("files", { id: activeProfile + "_" + mappedType, fileData: encryptedFileData, fileType: file.type });
-                
+
                 // Sync file upload to server (server encrypts it on its end)
                 try {
                   await fetchWithAuth('/api/sync/files', {
@@ -3818,7 +4744,7 @@
                 } catch (err) {
                   console.error("Failed to sync uploaded file to server:", err);
                 }
-              } catch(err) { console.error("Failed to save file to DB:", err); }
+              } catch (err) { console.error("Failed to save file to DB:", err); }
             };
             reader.readAsDataURL(file);
 
@@ -3865,7 +4791,7 @@
 
       document.getElementById('ocr-progress').style.width = '100%';
       document.getElementById('ocr-label').textContent = `Processing finished (${successCount}/${files.length} documents parsed)`;
-      
+
       if (successCount > 0) {
         await saveLocalVault();
         renderDocSlots();
@@ -3874,7 +4800,7 @@
         updateBadges();
         toast(`Successfully processed ${successCount} document(s)`, 'success');
       }
-      
+
       if (targetDocKey) {
         document.getElementById('targeted-upload-input').value = "";
       }
@@ -3883,14 +4809,14 @@
     // Save decrypted session data into encrypted IndexedDB storage
     async function saveLocalVault() {
       if (!activeProfile || !activeKey || !sessionData) return;
-      
+
       const ciphertext = CryptoJS.AES.encrypt(JSON.stringify(sessionData), activeKey.toString()).toString();
       const p = profiles.find(pr => pr.email === activeProfile);
       if (p) {
         p.encryptedProfile = ciphertext;
         await dbPut("profiles", p);
         syncProfilesToExtension(); // sync to extension storage
-        
+
         // Sync profile to server
         try {
           await fetchWithAuth('/api/sync/profile', {
@@ -3901,10 +4827,10 @@
         } catch (err) {
           console.error("Failed to sync updated profile to server:", err);
         }
-        
+
         // Update local storage for Chrome extension
         localStorage.setItem("fs_active_session", JSON.stringify(sessionData));
-        
+
         // NEW: Push to backend for cross-browser sync
         try {
           await fetch('/api/auth/sync', {
@@ -3919,7 +4845,7 @@
               encrypted_blob: ciphertext
             })
           });
-        } catch(e) { console.error("Backend sync push failed", e); }
+        } catch (e) { console.error("Backend sync push failed", e); }
       }
     }
 
@@ -3931,16 +4857,16 @@
         toast('Please enter a document name', 'error');
         return;
       }
-      
+
       const key = 'custom_' + Date.now();
-      
+
       if (!sessionData) sessionData = {};
       sessionData.customDocs = sessionData.customDocs || [];
       sessionData.uploadedDocs = sessionData.uploadedDocs || {};
-      
+
       sessionData.customDocs.push({ key, label });
       sessionData.uploadedDocs[key] = false;
-      
+
       saveLocalVault().then(() => {
         renderDocSlots();
         updateBadges();
@@ -3955,11 +4881,11 @@
 
     async function removeCustomDocSlot(docKey) {
       if (!activeProfile) return;
-      
+
       const customDocs = sessionData.customDocs || [];
       const doc = customDocs.find(d => d.key === docKey);
       if (!doc) return;
-      
+
       if (!confirm(`Are you sure you want to remove the custom document slot "${doc.label}"? This will delete both the slot and any uploaded file.`)) return;
 
       try {
@@ -3974,9 +4900,9 @@
           }
           delete sessionData.uploadedDocs[docKey];
         }
-        
+
         sessionData.customDocs = customDocs.filter(d => d.key !== docKey);
-        
+
         await saveLocalVault();
         renderDocSlots();
         updateBadges();
@@ -3993,7 +4919,7 @@
     function renderDataGrid() {
       const d = sessionData || {};
       const renderDiv = document.getElementById('collapsible-vault-render');
-      
+
       // Group fields
       const groups = {};
       PROFILE_FIELDS.forEach(f => {
@@ -4014,7 +4940,7 @@
             </div>
           `;
         }).join('');
-        
+
         html += `
           <details class="profile-group" open>
             <summary>
@@ -4060,11 +4986,11 @@
       const readDiv = document.getElementById('profile-view-mode');
       const editDiv = document.getElementById('profile-edit-mode');
       const editBtn = document.getElementById('edit-btn-profile');
-      
+
       if (editing) {
         const formDiv = document.getElementById('manual-edit-form');
         const d = sessionData || {};
-        
+
         // Group fields
         const groups = {};
         PROFILE_FIELDS.forEach(f => {
@@ -4107,7 +5033,7 @@
         for (const [groupName, fields] of Object.entries(groups)) {
           const cells = fields.map(f => {
             if (f.options) {
-              const optionsHtml = f.options.map(opt => 
+              const optionsHtml = f.options.map(opt =>
                 `<option value="${opt}" ${d[f.key] === opt ? 'selected' : ''}>${opt}</option>`
               ).join('');
               return `
@@ -4140,7 +5066,7 @@
             </details>
           `;
         }
-        
+
         formDiv.innerHTML = html;
         readDiv.style.display = 'none';
         editDiv.style.display = 'block';
@@ -4168,19 +5094,19 @@
       const valInput = document.getElementById('custom-field-value');
       const label = nameInput.value.trim();
       const value = valInput.value.trim();
-      
+
       if (!label) {
         toast('Please enter a field name', 'error');
         return;
       }
-      
+
       const key = 'custom_field_' + Date.now();
-      
+
       if (!sessionData) sessionData = {};
       sessionData.customFields = sessionData.customFields || [];
       sessionData.customFields.push({ key, label, value });
       sessionData[key] = value || null;
-      
+
       saveLocalVault().then(() => {
         renderDataGrid();
         toggleEditProfile(true); // refresh edit form
@@ -4200,13 +5126,13 @@
       const customFields = sessionData.customFields || [];
       const field = customFields.find(f => f.key === fieldKey);
       if (!field) return;
-      
+
       if (!confirm(`Are you sure you want to remove the custom field "${field.label}"?`)) return;
 
       try {
         sessionData.customFields = customFields.filter(f => f.key !== fieldKey);
         delete sessionData[fieldKey];
-        
+
         await saveLocalVault();
         renderDataGrid();
         toggleEditProfile(true); // refresh edit form
@@ -4235,11 +5161,11 @@
     let cameraDevices = [];
 
     let currentCaptureTarget = null; // holds the document key for camera capture
-async function openCameraCapture(docKey, docLabel) {
+    async function openCameraCapture(docKey, docLabel) {
       currentCaptureTarget = docKey;
       document.getElementById('camera-modal-title').textContent = `📷 Capture ${docLabel}`;
       document.getElementById('camera-modal').style.display = 'flex';
-      
+
       // Reset dropdown
       const select = document.getElementById('camera-device-select');
       select.innerHTML = '';
@@ -4247,10 +5173,10 @@ async function openCameraCapture(docKey, docLabel) {
 
       try {
         // Request camera permission
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" } 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" }
         });
-        
+
         // Stop the stream used for testing permissions
         stream.getTracks().forEach(track => track.stop());
 
@@ -4302,7 +5228,7 @@ async function openCameraCapture(docKey, docLabel) {
         cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
         const videoEl = document.getElementById('camera-video');
         videoEl.srcObject = cameraStream;
-        
+
         const activeTrack = cameraStream.getVideoTracks()[0];
         const settings = activeTrack ? activeTrack.getSettings() : {};
         if (settings.facingMode === 'user') {
@@ -4339,7 +5265,7 @@ async function openCameraCapture(docKey, docLabel) {
       canvas.height = videoEl.videoHeight || 480;
 
       const ctx = canvas.getContext('2d');
-      
+
       const activeTrack = cameraStream.getVideoTracks()[0];
       const settings = activeTrack ? activeTrack.getSettings() : {};
       if (settings.facingMode === 'user') {
@@ -4348,7 +5274,7 @@ async function openCameraCapture(docKey, docLabel) {
       }
 
       ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
-      
+
       canvas.toBlob(async (blob) => {
         if (!blob) {
           toast("Failed to capture image.", "error");
@@ -4357,11 +5283,11 @@ async function openCameraCapture(docKey, docLabel) {
 
         const fileName = `${currentCaptureTarget}_capture.jpg`;
         const file = new File([blob], fileName, { type: 'image/jpeg' });
-        
+
         closeCameraCapture();
         toast("Image captured! Processing OCR...", "success");
         await handleUpload([file], currentCaptureTarget);
-        
+
       }, 'image/jpeg', 0.85);
     }
 
@@ -4370,7 +5296,7 @@ async function openCameraCapture(docKey, docLabel) {
       if (sessionData) {
         sessionData[key] = value;
       }
-      
+
       const mockInput = document.querySelector(`.mock-form-input[data-key="${key}"]`);
       if (mockInput) {
         mockInput.value = value;
@@ -4383,7 +5309,7 @@ async function openCameraCapture(docKey, docLabel) {
       if (sessionData) {
         sessionData[key] = value;
       }
-      
+
       const leftInput = document.querySelector(`.field-input-val[data-key="${key}"]`);
       if (leftInput) {
         leftInput.value = value;
@@ -4394,7 +5320,7 @@ async function openCameraCapture(docKey, docLabel) {
 
     async function saveAutofillFieldChange(key, value) {
       if (!sessionData) return;
-      
+
       // Update custom fields if applicable
       if (sessionData.customFields) {
         const field = sessionData.customFields.find(f => f.key === key);
@@ -4402,10 +5328,10 @@ async function openCameraCapture(docKey, docLabel) {
           field.value = value.trim() || null;
         }
       }
-      
+
       sessionData[key] = value.trim() || null;
       await saveLocalVault();
-      
+
       renderDataGrid();
       renderDocSlots();
       updateBadges();
@@ -4415,26 +5341,26 @@ async function openCameraCapture(docKey, docLabel) {
       const inputs = document.querySelectorAll('.field-input-val');
       let filled = 0;
       let total = inputs.length || 1;
-      
+
       inputs.forEach(input => {
         if (input.value.trim()) {
           filled++;
         }
       });
-      
+
       const pct = Math.round((filled / total) * 100);
       document.getElementById('meter-pct').textContent = pct + '%';
-      
+
       const dashOffset = 267.04 - (267.04 * pct / 100);
       const needleRot = -90 + (180 * pct / 100);
-      
+
       let meterColor = 'var(--green)';
       if (pct < 30) meterColor = '#ef4444';
       else if (pct <= 50) meterColor = '#f97316';
       else if (pct <= 80) meterColor = '#eab308';
-      
+
       document.getElementById('meter-pct').style.color = meterColor;
-      
+
       const speedoFill = document.getElementById('speedo-fill');
       const speedoNeedle = document.getElementById('speedo-needle');
       if (speedoFill) {
@@ -4446,10 +5372,10 @@ async function openCameraCapture(docKey, docLabel) {
 
     async function deleteProfile() {
       if (!confirm(`Are you sure you want to delete this profile? All local and synced data will be permanently wiped.`)) return;
-      
+
       const targetEmail = activeProfile;
       await dbDelete("profiles", targetEmail);
-      
+
       localStorage.removeItem(`fs_deadlines_${targetEmail}`);
       localStorage.removeItem(`fs_history_${targetEmail}`);
 
@@ -4482,13 +5408,13 @@ async function openCameraCapture(docKey, docLabel) {
       if (guidanceCard) guidanceCard.style.display = 'none';
 
       document.getElementById('meter-section').style.display = 'block';
-      document.getElementById('meter-pct').textContent  = '...';
+      document.getElementById('meter-pct').textContent = '...';
 
       const externalBtn = document.getElementById('open-external-btn');
       if (externalBtn) {
         externalBtn.href = url;
       }
-      
+
       let mapping = FS_Autofill.mapFields(sessionData);
 
       let formTitle = "Application Form";
@@ -4499,20 +5425,20 @@ async function openCameraCapture(docKey, docLabel) {
         const text = await res.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
-        
+
         const titleEl = doc.querySelector('meta[property="og:title"]') || doc.querySelector('title');
         if (titleEl) {
           formTitle = titleEl.getAttribute('content') || titleEl.textContent;
           formTitle = formTitle.replace(' - Google Forms', '').replace(' - Google-Form', '').trim();
         }
-        
+
         const descEl = doc.querySelector('meta[property="og:description"]');
         if (descEl) {
           formDesc = descEl.getAttribute('content') || formDesc;
         }
 
         const inputs = doc.querySelectorAll('input:not([type=hidden]):not([type=submit]), textarea, select');
-        
+
         let requiredKeys = new Set();
         inputs.forEach(input => {
           const hint = ((input.name || '') + (input.id || '') + (input.placeholder || '') + (input.getAttribute('aria-label') || '')).toLowerCase();
@@ -4523,7 +5449,7 @@ async function openCameraCapture(docKey, docLabel) {
             }
           }
         });
-        
+
         if (requiredKeys.size > 0) {
           mapping = mapping.filter(m => requiredKeys.has(m.key));
         }
@@ -4566,15 +5492,15 @@ async function openCameraCapture(docKey, docLabel) {
         mockContainer.innerHTML = cardsHtml;
       }
 
-      const filled  = mapping.filter(m => m.value).length;
-      const total   = mapping.length || 1;
-      const pct     = Math.round((filled / total) * 100);
+      const filled = mapping.filter(m => m.value).length;
+      const total = mapping.length || 1;
+      const pct = Math.round((filled / total) * 100);
 
-      document.getElementById('meter-pct').textContent  = pct + '%';
-      
+      document.getElementById('meter-pct').textContent = pct + '%';
+
       const dashOffset = 267.04 - (267.04 * pct / 100);
       const needleRot = -90 + (180 * pct / 100);
-      
+
       let meterColor = 'var(--green)';
       if (pct < 30) meterColor = '#ef4444'; // Red
       else if (pct <= 50) meterColor = '#f97316'; // Orange
@@ -4589,7 +5515,7 @@ async function openCameraCapture(docKey, docLabel) {
         speedoFill.style.stroke = meterColor;
       }
       if (speedoNeedle) speedoNeedle.style.transform = `translateX(-50%) rotate(${needleRot}deg)`;
-      
+
       document.getElementById('field-list').innerHTML = mapping.map(m => `
         <div class="field-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
           <span class="field-key" style="font-weight: 600; width: 140px; font-size: 13px; text-align: left;">${m.label}</span>
@@ -4606,7 +5532,7 @@ async function openCameraCapture(docKey, docLabel) {
       toast('Form fields copied to clipboard', 'success');
       const data = FS_Autofill.mapFields(sessionData || {});
       const text = data.filter(d => d.value).map(d => `${d.label}: ${d.value}`).join('\n');
-      navigator.clipboard.writeText(text).catch(() => {});
+      navigator.clipboard.writeText(text).catch(() => { });
 
       // Pass session data to mock-form for automatic autofill simulation
       localStorage.setItem('fs_autofill_pending_data', JSON.stringify(sessionData || {}));
@@ -4620,7 +5546,7 @@ async function openCameraCapture(docKey, docLabel) {
         const match = data.find(d => d.key === key);
         if (match && match.value) {
           input.value = match.value;
-          
+
           // Also sync left panel input fields
           const leftInput = document.querySelector(`.field-input-val[data-key="${key}"]`);
           if (leftInput) {
@@ -4663,18 +5589,18 @@ async function openCameraCapture(docKey, docLabel) {
     function trackCurrentForm() {
       const url = document.getElementById('form-url').value.trim();
       const pct = parseInt(document.getElementById('meter-pct').textContent);
-      
+
       if (!url) return;
-      
+
       let name = "Form application";
       try {
         const domain = new URL(url).hostname;
         name = domain.replace('www.', '').split('.')[0].toUpperCase() + " Form";
-      } catch (e) {}
+      } catch (e) { }
 
       document.getElementById('deadline-form-name').value = name;
       document.getElementById('deadline-form-url').value = url;
-      
+
       currentFormCompleteness = pct;
 
       switchTab('deadlines', document.getElementById('nav-deadlines'));
@@ -4756,8 +5682,8 @@ async function openCameraCapture(docKey, docLabel) {
           badge = `<span style="color:var(--green); font-size:11px; font-weight:600">ACTIVE</span>`;
         }
 
-        const compText = d.completeness !== undefined 
-          ? `<div style="font-size:11px; color:var(--accent); margin-top:2px; font-weight:700">Completeness Meter: ${d.completeness}%</div>` 
+        const compText = d.completeness !== undefined
+          ? `<div style="font-size:11px; color:var(--accent); margin-top:2px; font-weight:700">Completeness Meter: ${d.completeness}%</div>`
           : '';
 
         return `
@@ -4788,9 +5714,9 @@ async function openCameraCapture(docKey, docLabel) {
       }
 
       const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
-      deadlines.push({ 
-        name, 
-        url, 
+      deadlines.push({
+        name,
+        url,
         time,
         completeness: currentFormCompleteness,
         lastNotified: 0
@@ -4800,12 +5726,12 @@ async function openCameraCapture(docKey, docLabel) {
         sessionData.deadlines = deadlines;
         saveLocalVault();
       }
-      
+
       document.getElementById('deadline-form-name').value = '';
       document.getElementById('deadline-form-url').value = '';
       document.getElementById('deadline-time').value = '';
       currentFormCompleteness = 100; // reset to default
-      
+
       renderDeadlines();
       toast("Deadline tracked successfully!", "success");
     }
@@ -4833,10 +5759,10 @@ async function openCameraCapture(docKey, docLabel) {
       const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
       const now = new Date().getTime();
       let updated = false;
-      
+
       deadlines.forEach(d => {
         const diff = new Date(d.time).getTime() - now;
-        
+
         // 1. Alert exactly 1 hour before
         if (diff > 0 && diff < 60 * 60 * 1000 && diff > 59 * 60 * 1000) {
           sendNotification(`Form Deadline Reminder ⏰`, `"${d.name}" closes in less than an hour!`);
@@ -4903,7 +5829,7 @@ async function openCameraCapture(docKey, docLabel) {
       document.getElementById('new-official-name').value = '';
       document.getElementById('new-email').value = '';
       document.getElementById('new-password').value = '';
-      
+
       // Render colors and emojis builders
       renderBuilderSelectors();
       updateAvatarPreview();
@@ -4955,7 +5881,7 @@ async function openCameraCapture(docKey, docLabel) {
       const officialName = document.getElementById('new-official-name').value.trim();
       const email = document.getElementById('new-email').value.trim();
       const password = document.getElementById('new-password').value;
-      
+
       if (!name) { toast('Please enter a profile nickname', 'error'); return; }
       if (!officialName) { toast('Please enter your official legal name', 'error'); return; }
       if (!email) { toast('Please enter an email', 'error'); return; }
@@ -5000,7 +5926,7 @@ async function openCameraCapture(docKey, docLabel) {
       try {
         await dbPut("profiles", newProfile);
         syncProfilesToExtension(); // sync to extension storage
-        
+
         // Sync profile to backend
         try {
           await fetchWithAuth('/api/sync/profile', {
@@ -5026,7 +5952,7 @@ async function openCameraCapture(docKey, docLabel) {
               encrypted_blob: ciphertext
             })
           });
-        } catch(e) { console.error("Backend sync push failed", e); }
+        } catch (e) { console.error("Backend sync push failed", e); }
 
         toast("Secure profile created!", "success");
         goBack();
@@ -5202,16 +6128,16 @@ async function openCameraCapture(docKey, docLabel) {
       if (document.getElementById('survey-exam-cuet').checked) exams.push('cuet');
       if (document.getElementById('survey-exam-upsc').checked) exams.push('upsc');
       if (document.getElementById('survey-exam-scholarships').checked) exams.push('scholarships');
-      
+
       const prefs = { age, caste, qualification, stream, interests, exams };
       localStorage.setItem(`fs_survey_prefs_${activeProfile}`, JSON.stringify(prefs));
-      
+
       // Auto-dismiss the customization prompt once preferences are saved
       localStorage.setItem(`fs_survey_prompt_dismissed_${activeProfile}`, 'true');
-      
+
       closeSurveyModal();
       toast("Preferences saved successfully!", "success");
-      
+
       checkAndGenerateReminders();
       renderReminders();
       updateBadges();
@@ -5251,14 +6177,14 @@ async function openCameraCapture(docKey, docLabel) {
 
     function checkAndGenerateReminders() {
       if (!activeProfile) return;
-      
+
       const now = Date.now();
       let reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
       const drafts = JSON.parse(localStorage.getItem(`fs_drafts_${activeProfile}`) || '{}');
       const deadlines = JSON.parse(localStorage.getItem(`fs_deadlines_${activeProfile}`) || '[]');
-      
+
       const newRemindersMap = {};
-      
+
       let prefs = JSON.parse(localStorage.getItem(`fs_survey_prefs_${activeProfile}`) || 'null');
       if (!prefs) {
         prefs = {
@@ -5270,7 +6196,7 @@ async function openCameraCapture(docKey, docLabel) {
           exams: ['jee', 'neet', 'gate', 'cat', 'bitsat', 'nata', 'nda', 'icar', 'ca', 'cseet', 'ipmat', 'clat', 'nift', 'nchmct', 'cuet', 'upsc', 'scholarships']
         };
       }
-      
+
       const checkEligibility = (userQual, requiredQual) => {
         if (!requiredQual) return true;
         const levels = { 'school': 1, 'college': 2, 'graduate': 3 };
@@ -5278,7 +6204,7 @@ async function openCameraCapture(docKey, docLabel) {
         const reqLevel = levels[requiredQual.toLowerCase()] || (requiredQual.toLowerCase() === 'b.tech' ? 2 : 1);
         return userLevel >= reqLevel;
       };
-      
+
       // 1. Process Drafts (Incomplete forms)
       Object.keys(drafts).forEach(url => {
         const draft = drafts[url];
@@ -5286,11 +6212,11 @@ async function openCameraCapture(docKey, docLabel) {
           const id = `draft_${url}`;
           const existing = reminders.find(r => r.id === id);
           const readStatus = (existing && existing.percent === draft.percent) ? existing.readStatus : 'unread';
-          
+
           // Match with any tracked deadline by url
           const relatedDeadline = deadlines.find(dl => dl.url === url);
           const deadlineTime = relatedDeadline ? relatedDeadline.time : null;
-          
+
           newRemindersMap[id] = {
             id,
             type: 'incomplete_form',
@@ -5304,12 +6230,12 @@ async function openCameraCapture(docKey, docLabel) {
           };
         }
       });
-      
+
       // 2. Process Deadlines (Closing date within 7 days)
       deadlines.forEach(d => {
         const diff = new Date(d.time).getTime() - now;
         const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-        
+
         if (diff > 0 && diff <= sevenDaysMs) {
           const id = `deadline_${d.name}_${d.time}`;
           const existing = reminders.find(r => r.id === id);
@@ -5325,7 +6251,7 @@ async function openCameraCapture(docKey, docLabel) {
           };
         }
       });
-      
+
       // 3. Process Missing Required Documents
       const activeForms = [];
       Object.keys(drafts).forEach(url => activeForms.push({ name: drafts[url].title, url }));
@@ -5334,9 +6260,9 @@ async function openCameraCapture(docKey, docLabel) {
           activeForms.push({ name: d.name, url: d.url });
         }
       });
-      
+
       const docsObj = (sessionData && sessionData.uploadedDocs) || {};
-      
+
       activeForms.forEach(f => {
         const reqDocs = getRequiredDocsForForm(f.name);
         reqDocs.forEach(docKey => {
@@ -5345,11 +6271,11 @@ async function openCameraCapture(docKey, docLabel) {
             const id = `missing_doc_${f.name}_${docKey}`;
             const existing = reminders.find(r => r.id === id);
             const docLabel = DOC_TYPES.find(d => d.key === docKey)?.label || docKey;
-            
+
             // Match with any tracked deadline by url
             const relatedDeadline = deadlines.find(dl => dl.url === f.url);
             const deadlineTime = relatedDeadline ? relatedDeadline.time : null;
-            
+
             newRemindersMap[id] = {
               id,
               type: 'missing_document',
@@ -5363,7 +6289,7 @@ async function openCameraCapture(docKey, docLabel) {
           }
         });
       });
-      
+
       // 4. Process New Eligible Forms
       const SYSTEM_NEW_FORMS = [
         { id: 'sys_gate_2027', name: "GATE 2027 Registration", url: "https://gate2027.iitr.ac.in", requiredDegree: "B.Tech", requiredQualification: "college", category: "engineering", examKey: "gate", allowedStreams: ["pcm", "pcmb"], deadline: "2026-10-30T23:59:59Z" },
@@ -5386,21 +6312,21 @@ async function openCameraCapture(docKey, docLabel) {
         { id: 'sys_post_matric_scst', name: "Post-Matric Scholarship for SC/ST", url: "https://scholarships.gov.in", requiredDegree: "School", requiredQualification: "school", category: "scholarships", examKey: "scholarships", allowedCastes: ["sc", "st"], deadline: "2026-11-30T23:59:59Z" },
         { id: 'sys_nsp_merit', name: "NSP Central Sector Scheme Scholarship", url: "https://scholarships.gov.in", requiredDegree: "College", requiredQualification: "college", category: "scholarships", examKey: "scholarships", deadline: "2026-11-15T23:59:59Z" }
       ];
-      
+
       SYSTEM_NEW_FORMS.forEach(sys => {
         const formDeadline = new Date(sys.deadline).getTime();
         if (formDeadline < now) return; // Filter out expired forms (e.g. JEE 2026)
-        
+
         if (!prefs.interests.includes(sys.category)) return;
 
         if (sys.examKey && !prefs.exams.includes(sys.examKey)) return;
-        
+
         if (!checkEligibility(prefs.qualification, sys.requiredQualification)) return;
 
         if (sys.allowedStreams && !sys.allowedStreams.includes(prefs.stream)) return;
 
         if (sys.allowedCastes && !sys.allowedCastes.includes(prefs.caste)) return;
-        
+
         const id = `new_form_${sys.id}`;
         const existing = reminders.find(r => r.id === id);
         newRemindersMap[id] = {
@@ -5414,10 +6340,10 @@ async function openCameraCapture(docKey, docLabel) {
           deadline: sys.deadline
         };
       });
-      
+
       // Merge into a list
       let mergedReminders = Object.values(newRemindersMap);
-      
+
       // 5. Demo Mode: Seed sample reminders if the list is empty
       if (mergedReminders.length === 0) {
         const demoReminders = [
@@ -5616,7 +6542,7 @@ async function openCameraCapture(docKey, docLabel) {
             deadline: new Date(now + 20 * 24 * 3600 * 1000).toISOString()
           }
         ];
-        
+
         mergedReminders = demoReminders.filter(demo => {
           if (demo.deadline && new Date(demo.deadline).getTime() < now) return false;
           if (!prefs.interests.includes(demo.category)) return false;
@@ -5652,21 +6578,21 @@ async function openCameraCapture(docKey, docLabel) {
         };
         mergedReminders.unshift(promptReminder);
       }
-      
+
       localStorage.setItem(`fs_reminders_${activeProfile}`, JSON.stringify(mergedReminders));
     }
 
     function renderReminders() {
       const listDiv = document.getElementById('notification-list');
       if (!listDiv) return;
-      
+
       const reminders = JSON.parse(localStorage.getItem(`fs_reminders_${activeProfile}`) || '[]');
-      
+
       if (reminders.length === 0) {
         listDiv.innerHTML = `<p style="font-size:12px; color:var(--muted); text-align:center; padding:12px 0;">No active reminders.</p>`;
         return;
       }
-      
+
       listDiv.innerHTML = reminders.map(r => {
         let actionBtnHtml = '';
         if (r.relatedUrl) {
@@ -5680,10 +6606,10 @@ async function openCameraCapture(docKey, docLabel) {
             actionBtnHtml = `<button class="notification-action" onclick="openPortalUrl('${r.relatedUrl}', '${r.id}')">Open Portal</button>`;
           }
         }
-        
+
         const timeText = formatTimeAgo(new Date(r.createdAt));
         const unreadClass = r.readStatus === 'unread' ? 'unread' : '';
-        
+
         let borderClass = '';
         let badgeHtml = '';
         if (r.deadline) {
@@ -5697,9 +6623,9 @@ async function openCameraCapture(docKey, docLabel) {
           } else {
             colorCode = 'red';
           }
-          
+
           borderClass = `color-${colorCode}`;
-          
+
           let daysLeftText = '';
           if (daysLeft < 0) {
             daysLeftText = `Overdue`;
@@ -5708,10 +6634,10 @@ async function openCameraCapture(docKey, docLabel) {
           } else {
             daysLeftText = `${daysLeft} day${daysLeft !== 1 ? 's' : ''} left`;
           }
-          
+
           badgeHtml = `<span class="deadline-badge color-${colorCode}">${daysLeftText}</span>`;
         }
-        
+
         return `
           <div class="notification-item ${unreadClass} type-${r.type} ${borderClass}">
             <button class="notification-close-btn" onclick="deleteNotification('${r.id}', event)">✕</button>
@@ -5829,21 +6755,21 @@ async function openCameraCapture(docKey, docLabel) {
       sessionData = null;
       activeKey = null;
       activeProfile = null;
-      
+
       // Clear localStorage & DOM attributes for Chrome extension
       localStorage.removeItem("fs_active_session");
       localStorage.removeItem("fs_active_profile");
       document.body.removeAttribute("data-fs-session");
-      
+
       // Clear localStorage pending autofill data
       localStorage.removeItem('fs_autofill_pending_data');
-      
+
       // Clear preview frame
       const iframe = document.getElementById('form-iframe');
       const placeholder = document.getElementById('iframe-placeholder-el');
       const guidanceCard = document.getElementById('autofill-guidance-card');
       const meterSection = document.getElementById('meter-section');
-      
+
       if (iframe) {
         iframe.src = '';
         iframe.style.display = 'none';
@@ -5854,7 +6780,7 @@ async function openCameraCapture(docKey, docLabel) {
 
       // Notify extension to clear and lock
       window.postMessage({ type: 'FS_PORTAL_LOGOUT' }, '*');
-      
+
       // Return to profile selection
       show('who');
       loadProfiles();
@@ -5873,7 +6799,7 @@ async function openCameraCapture(docKey, docLabel) {
     ['new-password', 'unlock-password'].forEach(id => {
       const input = document.getElementById(id);
       if (input) {
-        input.addEventListener('input', function(e) {
+        input.addEventListener('input', function (e) {
           const clean = this.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
           if (this.value !== clean) {
             this.value = clean;
@@ -5884,7 +6810,7 @@ async function openCameraCapture(docKey, docLabel) {
   </script>
 
   <script>
-    (function() {
+    (function () {
       // Exit early if the client is on a touch or coarse-pointer device
       if (window.matchMedia('(pointer: coarse)').matches) return;
 
@@ -5956,7 +6882,7 @@ async function openCameraCapture(docKey, docLabel) {
         el.style.width = size + 'px';
         el.style.height = size + 'px';
         el.style.backgroundColor = color;
-        
+
         if (isOrange) {
           el.style.boxShadow = '0 0 6px rgba(255, 94, 19, 0.6)';
         }
@@ -6018,4 +6944,5 @@ async function openCameraCapture(docKey, docLabel) {
     })();
   </script>
 </body>
+
 </html>

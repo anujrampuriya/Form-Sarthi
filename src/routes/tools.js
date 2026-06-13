@@ -1,23 +1,22 @@
 // =============================================================
 // src/routes/tools.js
-// Stateless route to resize images and convert formats using sharp.
+// Stateless route to resize images and convert formats.
+// Uses sharp for image processing, pdfkit for PDF conversion.
 // =============================================================
 
 const express = require("express");
 const multer  = require("multer");
 const sharp   = require("sharp");
-const { requireAuth } = require("../middleware/authMiddleware");
+const PDFDocument = require("pdfkit");
 
 const router = express.Router();
-
-router.use(requireAuth);
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit for resizing
 });
 
-// No auth required for local stateless processing
+// No auth required — stateless image processing, no DB access
 
 // POST /api/tools/resize
 // Receives an image, resizes it and/or changes its format, and returns the binary file.
@@ -46,6 +45,43 @@ router.post("/resize", upload.single("file"), async (req, res) => {
     const q = quality ? parseInt(quality, 10) : 80;
     const targetFormat = (format || "").toLowerCase();
 
+    // ── PDF conversion: process image with sharp, then embed into PDF via pdfkit ──
+    if (targetFormat === "pdf") {
+      // First convert the image to PNG buffer (best quality for embedding)
+      const imgBuffer = await pipeline.png().toBuffer();
+      const metadata  = await sharp(imgBuffer).metadata();
+
+      const imgWidth  = metadata.width  || 595;
+      const imgHeight = metadata.height || 842;
+
+      // Create a PDF sized to the image dimensions (no margins)
+      const doc = new PDFDocument({
+        size: [imgWidth, imgHeight],
+        margin: 0,
+      });
+
+      const chunks = [];
+      doc.on("data", (chunk) => chunks.push(chunk));
+
+      const pdfReady = new Promise((resolve, reject) => {
+        doc.on("end", () => resolve(Buffer.concat(chunks)));
+        doc.on("error", reject);
+      });
+
+      doc.image(imgBuffer, 0, 0, { width: imgWidth, height: imgHeight });
+      doc.end();
+
+      const pdfBuffer = await pdfReady;
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="converted_${Date.now()}.pdf"`
+      );
+      return res.send(pdfBuffer);
+    }
+
+    // ── Standard image format conversions ──
     let contentType = req.file.mimetype;
     let extension = req.file.originalname.split(".").pop();
 
@@ -61,16 +97,6 @@ router.post("/resize", upload.single("file"), async (req, res) => {
       pipeline = pipeline.webp({ quality: q });
       contentType = "image/webp";
       extension = "webp";
-    } else if (targetFormat === "pdf") {
-      // If they want PDF, we can use sharp's PDF output support if available, or fallback
-      // Note: sharp supports pdf output in newer versions if built with libvips having pdf support
-      try {
-        pipeline = pipeline.toFormat("pdf", { quality: q });
-        contentType = "application/pdf";
-        extension = "pdf";
-      } catch (e) {
-        return res.status(400).json({ error: "PDF conversion is not supported on this server setup." });
-      }
     }
 
     const outputBuffer = await pipeline.toBuffer();
