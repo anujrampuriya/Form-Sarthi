@@ -159,6 +159,7 @@ const FS_Autofill = {
     }
 
     return hint;
+  },
   injectIntoForm(sessionData) {
     if (!sessionData) return 0;
 

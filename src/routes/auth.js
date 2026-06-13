@@ -31,7 +31,7 @@ function isValidEmail(email) {
 }
 
 function isValidPIN(pin) {
-  return pin && pin.length >= 4;
+  return pin && /^[a-zA-Z0-9]{1,8}$/.test(pin);
 }
 
 function isValidName(name) {
@@ -48,7 +48,7 @@ router.post("/signup", async (req, res) => {
     const errors = [];
     if (!name  || !isValidName(name))   errors.push("Name must be at least 2 characters.");
     if (!email || !isValidEmail(email)) errors.push("A valid email address is required.");
-    if (!pin   || !isValidPIN(pin))     errors.push("Password must be at least 4 characters long.");
+    if (!pin   || !isValidPIN(pin))     errors.push("Password must be 1 to 8 characters and alphanumeric only (no spaces or symbols).");
 
     if (errors.length > 0) {
       return res.status(400).json({ error: "Validation failed.", details: errors });
@@ -117,10 +117,10 @@ router.post("/login", async (req, res) => {
     const { email, pin } = req.body;
 
     if (!email || !pin) {
-      return res.status(400).json({ error: "Email and PIN are required." });
+      return res.status(400).json({ error: "Email and password are required." });
     }
     if (!isValidPIN(pin)) {
-      return res.status(400).json({ error: "Password must be at least 4 characters long." });
+      return res.status(400).json({ error: "Password must be 1 to 8 characters and alphanumeric only (no spaces or symbols)." });
     }
 
     const user = db
