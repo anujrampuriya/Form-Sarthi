@@ -822,10 +822,10 @@ function matchFieldToProfile(labelText, profile) {
   if (t.includes("husband")) return profile.husband_name || '';
 
   // ── DOB ──
-  if (t.includes("date of birth") || t === "dob" || t.includes("d.o.b") || t.includes("birth date") || t.includes("जन्म तिथि")) return profile.dob || '';
+  if (t.includes("date of birth") || t.includes("dob") || t.includes("d.o.b") || t.includes("birth date") || t.includes("जन्म तिथि")) return profile.dob || '';
 
   // ── GENDER ──
-  if (t === "gender" || t === "sex" || t.includes("gender of")) return profile.gender || '';
+  if (t.includes("gender") || t.includes("sex") || t.includes("gender of")) return profile.gender || '';
 
   // ── CASTE / CATEGORY ──
   if (t.includes("caste") || t.includes("category") || t.includes("social category") || t.includes("जाति")) return profile.caste || '';
@@ -837,10 +837,18 @@ function matchFieldToProfile(labelText, profile) {
   if (t.includes("allergy") || t.includes("allergies") || t.includes("medical condition") || t.includes("medical history")) return profile.allergies || '';
 
   // ── CANDIDATE NAME — ONLY after ruling out all above ──
-  if (t === "name" || t === "full name" || t.includes("student name") ||
-      t.includes("candidate name") || t.includes("applicant name") ||
-      t.includes("your name") || t.includes("name of student") ||
-      t.includes("name of applicant") || t.includes("नाम")) return profile.name || '';
+  if (
+    t.includes("full name") || t.includes("full_name") ||
+    t.includes("candidate name") || t.includes("applicant name") ||
+    t.includes("student name") || t.includes("name of student") ||
+    t.includes("name of applicant") || t.includes("your name") ||
+    t.includes("नाम") ||
+    (t.includes("name") &&
+     !t.includes("college") && !t.includes("school") &&
+     !t.includes("bank") && !t.includes("emergency") &&
+     !t.includes("father") && !t.includes("mother") &&
+     !t.includes("guardian") && !t.includes("husband"))
+  ) return profile.name || '';
 
   // ── CONTACT ──
   if (t.includes("emergency contact name") || t.includes("emergency name") || t.includes("contact person") || t.includes("emergency_contact_name")) return profile.emergency_contact_name || '';
@@ -852,7 +860,7 @@ function matchFieldToProfile(labelText, profile) {
   // ── ADDRESS ──
   if (t.includes("pincode") || t.includes("pin code") || t.includes("postal code") || t.includes("zip")) return profile.pincode || '';
   if (t.includes("district") || (t.includes("city") && !t.includes("address"))) return profile.city || '';
-  if (t === "state" || t.includes("state/ut") || t.includes("राज्य")) return profile.state || '';
+  if ((t.includes("state") && !t.includes("domicile")) || t.includes("state/ut") || t.includes("राज्य")) return profile.state || '';
   if (t.includes("address") || t.includes("पता") || t.includes("residence")) return profile.address || '';
   if (t.includes("country")) return profile.country || 'India';
 
@@ -1045,7 +1053,8 @@ function fillForm(profile) {
         finalVal = formatDateForInput(value);
       }
       // Use native setter for frameworks that override .value (React, Angular, Google Forms)
-      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      const prototype = input.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+      const nativeSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
       if (nativeSetter) {
         nativeSetter.call(input, finalVal);
       } else {

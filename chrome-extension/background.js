@@ -329,17 +329,22 @@ function fillFormPageDirect(profile) {
     if (t.includes('mother'))           return p.mother_name || '';
     if (t.includes('guardian'))         return p.guardian_name || p.father_name || '';
     if (t.includes('husband'))          return p.husband_name || '';
-    if (t.includes('date of birth') || t === 'dob' || t.includes('birth date') || t.includes('d.o.b') || t.includes('जन्म'))
+    if (t.includes('date of birth') || t.includes('dob') || t.includes('birth date') || t.includes('d.o.b') || t.includes('जन्म'))
                                         return p.dob || '';
-    if (t === 'gender' || t === 'sex' || t.includes('gender of'))
+    if (t.includes('gender') || t.includes('sex') || t.includes('gender of'))
                                         return p.gender || '';
     if (t.includes('caste') || t.includes('category') || t.includes('social category'))
                                         return p.caste || '';
     if (t.includes('marital'))          return p.marital_status || '';
     // Name — AFTER all relationship fields to avoid "father name" → name
-    if (t === 'name' || t.includes('full name') || t.includes('full_name') ||
+    if (t.includes('full name') || t.includes('full_name') ||
         t.includes('candidate name') || t.includes('applicant name') ||
-        t.includes('student name') || t.includes('name of') || t.includes('your name'))
+        t.includes('student name') || t.includes('name of') || t.includes('your name') ||
+        (t.includes('name') &&
+         !t.includes('college') && !t.includes('school') &&
+         !t.includes('bank') && !t.includes('emergency') &&
+         !t.includes('father') && !t.includes('mother') &&
+         !t.includes('guardian') && !t.includes('husband')))
                                         return p.name || '';
     if (t.includes('alternate') && t.includes('mobile')) return p.alt_phone || '';
     if (t.includes('mobile') || t.includes('phone') || t.includes('contact no') || t.includes('cell') || t.includes('whatsapp'))
@@ -350,7 +355,7 @@ function fillFormPageDirect(profile) {
                                         return p.pincode || '';
     if (t.includes('district') || (t.includes('city') && !t.includes('address')))
                                         return p.city || '';
-    if (t === 'state' || t.includes('state/ut') || t.includes('राज्य'))
+    if ((t.includes('state') && !t.includes('domicile')) || t.includes('state/ut') || t.includes('राज्य'))
                                         return p.state || '';
     if (t.includes('address') || t.includes('पता') || t.includes('residence'))
                                         return p.address || '';
@@ -566,7 +571,7 @@ function fillFormPageDirect(profile) {
     if (val && radioText && norm(radioText).includes(val.toLowerCase())) {
       if (radio.getAttribute('aria-checked') !== 'true') { radio.click(); filled++; }
     }
-  }
+  });
 
   // ── PASS 5: Native radio buttons ──
   document.querySelectorAll('input[type="radio"]').forEach(radio => {
