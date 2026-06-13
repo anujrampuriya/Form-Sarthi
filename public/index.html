@@ -1753,43 +1753,159 @@
 
           <!-- ── TAB: AUTOFILL ── -->
           <div class="tab-panel" id="tab-autofill">
+            <style>
+              .autofill-layout {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 24px;
+                margin-top: 15px;
+              }
+              @media (min-width: 1024px) {
+                .autofill-layout {
+                  grid-template-columns: 420px 1fr;
+                }
+              }
+              .preview-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 20px;
+                box-shadow: var(--shadow);
+                display: flex;
+                flex-direction: column;
+                height: 600px;
+              }
+              .preview-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid var(--border);
+              }
+              .preview-title {
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--text);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              }
+              .preview-actions {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+              }
+              .preview-btn-link {
+                font-size: 12px;
+                color: var(--accent);
+                text-decoration: none;
+                font-weight: 600;
+                transition: color 0.2s;
+              }
+              .preview-btn-link:hover {
+                color: var(--accent2);
+              }
+              .iframe-container {
+                flex: 1;
+                background: #ffffff;
+                border-radius: var(--radius-sm);
+                overflow: hidden;
+                border: 1px solid var(--border);
+                position: relative;
+              }
+              .iframe-placeholder {
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 30px;
+                text-align: center;
+                background: var(--surface2);
+                color: var(--muted);
+                z-index: 2;
+                transition: opacity 0.3s ease;
+              }
+              .iframe-placeholder svg {
+                width: 48px;
+                height: 48px;
+                stroke: var(--muted);
+                margin-bottom: 12px;
+              }
+            </style>
+
             <div style="margin-bottom:18px">
               <h2 style="font-size: 18px; font-weight: 700">Smart Form Autofill</h2>
-              <p style="font-size: 13px; color: var(--muted)">Enter form URL (e.g. JEE, NEET, or any job application) to analyze field matches.</p>
+              <p style="font-size: 13px; color: var(--muted)">Enter form URL (e.g. JEE, NEET, or any job application) to see and autofill it right here.</p>
             </div>
 
-            <div class="url-row">
+            <div class="url-row" style="margin-bottom: 20px;">
               <input type="text" id="form-url" class="url-input" placeholder="https://forms.gle/... or form website link" />
               <button class="btn" onclick="analyzeForm()">Analyze Form</button>
             </div>
 
-            <div id="meter-section" style="display:none">
-              <div class="meter-card" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;">
-                <div>
-                  <div class="meter-label" style="font-size: 14px; margin-bottom: 4px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Form Completeness</div>
-                  <div class="meter-pct" id="meter-pct" style="font-size: 28px; font-weight: 800; color: var(--text); transition: color 0.5s;">0%</div>
+            <div class="autofill-layout">
+              <!-- Left side: Analysis results & Actions -->
+              <div class="autofill-sidebar">
+                <div id="meter-section" style="display:none">
+                  <div class="meter-card" style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; margin-bottom: 20px;">
+                    <div>
+                      <div class="meter-label" style="font-size: 14px; margin-bottom: 4px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Form Completeness</div>
+                      <div class="meter-pct" id="meter-pct" style="font-size: 28px; font-weight: 800; color: var(--text); transition: color 0.5s;">0%</div>
+                    </div>
+                    
+                    <div class="speedometer-container" style="position: relative; width: 140px; height: 70px; overflow: hidden;">
+                      <svg viewBox="0 0 200 100" style="width: 100%; height: 100%; display: block;">
+                        <path d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="20" stroke-linecap="round"/>
+                        <path id="speedo-fill" d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--green)" stroke-width="20" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04" style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;"/>
+                      </svg>
+                      <div id="speedo-needle" style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 60px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>
+                      <div style="position: absolute; bottom: 0px; left: 50%; width: 16px; height: 16px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+                    </div>
+                  </div>
+
+                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Detected Fields Map</div>
+                  <div class="field-list" id="field-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 16px;"></div>
+
+                  <div style="display: flex; gap: 10px;">
+                    <button class="btn" style="flex: 1" onclick="fillForm()">⚡ Auto Fill Form</button>
+                    <button class="btn outline" style="flex: 1" onclick="trackCurrentForm()">⏰ Set Reminders</button>
+                  </div>
                 </div>
-                
-                <div class="speedometer-container" style="position: relative; width: 140px; height: 70px; overflow: hidden;">
-                  <svg viewBox="0 0 200 100" style="width: 100%; height: 100%; display: block;">
-                    <!-- Background arc (perfect semicircle r=85) -->
-                    <path d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--border)" stroke-width="20" stroke-linecap="round"/>
-                    <!-- Fill arc -->
-                    <path id="speedo-fill" d="M 15 90 A 85 85 0 0 1 185 90" fill="none" stroke="var(--green)" stroke-width="20" stroke-linecap="round" stroke-dasharray="267.04" stroke-dashoffset="267.04" style="transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s;"/>
-                  </svg>
-                  <!-- Needle -->
-                  <div id="speedo-needle" style="position: absolute; bottom: 8px; left: 50%; width: 4px; height: 60px; background: var(--accent); transform-origin: bottom center; transform: translateX(-50%) rotate(-90deg); transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>
-                  <!-- Center Pivot -->
-                  <div style="position: absolute; bottom: 0px; left: 50%; width: 16px; height: 16px; background: var(--text); border-radius: 50%; transform: translateX(-50%); border: 4px solid var(--surface2); box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+
+                <!-- Guidance state when no form is analyzed yet -->
+                <div id="autofill-guidance-card" class="card" style="padding: 24px; text-align: center; color: var(--muted);">
+                  <div style="font-size: 32px; margin-bottom: 10px;">🔍</div>
+                  <div style="font-weight: 600; color: var(--text); margin-bottom: 6px;">Ready to Scan</div>
+                  <div style="font-size: 12px; line-height: 1.4;">Paste a link to any form and click "Analyze Form" to preview and fill.</div>
                 </div>
               </div>
 
-              <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--muted); text-transform: uppercase">Detected Fields Map</div>
-              <div class="field-list" id="field-list"></div>
-
-              <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="btn" style="flex: 1" onclick="fillForm()">⚡ Auto Fill Form</button>
-                <button class="btn outline" style="flex: 1" onclick="trackCurrentForm()">⏰ Set Reminders</button>
+              <!-- Right side: Embedded Form Live Preview -->
+              <div class="preview-card">
+                <div class="preview-header">
+                  <div class="preview-title">
+                    <span>📋</span>
+                    <span>Live Form View</span>
+                  </div>
+                  <div class="preview-actions">
+                    <button onclick="analyzeForm()" style="background: none; border: none; color: var(--muted); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 4px; transition: all 0.2s;" title="Reload Form">🔄</button>
+                    <a id="open-external-btn" class="preview-btn-link" href="#" target="_blank">Open External ↗</a>
+                  </div>
+                </div>
+                <div class="iframe-container" style="flex: 1; background: #f0ebf8; border-radius: var(--radius-sm); overflow-y: auto; border: 1px solid var(--border); padding: 16px; display: flex; flex-direction: column; gap: 12px;" id="mock-form-container">
+                  <div id="iframe-placeholder-el" class="iframe-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    <div style="font-weight: 600; color: var(--text); margin-bottom: 4px;">Embedded Form Preview</div>
+                    <div style="font-size: 12px; max-width: 250px;">Please enter and analyze a form URL to load the live preview here.</div>
+                  </div>
+                </div>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 10px; display: flex; align-items: center; gap: 4px;">
+                  <span>💡</span>
+                  <span>Form is rendered locally to bypass cross-origin browser and login restrictions.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -4249,6 +4365,85 @@ async function openCameraCapture(docKey, docLabel) {
       }, 'image/jpeg', 0.85);
     }
 
+    // ── Autofill Tab & Bidirectional Sync ──
+    function updateMappedFieldValue(key, value) {
+      if (sessionData) {
+        sessionData[key] = value;
+      }
+      
+      const mockInput = document.querySelector(`.mock-form-input[data-key="${key}"]`);
+      if (mockInput) {
+        mockInput.value = value;
+      }
+
+      recalculateCompletenessFromUI();
+    }
+
+    function syncMockInputToLeft(key, value) {
+      if (sessionData) {
+        sessionData[key] = value;
+      }
+      
+      const leftInput = document.querySelector(`.field-input-val[data-key="${key}"]`);
+      if (leftInput) {
+        leftInput.value = value;
+      }
+
+      recalculateCompletenessFromUI();
+    }
+
+    async function saveAutofillFieldChange(key, value) {
+      if (!sessionData) return;
+      
+      // Update custom fields if applicable
+      if (sessionData.customFields) {
+        const field = sessionData.customFields.find(f => f.key === key);
+        if (field) {
+          field.value = value.trim() || null;
+        }
+      }
+      
+      sessionData[key] = value.trim() || null;
+      await saveLocalVault();
+      
+      renderDataGrid();
+      renderDocSlots();
+      updateBadges();
+    }
+
+    function recalculateCompletenessFromUI() {
+      const inputs = document.querySelectorAll('.field-input-val');
+      let filled = 0;
+      let total = inputs.length || 1;
+      
+      inputs.forEach(input => {
+        if (input.value.trim()) {
+          filled++;
+        }
+      });
+      
+      const pct = Math.round((filled / total) * 100);
+      document.getElementById('meter-pct').textContent = pct + '%';
+      
+      const dashOffset = 267.04 - (267.04 * pct / 100);
+      const needleRot = -90 + (180 * pct / 100);
+      
+      let meterColor = 'var(--green)';
+      if (pct < 30) meterColor = '#ef4444';
+      else if (pct <= 50) meterColor = '#f97316';
+      else if (pct <= 80) meterColor = '#eab308';
+      
+      document.getElementById('meter-pct').style.color = meterColor;
+      
+      const speedoFill = document.getElementById('speedo-fill');
+      const speedoNeedle = document.getElementById('speedo-needle');
+      if (speedoFill) {
+        speedoFill.style.strokeDashoffset = dashOffset;
+        speedoFill.style.stroke = meterColor;
+      }
+      if (speedoNeedle) speedoNeedle.style.transform = `translateX(-50%) rotate(${needleRot}deg)`;
+    }
+
     async function deleteProfile() {
       if (!confirm(`Are you sure you want to delete this profile? All local and synced data will be permanently wiped.`)) return;
       
@@ -4272,6 +4467,7 @@ async function openCameraCapture(docKey, docLabel) {
     }
 
     // ── Autofill Tab & Completeness Meter ──
+    // ── Autofill Tab & Completeness Meter ──
     async function analyzeForm() {
       const url = document.getElementById('form-url').value.trim();
       if (!url) { toast('Please enter a form URL', 'error'); return; }
@@ -4281,16 +4477,40 @@ async function openCameraCapture(docKey, docLabel) {
         return;
       }
 
+      // Toggle split-pane view widgets
+      const guidanceCard = document.getElementById('autofill-guidance-card');
+      if (guidanceCard) guidanceCard.style.display = 'none';
+
       document.getElementById('meter-section').style.display = 'block';
       document.getElementById('meter-pct').textContent  = '...';
+
+      const externalBtn = document.getElementById('open-external-btn');
+      if (externalBtn) {
+        externalBtn.href = url;
+      }
       
       let mapping = FS_Autofill.mapFields(sessionData);
+
+      let formTitle = "Application Form";
+      let formDesc = "Please review and verify the pre-filled fields.";
 
       try {
         const res = await fetch(url);
         const text = await res.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'text/html');
+        
+        const titleEl = doc.querySelector('meta[property="og:title"]') || doc.querySelector('title');
+        if (titleEl) {
+          formTitle = titleEl.getAttribute('content') || titleEl.textContent;
+          formTitle = formTitle.replace(' - Google Forms', '').replace(' - Google-Form', '').trim();
+        }
+        
+        const descEl = doc.querySelector('meta[property="og:description"]');
+        if (descEl) {
+          formDesc = descEl.getAttribute('content') || formDesc;
+        }
+
         const inputs = doc.querySelectorAll('input:not([type=hidden]):not([type=submit]), textarea, select');
         
         let requiredKeys = new Set();
@@ -4309,6 +4529,41 @@ async function openCameraCapture(docKey, docLabel) {
         }
       } catch (e) {
         console.warn("Could not fetch form HTML. Falling back to full parameters.");
+      }
+
+      // Render the mock form cards inside the container
+      const mockContainer = document.getElementById('mock-form-container');
+      if (mockContainer) {
+        let cardsHtml = `
+          <div class="mock-form-card header-card" style="border-top: 10px solid #673ab7; background: #ffffff; color: #202124; border-radius: 8px; padding: 22px 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); margin-bottom: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: left; transition: all 0.2s;">
+            <h1 style="font-size: 30px; font-weight: 400; margin-bottom: 8px; line-height: 1.35; color: #202124;">${formTitle}</h1>
+            <div style="font-size: 14px; color: #202124; line-height: 1.5;">${formDesc}</div>
+            <div style="color: #d93025; font-size: 12px; margin-top: 12px; font-weight: 500;">* Indicates required field</div>
+          </div>
+        `;
+
+        mapping.forEach(m => {
+          cardsHtml += `
+            <div class="mock-form-card field-card" style="background: #ffffff; color: #202124; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); margin-bottom: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; flex-direction: column; gap: 12px; text-align: left; transition: all 0.2s;">
+              <div style="font-size: 16px; font-weight: 500; color: #202124; display: flex; gap: 4px;">
+                <span>${m.label}</span>
+                <span style="color: #d93025;">*</span>
+              </div>
+              <div style="position: relative;">
+                <input class="mock-form-input" data-key="${m.key}" type="text" placeholder="Your answer" value="${m.value || ''}" style="width: 100%; border: none; border-bottom: 1px solid #dadce0; padding: 8px 0; font-size: 14px; outline: none; font-family: inherit; color: #202124; transition: border-color 0.2s;" onfocus="this.style.borderBottomColor='#673ab7'; this.style.borderBottomWidth='2px';" onblur="this.style.borderBottomColor='#dadce0'; this.style.borderBottomWidth='1px';" oninput="syncMockInputToLeft('${m.key}', this.value)" onchange="saveAutofillFieldChange('${m.key}', this.value)" />
+              </div>
+            </div>
+          `;
+        });
+
+        // Submit action simulation button
+        cardsHtml += `
+          <div style="display: flex; justify-content: flex-start; margin-bottom: 24px;">
+            <button class="btn" style="background: #673ab7; color: #ffffff; border: none; padding: 10px 24px; border-radius: 4px; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.12);" onclick="toast('Form submission simulated successfully!', 'success')">Submit</button>
+          </div>
+        `;
+
+        mockContainer.innerHTML = cardsHtml;
       }
 
       const filled  = mapping.filter(m => m.value).length;
@@ -4336,10 +4591,10 @@ async function openCameraCapture(docKey, docLabel) {
       if (speedoNeedle) speedoNeedle.style.transform = `translateX(-50%) rotate(${needleRot}deg)`;
       
       document.getElementById('field-list').innerHTML = mapping.map(m => `
-        <div class="field-row">
-          <span class="field-key">${m.label}</span>
-          <span class="field-arrow">→</span>
-          <span class="field-val ${m.value ? '' : 'missing'}">${m.value || 'Not set (Missing)'}</span>
+        <div class="field-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <span class="field-key" style="font-weight: 600; width: 140px; font-size: 13px; text-align: left;">${m.label}</span>
+          <span class="field-arrow" style="margin: 0 8px;">→</span>
+          <input class="field-input-val" data-key="${m.key}" type="text" value="${m.value || ''}" placeholder="Not set (Missing)" style="flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; font-family: inherit; font-size: 13px; color: var(--text); outline: none;" oninput="updateMappedFieldValue('${m.key}', this.value)" onchange="saveAutofillFieldChange('${m.key}', this.value)" />
         </div>
       `).join('');
     }
@@ -4348,13 +4603,49 @@ async function openCameraCapture(docKey, docLabel) {
       const url = document.getElementById('form-url').value.trim();
       if (!url) return;
 
-      toast('Form fields copied to clipboard — opening portal', 'success');
+      toast('Form fields copied to clipboard', 'success');
       const data = FS_Autofill.mapFields(sessionData || {});
       const text = data.filter(d => d.value).map(d => `${d.label}: ${d.value}`).join('\n');
       navigator.clipboard.writeText(text).catch(() => {});
 
       // Pass session data to mock-form for automatic autofill simulation
       localStorage.setItem('fs_autofill_pending_data', JSON.stringify(sessionData || {}));
+
+      // Autofill the local mock form cards in real time with transition
+      const inputs = document.querySelectorAll('.mock-form-input');
+      let fillCount = 0;
+
+      inputs.forEach(input => {
+        const key = input.getAttribute('data-key');
+        const match = data.find(d => d.key === key);
+        if (match && match.value) {
+          input.value = match.value;
+          
+          // Also sync left panel input fields
+          const leftInput = document.querySelector(`.field-input-val[data-key="${key}"]`);
+          if (leftInput) {
+            leftInput.value = match.value;
+          }
+
+          // Trigger a beautiful visual flash animation on the card
+          const card = input.closest('.mock-form-card');
+          if (card) {
+            card.style.transition = 'background-color 0.2s ease';
+            card.style.backgroundColor = 'rgba(94, 234, 212, 0.15)'; // light teal flash
+            setTimeout(() => {
+              card.style.transition = 'background-color 0.6s ease';
+              card.style.backgroundColor = '#ffffff';
+            }, 300);
+          }
+          fillCount++;
+        }
+      });
+
+      if (fillCount > 0) {
+        toast(`Visual autofill filled ${fillCount} fields in mock form!`, 'success');
+      }
+
+      recalculateCompletenessFromUI();
 
       // Save history logs
       let history = JSON.parse(localStorage.getItem(`fs_history_${activeProfile}`) || '[]');
@@ -4366,8 +4657,6 @@ async function openCameraCapture(docKey, docLabel) {
       });
       localStorage.setItem(`fs_history_${activeProfile}`, JSON.stringify(history));
       renderHistory();
-
-      window.open(url, '_blank');
     }
 
     // Pre-fill fields and redirect to deadlines tab for incomplete form reminders
@@ -5457,7 +5746,6 @@ async function openCameraCapture(docKey, docLabel) {
       document.getElementById('form-url').value = url;
       switchTab('autofill', document.getElementById('nav-autofill'));
       analyzeForm();
-      window.open(url, '_blank');
     }
 
     function goToDocsTab(reminderId) {
@@ -5550,6 +5838,20 @@ async function openCameraCapture(docKey, docLabel) {
       // Clear localStorage pending autofill data
       localStorage.removeItem('fs_autofill_pending_data');
       
+      // Clear preview frame
+      const iframe = document.getElementById('form-iframe');
+      const placeholder = document.getElementById('iframe-placeholder-el');
+      const guidanceCard = document.getElementById('autofill-guidance-card');
+      const meterSection = document.getElementById('meter-section');
+      
+      if (iframe) {
+        iframe.src = '';
+        iframe.style.display = 'none';
+      }
+      if (placeholder) placeholder.style.display = 'flex';
+      if (guidanceCard) guidanceCard.style.display = 'block';
+      if (meterSection) meterSection.style.display = 'none';
+
       // Notify extension to clear and lock
       window.postMessage({ type: 'FS_PORTAL_LOGOUT' }, '*');
       

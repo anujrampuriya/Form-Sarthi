@@ -233,6 +233,22 @@ if (window.hasFormSarthiContentScript) {
 
   // Target page logic (runs on non-dashboard form pages)
   if (!isDashboard) {
+    // Listen for postMessage from the parent portal to trigger autofill inside iframe
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'FS_TRIGGER_AUTOFILL_IN_FRAME') {
+        console.log('[FormSarthi Content] Received FS_TRIGGER_AUTOFILL_IN_FRAME signal.');
+        chrome.runtime.sendMessage({ type: "GET_PROFILE" }, (response) => {
+          if (response && response.success && response.profile) {
+            const count = fillForm(response.profile);
+            console.log('[FormSarthi Content] Autofilled fields in frame:', count);
+            setTimeout(checkProgressChange, 100);
+          } else {
+            console.warn('[FormSarthi Content] Could not autofill inside frame: Vault is locked.');
+          }
+        });
+      }
+    });
+
     const isAutofillablePage = () => {
       const inputs = getRelevantFormInputs();
       
