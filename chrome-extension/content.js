@@ -184,22 +184,51 @@ if (window.hasFormSarthiContentScript) {
 
   // ── NEW: Sync profiles to extension storage on portal startup (if unlocked) ──
   if (isDashboard) {
-    // When the portal page loads, push profile metadata to chrome.storage.local
-    // so the extension popup can list them even without the portal tab being queried.
-    window.addEventListener('load', () => {
-      // Small delay to let IndexedDB hydrate
+    // Listen for events from the portal website
+    window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+      
+      // 1. Relays logout signal
+      if (event.data && event.data.type === 'FS_PORTAL_LOGOUT') {
+        console.log('[FormSarthi Content] Portal logout detected → notifying background');
+        chrome.runtime.sendMessage({ type: 'PORTAL_LOGOUT' });
+      }
+      
+      // 2. Relays profile sync request
+      if (event.data && event.data.type === 'FS_SYNC_PROFILES_TO_EXT') {
+        console.log('[FormSarthi Content] Portal requested profile sync → querying IndexedDB');
+        setTimeout(async () => {
+          try {
+            const profiles = await getAllProfilesFromIDB();
+            chrome.runtime.sendMessage({ type: 'PORTAL_PROFILES_UPDATED', profiles });
+            console.log('[FormSarthi Content] Pushed', profiles?.length, 'profile(s) to background.');
+          } catch (e) {
+            console.warn('[FormSarthi Content] Profile sync failed:', e.message);
+          }
+        }, 100);
+      }
+    });
+
+    // Run initial sync when page is ready (without missing the load event)
+    const runInitialSync = () => {
       setTimeout(async () => {
         try {
           const profiles = await getAllProfilesFromIDB();
           if (profiles && profiles.length > 0) {
             chrome.runtime.sendMessage({ type: 'PORTAL_PROFILES_UPDATED', profiles });
-            console.log('[FormSarthi Content] Pushed', profiles.length, 'profile(s) to extension storage.');
+            console.log('[FormSarthi Content] Pushed', profiles.length, 'profile(s) to extension storage on init.');
           }
         } catch (e) {
-          console.warn('[FormSarthi Content] Could not push profiles to extension:', e.message);
+          console.warn('[FormSarthi Content] Initial profile push failed:', e.message);
         }
       }, 800);
-    });
+    };
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      runInitialSync();
+    } else {
+      window.addEventListener('load', runInitialSync);
+    }
   }
 
   // Target page logic (runs on non-dashboard form pages)

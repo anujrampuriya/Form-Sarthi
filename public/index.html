@@ -1408,8 +1408,8 @@
       </div>
 
       <div class="form-group" style="margin-bottom:20px; position:relative;">
-        <label style="display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:6px">Set Password (min 4 characters)</label>
-        <input id="new-password" class="form-input" type="password" placeholder="Enter secure password" style="width:100%; padding-right:40px;">
+        <label style="display:block; font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:6px">Set Password (max 8 characters, alphanumeric)</label>
+        <input id="new-password" class="form-input" type="password" placeholder="Enter secure password" maxlength="8" style="width:100%; padding-right:40px;">
         <button type="button" onclick="togglePasswordVisibility('new-password', this)" style="position:absolute; right:12px; top:36px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
       </div>
 
@@ -1428,7 +1428,7 @@
       </div>
 
       <div class="form-group" style="position:relative; margin-bottom:10px;">
-        <input id="unlock-password" class="form-input" type="password" placeholder="Enter password" style="width:100%; padding-right:40px; text-align:center;">
+        <input id="unlock-password" class="form-input" type="password" placeholder="Enter password" maxlength="8" style="width:100%; padding-right:40px; text-align:center;">
         <button type="button" onclick="togglePasswordVisibility('unlock-password', this)" style="position:absolute; right:12px; top:12px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px;">👁️</button>
       </div>
       
@@ -2281,28 +2281,24 @@
     ];
 
     async function syncProfilesToExtension() {
-      // Only available when running as an extension-managed page
-      if (typeof chrome === 'undefined' || !chrome.storage) return;
-      try {
-        const allProfiles = await dbGetAll("profiles");
-        const metaList = allProfiles.map(p => ({
-          email:            p.email,
-          name:             p.name || p.email?.split('@')[0] || 'Profile',
-          avatar:           p.avatar || '🪪',
-          color:            p.color  || 'purple',
-          encryptedProfile: p.encryptedProfile || null,
-          completionPct:    p.completionPct    || 0,
-          lastUsed:         p.lastUsed         || null,
-        }));
-        chrome.storage.local.set({ 'fs_ext_profiles': metaList }, () => {
-          if (chrome.runtime.lastError) {
-            console.warn('[FormSarthi Portal] Extension storage sync failed:', chrome.runtime.lastError.message);
-          } else {
-            console.log('[FormSarthi Portal] Synced', metaList.length, 'profile(s) to extension storage.');
-          }
-        });
-      } catch (err) {
-        console.warn('[FormSarthi Portal] Could not sync profiles to extension:', err.message);
+      // Trigger sync via content script by posting a message
+      window.postMessage({ type: 'FS_SYNC_PROFILES_TO_EXT' }, '*');
+
+      // Fallback if running as an extension-managed page directly
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        try {
+          const allProfiles = await dbGetAll("profiles");
+          const metaList = allProfiles.map(p => ({
+            email:            p.email,
+            name:             p.name || p.email?.split('@')[0] || 'Profile',
+            avatar:           p.avatar || '🪪',
+            color:            p.color  || 'purple',
+            encryptedProfile: p.encryptedProfile || null,
+            completionPct:    p.completionPct    || 0,
+            lastUsed:         p.lastUsed         || null,
+          }));
+          chrome.storage.local.set({ 'fs_ext_profiles': metaList });
+        } catch (_) {}
       }
     }
 
@@ -5313,6 +5309,9 @@ async function openCameraCapture(docKey, docLabel) {
       // Clear localStorage pending autofill data
       localStorage.removeItem('fs_autofill_pending_data');
       
+      // Notify extension to clear and lock
+      window.postMessage({ type: 'FS_PORTAL_LOGOUT' }, '*');
+      
       // Return to profile selection
       show('who');
       loadProfiles();
@@ -5326,6 +5325,19 @@ async function openCameraCapture(docKey, docLabel) {
     // ── Init ──
     loadProfiles();
     initGoogleAuth();
+
+    // Real-time character filtering for password inputs (max 8, alphanumeric only)
+    ['new-password', 'unlock-password'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener('input', function(e) {
+          const clean = this.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8);
+          if (this.value !== clean) {
+            this.value = clean;
+          }
+        });
+      }
+    });
   </script>
 
   <script>

@@ -399,3 +399,17 @@ body {
 .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
 
 .full-width { width: 100%; }
+
+/* Shake animation for wrong password input */
+.pass-field-group.shake {
+  animation: shakeKey 0.4s ease-in-out;
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.15) !important;
+}
+
+@keyframes shakeKey {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
