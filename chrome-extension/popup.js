@@ -331,11 +331,19 @@ async function attemptUnlock(passwordRaw) {
 
     _decryptedData = vaultData;
 
+    // Query active tab to bind session
+    let activeTabId = null;
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      activeTabId = activeTab?.id || null;
+    } catch (_) {}
+
     // Save session in background (stored in chrome.storage.session)
     await bgMessage({
       type:          'SAVE_VAULT_SESSION',
       profile:       _selectedProfile,
       decryptedData: _decryptedData,
+      activeTabId:   activeTabId,
     });
 
     populateReviewScreen(_selectedProfile, _decryptedData);
@@ -634,3 +642,36 @@ function truncate(str, max) {
   const s = String(str || '');
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
+
+// ────────────────────────────────────────────────────────────
+// RUNTIME MESSAGES
+// ────────────────────────────────────────────────────────────
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'FORCE_LOCK_VAULT') {
+    console.log('[FormSarthi] Popup forced back to locked state');
+    _decryptedData = null;
+    _selectedProfile = null;
+
+    // Reset password input
+    const pwdInput = document.getElementById('password-input');
+    if (pwdInput) {
+      pwdInput.value = '';
+      pwdInput.disabled = false;
+    }
+    setPasswordError('');
+
+    // Clear sensitive DOM elements in review screen
+    const reviewName = document.getElementById('review-name');
+    if (reviewName) reviewName.textContent = '';
+    const reviewEmail = document.getElementById('review-email');
+    if (reviewEmail) reviewEmail.textContent = '';
+    const groupsEl = document.getElementById('field-groups');
+    if (groupsEl) groupsEl.innerHTML = '';
+    const missChips = document.getElementById('missing-chips');
+    if (missChips) missChips.innerHTML = '';
+
+    // Load and render locked profile selector
+    loadProfiles();
+  }
+});
+
