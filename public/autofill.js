@@ -465,7 +465,7 @@ const FS_Autofill = {
       }
     });
 
-    // 1b. Single-date-input fallback: if DOB wasn't filled and there's only one date field, fill it
+    // Single-date fallback
     if (sessionData.dob) {
       const allDateInputs = document.querySelectorAll('input[type="date"]');
       const emptyDateInputs = Array.from(allDateInputs).filter(inp => !inp.value);

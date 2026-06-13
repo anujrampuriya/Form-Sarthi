@@ -4,92 +4,165 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FormSarthi</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      width: 320px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      font-size: 14px;
-      background: #0e0e10;
-      color: #f0efe8;
-    }
-    .header {
-      background: linear-gradient(135deg, #7f6ef0, #a594f9);
-      color: white;
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.5px; }
-    .header p  { font-size: 11px; opacity: 0.8; margin-top: 2px; }
-    .section { padding: 16px; }
-    .status-bar {
-      background: #18181c;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 12px;
-    }
-    .status-bar .label { font-size: 12px; color: #888680; margin-bottom: 6px; }
-    .progress-track { background: rgba(255,255,255,0.08); border-radius: 99px; height: 6px; overflow: hidden; }
-    .progress-fill { background: #3ecf8e; height: 100%; border-radius: 99px; transition: width 0.4s ease; }
-    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; max-height: 180px; overflow-y: auto; }
-    .field-chip { background: #18181c; border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 6px 10px; font-size: 11px; }
-    .field-chip .key { color: #888680; font-size: 9px; text-transform: uppercase; }
-    .field-chip .val { color: #f0efe8; font-weight: 500; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .field-chip.empty { opacity: 0.4; }
-    .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-family: inherit; }
-    .btn:hover { opacity: 0.85; }
-    .btn-primary { background: #7f6ef0; color: white; margin-bottom: 8px; }
-    .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #f0efe8; }
-    .msg { font-size: 12px; text-align: center; margin-top: 8px; padding: 6px; border-radius: 6px; }
-    .msg.error   { background: #3a0f0f; color: #f56565; border: 1px solid rgba(245,101,101,0.2); }
-    .msg.success { background: #0f3027; color: #3ecf8e; border: 1px solid rgba(62,207,142,0.2); }
-    #lockedView, #mainView { display: none; }
-    #lockedView.active, #mainView.active { display: block; }
-  </style>
+  <script src="crypto-js.min.js"></script>
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <h1>FormSarthi Extension</h1>
-    <p>Smart Form Filler for Bharat 🇮🇳</p>
+<!-- ═══════════════════════════════════════════
+     SCREEN 1: PROFILE LIST
+     ═══════════════════════════════════════════ -->
+<div id="screen-profiles" class="screen active">
+  <div class="popup-header">
+    <div class="header-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <path d="M9 12h6M9 16h6M9 8h6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">FormSarthi</div>
+        <div class="brand-sub">Smart Form Filler 🇮🇳</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="btn-theme" title="Toggle Theme">
+      <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>
+      <svg id="icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+
+  <!-- Loading Skeleton -->
+  <div id="profiles-loading" class="loading-state">
+    <div class="skeleton-card"></div>
+    <div class="skeleton-card"></div>
+  </div>
+
+  <!-- Empty State -->
+  <div id="profiles-empty" class="empty-state" style="display:none">
+    <div class="empty-icon">🔒</div>
+    <h3>No Profiles Found</h3>
+    <p>Open the FormSarthi portal, create a profile, then come back here.</p>
+    <button class="btn-primary" id="btn-open-portal">Open Portal ↗</button>
+  </div>
+
+  <!-- Profiles List -->
+  <div id="profiles-list" style="display:none">
+    <div class="section-label">SELECT PROFILE TO UNLOCK</div>
+    <div id="profiles-container" class="profiles-container"></div>
+    <button class="btn-ghost full-width" id="btn-open-portal-2" style="margin:8px 10px 12px; width:calc(100% - 20px)">
+      + Open FormSarthi Portal
+    </button>
   </div>
 </div>
 
-<!-- LOCKED VIEW -->
-<div id="lockedView">
-  <div class="section" style="text-align: center; padding: 24px 16px;">
-    <div style="font-size: 40px; margin-bottom: 12px;">🔒</div>
-    <h2 style="font-size: 15px; font-weight: 600; margin-bottom: 8px;">Vault is Locked</h2>
-    <p style="color: #888680; font-size: 12px; line-height: 1.6; margin-bottom: 20px;">
-      Please open your FormSarthi dashboard in a browser tab and enter your PIN to unlock your vault.
-    </p>
-    <button class="btn btn-primary" id="openDashboardBtn">Open Dashboard ↗</button>
+<!-- ═══════════════════════════════════════════
+     SCREEN 2: UNLOCK (password only — no numpad)
+     ═══════════════════════════════════════════ -->
+<div id="screen-unlock" class="screen">
+  <div class="popup-header slim">
+    <button class="back-btn" id="btn-back-from-unlock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="header-title">Unlock Vault</span>
+    <div style="width:32px"></div>
+  </div>
+
+  <div class="unlock-body">
+    <div class="unlock-avatar" id="unlock-avatar">🪪</div>
+    <div class="unlock-name"  id="unlock-name">Profile Name</div>
+    <div class="unlock-email" id="unlock-email">email@example.com</div>
+
+    <!-- Password field — full width, prominent -->
+    <div class="unlock-pass-wrap">
+      <div class="pass-field-group">
+        <svg class="pass-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0110 0v4"/>
+        </svg>
+        <input type="password"
+               id="password-input"
+               class="pass-input-main"
+               placeholder="Enter your password…"
+               autocomplete="current-password"
+               autofocus>
+        <button class="pass-show-btn" id="btn-toggle-pass" type="button" title="Show/hide password">
+          <svg id="eye-open"   viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg id="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+      <button class="btn-primary btn-unlock-main" id="btn-unlock-pass">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;flex-shrink:0"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Unlock
+      </button>
+    </div>
+
+    <div class="pin-error" id="pin-error"></div>
+    <div class="unlock-hint">🔒 Password never leaves your device</div>
   </div>
 </div>
 
-<!-- MAIN VIEW (after dashboard unlock) -->
-<div id="mainView">
-  <div class="section">
+<!-- ═══════════════════════════════════════════
+     SCREEN 3: PROFILE REVIEW + AUTOFILL
+     ═══════════════════════════════════════════ -->
+<div id="screen-review" class="screen">
+  <div class="popup-header slim">
+    <button class="back-btn" id="btn-back-from-review">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="header-title">Vault Unlocked</span>
+    <button class="icon-btn" id="btn-lock" title="Lock Vault">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    </button>
+  </div>
 
-    <div class="status-bar">
-      <div class="label">Vault Status — <span id="pctText">0%</span> Complete</div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  <div class="review-body">
+    <!-- Profile Summary -->
+    <div class="profile-summary-row">
+      <div class="review-avatar" id="review-avatar">🪪</div>
+      <div class="review-info">
+        <div class="review-name"  id="review-name">Name</div>
+        <div class="review-email" id="review-email">email</div>
+      </div>
+      <div class="completion-ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 40 40">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="3"/>
+          <circle id="ring-progress" cx="20" cy="20" r="16" fill="none" stroke="var(--accent)" stroke-width="3"
+            stroke-dasharray="100.5" stroke-dashoffset="100.5" stroke-linecap="round"
+            transform="rotate(-90 20 20)" style="transition:stroke-dashoffset 0.6s ease"/>
+        </svg>
+        <span id="ring-pct" class="ring-pct">0%</span>
       </div>
     </div>
 
-    <div class="profile-grid" id="profileGrid">
-      <!-- Filled dynamically -->
+    <!-- Readiness bar -->
+    <div class="readiness-bar">
+      <div class="readiness-label">
+        <span>Autofill Readiness</span>
+        <span id="readiness-pct-text">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="readiness-fill"></div>
+      </div>
     </div>
 
-    <div id="fillMsg" class="msg" style="display:none; margin-bottom: 10px;"></div>
+    <!-- Field groups -->
+    <div class="field-groups" id="field-groups"></div>
 
-    <button class="btn btn-primary" id="fillBtn">⚡ Auto Fill This Page</button>
-    <button class="btn btn-secondary" id="refreshBtn">🔄 Refresh Session</button>
+    <!-- Missing fields -->
+    <div id="missing-section" style="display:none">
+      <div class="section-label missing-label">MISSING FIELDS</div>
+      <div id="missing-chips" class="missing-chips"></div>
+    </div>
+  </div>
+
+  <!-- Sticky autofill bar -->
+  <div class="sticky-bar">
+    <div id="fill-msg" class="fill-msg" style="display:none"></div>
+    <button class="btn-primary full-width" id="btn-autofill">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="width:16px;height:16px;flex-shrink:0"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Autofill This Page
+    </button>
+    <button class="btn-ghost full-width" id="btn-refresh">🔄 Refresh Profiles</button>
   </div>
 </div>
 

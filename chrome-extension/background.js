@@ -1,138 +1,66 @@
 // =============================================================
-// chrome-extension/background.js (MV3 Service Worker)
+// chrome-extension/background.js  (MV3 Service Worker)
 //
-// Bridges communication between popup.js, the FormSarthi tab,
-// and target form pages. Complete local-first, zero DB calls!
-// Supports multiple localhost ports (3000, 4000).
+// Responsibilities:
+//  1. GET_PROFILES_FROM_PORTAL  — scrape IndexedDB via content script
+//     on the portal tab and cache into chrome.storage.local
+//  2. FILL_FORM                 — relay autofill to active tab's content.js
+//                                 (profile data passed directly, not fetched from tab)
+//  3. OPEN_DASHBOARD            — focus or create the portal tab
+//  4. Legacy messages: CHECK_DRAFT_RESTORE, AUTO_SAVE_DRAFT, GET_FILE_DATA
+//
+// Security: raw decrypted profile data is passed at fill-time from popup.
+//           Background never stores decrypted data.
 // =============================================================
 
-async function getDecryptedSession() {
-  // Query all localhost and 127.0.0.1 tabs (ports are not supported in query patterns in MV3)
-  const tabs = await chrome.tabs.query({ 
-    url: [
-      "*://localhost/*",
-      "*://127.0.0.1/*"
-    ] 
-  });
-  
-  // Filter for ports 3000 and 4000
-  const validTabs = tabs.filter(tab => {
-    try {
-      const parsedUrl = new URL(tab.url);
-      return parsedUrl.port === "3000" || parsedUrl.port === "4000";
-    } catch (e) {
-      return false;
-    }
-  });
+const STORAGE_PROFILES_KEY = 'fs_ext_profiles';
 
-  if (validTabs.length === 0) {
-    throw new Error("Please open FormSarthi Dashboard (http://localhost:4000) and unlock your vault first.");
-  }
-  
-  for (const tab of validTabs) {
-    try {
-      const response = await chrome.tabs.sendMessage(tab.id, { type: "GET_DECRYPTED_SESSION" });
-      if (response && response.success) {
-        return response.profile;
-      }
-    } catch (e) {
-      // Content script not loaded/ready on this tab
-    }
-  }
-  
-  throw new Error("FormSarthi vault is locked. Please unlock it on the dashboard first.");
-}
-
-async function getDashboardTab() {
-  const tabs = await chrome.tabs.query({ 
-    url: [
-      "*://localhost/*",
-      "*://127.0.0.1/*"
-    ] 
-  });
-  
-  const validTabs = tabs.filter(tab => {
-    try {
-      const parsedUrl = new URL(tab.url);
-      return parsedUrl.port === "3000" || parsedUrl.port === "4000";
-    } catch (e) {
-      return false;
-    }
-  });
-
-  if (validTabs.length === 0) {
-    throw new Error("FormSarthi dashboard tab not found.");
-  }
-  return validTabs[0];
-}
-
+// ── Main message dispatcher ──
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  handleMessage(message, sender).then(sendResponse).catch(err => {
-    sendResponse({ success: false, error: err.message });
-  });
-  return true;
+  handleMessage(message, sender)
+    .then(sendResponse)
+    .catch(err => sendResponse({ success: false, error: err.message }));
+  return true; // keep channel open for async
 });
 
 async function handleMessage(message, sender) {
   switch (message.type) {
 
-    case "GET_PROFILE": {
-      try {
-        const profile = await getDecryptedSession();
-        // Calculate completeness based on all 30 fields
-        const allFields = [
-          "name", "father_name", "mother_name", "dob", "gender", "caste", "nationality", "religion", "blood_group", "marital_status", "allergies",
-          "phone", "alt_phone", "emergency_contact_name", "email", "address", "city", "state", "pincode",
-          "roll_10", "roll_12", "board_10", "board_12", "marks_10", "marks_12", "college", "degree", "grad_year",
-          "aadhaar", "pan", "dl", "bank_name", "account_no", "ifsc", "insurance_policy"
-        ];
-        let filledCount = allFields.filter(f => profile[f]).length;
-        let totalCount = allFields.length;
-        if (profile.customFields && profile.customFields.length > 0) {
-          profile.customFields.forEach(custom => {
-            totalCount++;
-            if (profile[custom.key]) {
-              filledCount++;
-            }
-          });
-        }
-        const percent = Math.round((filledCount / totalCount) * 100);
-        return { 
-          success: true, 
-          profile, 
-          status: { percent } 
-        };
-      } catch (err) {
-        return { success: false, error: err.message };
-      }
+    // ── NEW: Pull profile list from portal's IndexedDB via content script ──
+    case 'GET_PROFILES_FROM_PORTAL': {
+      return await getProfilesFromPortal();
     }
 
-    case "FILL_FORM": {
+    // ── FILL_FORM: profile data comes directly from popup (already decrypted) ──
+    case 'FILL_FORM': {
       try {
-        const profile = await getDecryptedSession();
+        const profile = message.profile;
+        if (!profile) throw new Error('No profile data provided.');
+
         let tabId = message.tabId;
         if (!tabId) {
           const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-          tabId = activeTab ? activeTab.id : null;
+          tabId = activeTab?.id;
         }
-        if (!tabId) throw new Error("No active tab found.");
-        
+        if (!tabId) throw new Error('No active tab found.');
+
+        // Try messaging content.js first
         let filledCount = 0;
         try {
-          const response = await chrome.tabs.sendMessage(tabId, { type: "FILL_PAGE", profile });
+          const response = await chrome.tabs.sendMessage(tabId, { type: 'FILL_PAGE', profile });
           if (response && response.success) {
             filledCount = response.count;
           } else {
-            throw new Error("Content script response failed");
+            throw new Error('Content script response failed');
           }
         } catch (msgErr) {
-          // Fallback to executeScript directly in the target page context
+          // Fallback: inject the fill function directly into the page
           const results = await chrome.scripting.executeScript({
-            target: { tabId: tabId },
-            func: fillFormPageDirect,
-            args: [profile]
+            target: { tabId },
+            func:   fillFormPageDirect,
+            args:   [profile],
           });
-          filledCount = results && results[0] ? results[0].result : 0;
+          filledCount = results?.[0]?.result ?? 0;
         }
         return { success: true, fielledCount: filledCount };
       } catch (err) {
@@ -140,52 +68,88 @@ async function handleMessage(message, sender) {
       }
     }
 
-    case "CHECK_DRAFT_RESTORE": {
+    // ── Legacy GET_PROFILE (still used by old content.js floating tracker) ──
+    case 'GET_PROFILE': {
       try {
-        const dashboardTab = await getDashboardTab();
-        const response = await chrome.tabs.sendMessage(dashboardTab.id, { 
-          type: "GET_DRAFT_VALUES", 
-          url: message.url 
-        });
-        return response;
+        // Try reading live session from popup's storage slot
+        const stored = await storageGet('fs_ext_session');
+        if (stored && stored.decryptedData && stored.expiry > Date.now()) {
+          const profile = stored.decryptedData;
+          const allFields = [
+            'name','father_name','mother_name','dob','gender','caste',
+            'nationality','religion','blood_group','marital_status',
+            'phone','alt_phone','email','address','city','state','pincode',
+            'roll_10','roll_12','board_10','board_12','marks_10','marks_12',
+            'college','degree','grad_year','aadhaar','pan','bank_name',
+            'account_no','ifsc',
+          ];
+          const filled  = allFields.filter(f => profile[f]).length;
+          const percent = Math.round((filled / allFields.length) * 100);
+          return { success: true, profile, status: { percent } };
+        }
+        // No live session
+        return { success: false, error: 'Vault locked. Open FormSarthi extension popup and unlock.' };
       } catch (err) {
         return { success: false, error: err.message };
       }
     }
 
-    case "AUTO_SAVE_DRAFT": {
+    // ── Draft save/restore (dashboard → content.js) ──
+    case 'CHECK_DRAFT_RESTORE': {
       try {
-        const dashboardTab = await getDashboardTab();
-        const response = await chrome.tabs.sendMessage(dashboardTab.id, {
-          type: "SAVE_DRAFT_DATA",
-          draft: message.draft
+        const dashTab = await getDashboardTab();
+        const response = await chrome.tabs.sendMessage(dashTab.id, {
+          type: 'GET_DRAFT_VALUES',
+          url:  message.url,
         });
-        return response;
+        return response || { success: false };
       } catch (err) {
         return { success: false, error: err.message };
       }
     }
 
-    case "GET_FILE_DATA": {
+    case 'AUTO_SAVE_DRAFT': {
       try {
-        const dashboardTab = await getDashboardTab();
-        const response = await chrome.tabs.sendMessage(dashboardTab.id, {
-          type: "GET_DASHBOARD_FILE",
-          docKey: message.docKey
+        const dashTab = await getDashboardTab();
+        const response = await chrome.tabs.sendMessage(dashTab.id, {
+          type:  'SAVE_DRAFT_DATA',
+          draft: message.draft,
         });
-        return response;
+        return response || { success: false };
       } catch (err) {
         return { success: false, error: err.message };
       }
     }
 
-    case "OPEN_DASHBOARD": {
+    case 'GET_FILE_DATA': {
       try {
-        const dashboardTab = await getDashboardTab();
-        await chrome.tabs.update(dashboardTab.id, { active: true });
-        await chrome.windows.update(dashboardTab.windowId, { focused: true });
+        const dashTab = await getDashboardTab();
+        const response = await chrome.tabs.sendMessage(dashTab.id, {
+          type:   'GET_DASHBOARD_FILE',
+          docKey: message.docKey,
+        });
+        return response || { success: false };
       } catch (err) {
-        chrome.tabs.create({ url: "http://localhost:4000/" });
+        return { success: false, error: err.message };
+      }
+    }
+
+    case 'OPEN_DASHBOARD': {
+      try {
+        const dashTab = await getDashboardTab();
+        await chrome.tabs.update(dashTab.id, { active: true });
+        await chrome.windows.update(dashTab.windowId, { focused: true });
+      } catch (_) {
+        chrome.tabs.create({ url: 'http://localhost:4000/' });
+      }
+      return { success: true };
+    }
+
+    // ── Portal notifies extension that profiles were updated ──
+    case 'PORTAL_PROFILES_UPDATED': {
+      if (message.profiles) {
+        await storageSet(STORAGE_PROFILES_KEY, message.profiles);
+        console.log('[FormSarthi BG] Profiles cache updated from portal:', message.profiles.length, 'profiles');
       }
       return { success: true };
     }
@@ -195,6 +159,75 @@ async function handleMessage(message, sender) {
   }
 }
 
+// ────────────────────────────────────────────────────────────
+// PORTAL PROFILE SCRAPER
+// Asks the portal tab's content script to read IndexedDB
+// and return profile metadata (NOT encrypted blobs — those
+// are fetched when a specific profile is selected).
+// ────────────────────────────────────────────────────────────
+async function getProfilesFromPortal() {
+  let portalTabs = await getPortalTabs();
+
+  if (portalTabs.length === 0) {
+    // No portal tab open — return empty so popup shows "Open Portal"
+    return { success: true, profiles: [] };
+  }
+
+  for (const tab of portalTabs) {
+    try {
+      const resp = await chrome.tabs.sendMessage(tab.id, { type: 'GET_ALL_PROFILES_IDB' });
+      if (resp && resp.success && Array.isArray(resp.profiles)) {
+        // Cache for offline use
+        await storageSet(STORAGE_PROFILES_KEY, resp.profiles);
+        return { success: true, profiles: resp.profiles };
+      }
+    } catch (e) {
+      // Content script not ready on this tab, try next
+    }
+  }
+
+  return { success: true, profiles: [] };
+}
+
+// ────────────────────────────────────────────────────────────
+// HELPERS
+// ────────────────────────────────────────────────────────────
+async function getPortalTabs() {
+  const tabs = await chrome.tabs.query({});
+  return tabs.filter(tab => {
+    try {
+      if (!tab.url) return false;
+      const u = new URL(tab.url);
+      const isLocal = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+      const isPort  = u.port === '3000' || u.port === '4000';
+      return isLocal && isPort;
+    } catch { return false; }
+  });
+}
+
+async function getDashboardTab() {
+  const tabs = await getPortalTabs();
+  if (tabs.length === 0) throw new Error('FormSarthi portal tab not found.');
+  return tabs[0];
+}
+
+function storageGet(key) {
+  return new Promise(resolve => {
+    chrome.storage.local.get(key, result => resolve(result[key] ?? null));
+  });
+}
+
+function storageSet(key, value) {
+  return new Promise(resolve => {
+    chrome.storage.local.set({ [key]: value }, resolve);
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// DIRECT AUTOFILL INJECTOR (fallback when content.js not loaded)
+// This function runs inside the target page's context.
+// It is a complete, self-contained autofill engine.
+// ────────────────────────────────────────────────────────────
 function fillFormPageDirect(profile) {
   if (!profile) return 0;
 

@@ -1833,6 +1833,38 @@
     </div>
   </div>
 
+  <!-- CAMERA CAPTURE MODAL -->
+  <div id="camera-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); align-items:center; justify-content:center;">
+    <div class="card" style="width:90%; max-width:550px; padding:24px; display:flex; flex-direction:column; gap:16px; background:var(--surface); border:1px solid var(--border); box-shadow:var(--shadow);">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px;">
+        <h2 id="camera-modal-title" style="font-size:16px; font-weight:800; color:var(--text)">📷 Capture Document Photo</h2>
+        <button onclick="closeCameraCapture()" style="background:none; border:none; color:var(--muted); font-size:16px; font-weight:bold; cursor:pointer; padding:4px;">✕</button>
+      </div>
+      
+      <!-- Camera selector if multiple devices are found -->
+      <div id="camera-device-select-container" style="display:none; flex-direction:column; gap:6px;">
+        <label style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase;">Select Camera</label>
+        <select id="camera-device-select" onchange="switchCamera(this.value)" style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none; cursor:pointer;"></select>
+      </div>
+
+      <!-- Video Feed Container -->
+      <div style="position:relative; width:100%; aspect-ratio:4/3; background:#000; border-radius:var(--radius); overflow:hidden; border:2px solid var(--border);">
+        <video id="camera-video" autoplay playsinline style="width:100%; height:100%; object-fit:cover; transform: scaleX(1);"></video>
+        <!-- Overlay to guide document positioning -->
+        <div style="position:absolute; inset:20px; border:2px dashed rgba(255,255,255,0.4); border-radius:6px; pointer-events:none; display:flex; align-items:center; justify-content:center;">
+          <span style="color:rgba(255,255,255,0.6); font-size:11px; background:rgba(0,0,0,0.5); padding:4px 8px; border-radius:4px;">Align Document Inside Frame</span>
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:10px;">
+        <button class="btn outline" onclick="closeCameraCapture()" style="flex:1; padding:10px;">Cancel</button>
+        <button class="btn" onclick="capturePhoto()" style="flex:1; padding:10px; display:flex; align-items:center; justify-content:center; gap:6px;">📸 Capture & Upload</button>
+      </div>
+    </div>
+  </div>
+
+
+
   <!-- FULL SIZE DOCUMENT MODAL -->
   <div id="doc-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; flex-direction:column;">
     <div style="width:100%; padding:20px; display:flex; justify-content:space-between; align-items:center;">
@@ -2234,7 +2266,47 @@
       });
     }
 
-    // ── State Variables ──
+    // ── Extension Sync Helper ──
+    // Reads all profiles from IndexedDB and pushes safe metadata
+    // (name, email, avatar, color, encryptedProfile, completionPct)
+    // into chrome.storage.local so the extension popup can work
+    // even when no portal tab is open.
+    const EXT_PROFILE_FIELDS = [
+      'name','father_name','mother_name','dob','gender','caste',
+      'nationality','religion','blood_group','marital_status',
+      'phone','alt_phone','email','address','city','state','pincode',
+      'roll_10','roll_12','board_10','board_12','marks_10','marks_12',
+      'college','degree','grad_year','aadhaar','pan','bank_name',
+      'account_no','ifsc',
+    ];
+
+    async function syncProfilesToExtension() {
+      // Only available when running as an extension-managed page
+      if (typeof chrome === 'undefined' || !chrome.storage) return;
+      try {
+        const allProfiles = await dbGetAll("profiles");
+        const metaList = allProfiles.map(p => ({
+          email:            p.email,
+          name:             p.name || p.email?.split('@')[0] || 'Profile',
+          avatar:           p.avatar || '🪪',
+          color:            p.color  || 'purple',
+          encryptedProfile: p.encryptedProfile || null,
+          completionPct:    p.completionPct    || 0,
+          lastUsed:         p.lastUsed         || null,
+        }));
+        chrome.storage.local.set({ 'fs_ext_profiles': metaList }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn('[FormSarthi Portal] Extension storage sync failed:', chrome.runtime.lastError.message);
+          } else {
+            console.log('[FormSarthi Portal] Synced', metaList.length, 'profile(s) to extension storage.');
+          }
+        });
+      } catch (err) {
+        console.warn('[FormSarthi Portal] Could not sync profiles to extension:', err.message);
+      }
+    }
+
+
     let profiles       = [];
     let activeProfile  = null;  // email
     let activeKey      = null;  // derived PBKDF2 key
@@ -2487,6 +2559,9 @@
         profiles = await dbGetAll("profiles");
         renderProfileGrid();
         
+        // Sync to extension storage on every portal load
+        syncProfilesToExtension();
+
         // Background sync: push all local profiles to the server
         for (const p of profiles) {
           try {
@@ -2504,6 +2579,7 @@
         toast("Error loading local profiles", "error");
       }
     }
+
 
     function getColorValue(color) {
       return PRESET_COLORS[color] || PRESET_COLORS.purple;
@@ -2626,6 +2702,7 @@
              p.color = data.profile.color || p.color;
              p.avatar = data.profile.avatar || p.avatar;
              await dbPut("profiles", p);
+             syncProfilesToExtension(); // sync to extension storage
           }
         }
       } catch(e) { console.error("Backend pull failed", e); }
@@ -2666,9 +2743,9 @@
 
         activeKey = derivedKey;
 
-        // Save decrypted profile into sessionStorage for extension access
-        sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
-        sessionStorage.setItem("fs_active_profile", activeProfile);
+        // Save decrypted profile into localStorage for extension access
+        localStorage.setItem("fs_active_session", JSON.stringify(sessionData));
+        localStorage.setItem("fs_active_profile", activeProfile);
         document.body.setAttribute("data-fs-session", decryptedText);
 
         setFailedAttempts(p.email, 0);
@@ -2750,8 +2827,8 @@
       activeKey = null;
       sessionData = null;
       activeProfile = null;
-      sessionStorage.removeItem("fs_active_session");
-      sessionStorage.removeItem("fs_active_profile");
+      localStorage.removeItem("fs_active_session");
+      localStorage.removeItem("fs_active_profile");
       document.body.removeAttribute("data-fs-session");
       window.location.reload();
     }
@@ -2796,6 +2873,7 @@
         ` : `
           <div style="display:flex; gap:6px; margin-top:8px; flex-wrap: wrap;">
             <button onclick="triggerTargetedUpload('${d.key}')" style="flex:1; font-size:11px; padding:4px; background:var(--surface2); color:var(--accent); border:1px dashed var(--accent); border-radius:4px; cursor:pointer;">⬆️ Upload</button>
+            ${d.key.startsWith('custom_') ? `<button onclick="openCameraCapture('${d.key}', '${d.label}')" style="flex:1; font-size:11px; padding:4px; background:var(--surface2); color:var(--accent); border:1px solid var(--accent); border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:2px;">📷 Camera</button>` : ''}
             ${removeSlotBtn ? `<div style="margin-left:auto;">${removeSlotBtn}</div>` : ''}
           </div>
         `;
@@ -3462,6 +3540,7 @@
       if (p) {
         p.encryptedProfile = ciphertext;
         await dbPut("profiles", p);
+        syncProfilesToExtension(); // sync to extension storage
         
         // Sync profile to server
         try {
@@ -3474,8 +3553,8 @@
           console.error("Failed to sync updated profile to server:", err);
         }
         
-        // Update session storage for Chrome extension
-        sessionStorage.setItem("fs_active_session", JSON.stringify(sessionData));
+        // Update local storage for Chrome extension
+        localStorage.setItem("fs_active_session", JSON.stringify(sessionData));
         
         // NEW: Push to backend for cross-browser sync
         try {
@@ -3559,6 +3638,181 @@
       }
     }
 
+
+
+    // ── Profile Data Collapsible Grids (30 fields) ──
+    function renderDataGrid() {
+      const d = sessionData || {};
+      const renderDiv = document.getElementById('collapsible-vault-render');
+      
+      // Group fields
+      const groups = {};
+      PROFILE_FIELDS.forEach(f => {
+        if (!groups[f.group]) groups[f.group] = [];
+        groups[f.group].push(f);
+      });
+
+      let html = '';
+
+      // Add custom fields group at the top if present
+      if (d.customFields && d.customFields.length > 0) {
+        const customCells = d.customFields.map(f => {
+          const val = d[f.key];
+          return `
+            <div class="data-cell">
+              <div class="data-cell-label">${f.label}</div>
+              <div class="data-cell-val ${val ? '' : 'empty'}">${val || 'Not set'}</div>
+            </div>
+          `;
+        }).join('');
+        
+        html += `
+          <details class="profile-group" open>
+            <summary>
+              <span>Custom Fields</span>
+              <span class="group-indicator">▶</span>
+            </summary>
+            <div class="data-grid">
+              ${customCells}
+            </div>
+          </details>
+        `;
+      }
+
+      for (const [groupName, fields] of Object.entries(groups)) {
+        const gridCells = fields.map(f => {
+          const val = d[f.key];
+          return `
+            <div class="data-cell">
+              <div class="data-cell-label">${f.label}</div>
+              <div class="data-cell-val ${val ? '' : 'empty'}">${val || 'Not set'}</div>
+            </div>
+          `;
+        }).join('');
+
+        html += `
+          <details class="profile-group" open>
+            <summary>
+              <span>${groupName}</span>
+              <span class="group-indicator">▶</span>
+            </summary>
+            <div class="data-grid">
+              ${gridCells}
+            </div>
+          </details>
+        `;
+      }
+
+      renderDiv.innerHTML = html;
+    }
+
+    // Manual Profile Edits
+    function toggleEditProfile(editing) {
+      const readDiv = document.getElementById('profile-view-mode');
+      const editDiv = document.getElementById('profile-edit-mode');
+      const editBtn = document.getElementById('edit-btn-profile');
+      
+      if (editing) {
+        const formDiv = document.getElementById('manual-edit-form');
+        const d = sessionData || {};
+        
+        // Group fields
+        const groups = {};
+        PROFILE_FIELDS.forEach(f => {
+          if (!groups[f.group]) groups[f.group] = [];
+          groups[f.group].push(f);
+        });
+
+        let html = '';
+
+        // Render Custom Fields in Edit mode at the top
+        const customFieldsList = d.customFields || [];
+        const customCells = customFieldsList.map(f => {
+          return `
+            <div class="edit-form-cell" style="position:relative;">
+              <label style="display:flex; justify-content:space-between; align-items:center;">
+                <span>${f.label}</span>
+                <button onclick="removeCustomField('${f.key}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:11px; font-weight:bold; padding:0 4px;">🗑️ Delete Field</button>
+              </label>
+              <input type="text" id="edit-${f.key}" onchange="autoSaveCustomField('${f.key}', this.value)" value="${d[f.key] || ''}">
+            </div>
+          `;
+        }).join('');
+
+        if (customFieldsList.length > 0) {
+          html += `
+            <details class="profile-group" open>
+              <summary>
+                <span>Custom Fields</span>
+                <span class="group-indicator">▶</span>
+              </summary>
+              <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 14px;">
+                <div class="edit-grid" style="margin-bottom:10px;">
+                  ${customCells}
+                </div>
+              </div>
+            </details>
+          `;
+        }
+
+        for (const [groupName, fields] of Object.entries(groups)) {
+          const cells = fields.map(f => {
+            if (f.options) {
+              const optionsHtml = f.options.map(opt => 
+                `<option value="${opt}" ${d[f.key] === opt ? 'selected' : ''}>${opt}</option>`
+              ).join('');
+              return `
+                <div class="edit-form-cell">
+                  <label>${f.label}</label>
+                  <select id="edit-${f.key}" onchange="autoSaveProfileField('${f.key}', this.value)" style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
+                    <option value="">— Select —</option>
+                    ${optionsHtml}
+                  </select>
+                </div>
+              `;
+            }
+            return `
+              <div class="edit-form-cell">
+                <label>${f.label}</label>
+                <input type="text" id="edit-${f.key}" onchange="autoSaveProfileField('${f.key}', this.value)" value="${d[f.key] || ''}">
+              </div>
+            `;
+          }).join('');
+
+          html += `
+            <details class="profile-group" open>
+              <summary>
+                <span>${groupName}</span>
+                <span class="group-indicator">▶</span>
+              </summary>
+              <div class="edit-grid">
+                ${cells}
+              </div>
+            </details>
+          `;
+        }
+        
+        formDiv.innerHTML = html;
+        readDiv.style.display = 'none';
+        editDiv.style.display = 'block';
+        editBtn.style.display = 'none';
+      } else {
+        readDiv.style.display = 'block';
+        editDiv.style.display = 'none';
+        editBtn.style.display = 'inline-block';
+      }
+    }
+
+    async function autoSaveProfileField(key, value) {
+      if (!sessionData) sessionData = {};
+      sessionData[key] = value.trim() || null;
+      await saveLocalVault();
+      renderDataGrid(); // updates the view mode in the background
+      renderDocSlots();
+      updateBadges();
+      // Optional: a very subtle toast can be added if needed, but usually autosave is silent.
+    }
+
     function saveCustomField() {
       if (!activeProfile) return;
       const nameInput = document.getElementById('custom-field-name');
@@ -3627,173 +3881,139 @@
       }
     }
 
-    // ── Profile Data Collapsible Grids (30 fields) ──
-    function renderDataGrid() {
-      const d = sessionData || {};
-      const renderDiv = document.getElementById('collapsible-vault-render');
+    // Camera capture module logic
+    let cameraStream = null;
+    let cameraDevices = [];
+
+    let currentCaptureTarget = null; // holds the document key for camera capture
+async function openCameraCapture(docKey, docLabel) {
+      currentCaptureTarget = docKey;
+      document.getElementById('camera-modal-title').textContent = `📷 Capture ${docLabel}`;
+      document.getElementById('camera-modal').style.display = 'flex';
       
-      // Group fields
-      const groups = {};
-      PROFILE_FIELDS.forEach(f => {
-        if (!groups[f.group]) groups[f.group] = [];
-        groups[f.group].push(f);
-      });
+      // Reset dropdown
+      const select = document.getElementById('camera-device-select');
+      select.innerHTML = '';
+      document.getElementById('camera-device-select-container').style.display = 'none';
 
-      let html = '';
-      for (const [groupName, fields] of Object.entries(groups)) {
-        const gridCells = fields.map(f => {
-          const val = d[f.key];
-          return `
-            <div class="data-cell">
-              <div class="data-cell-label">${f.label}</div>
-              <div class="data-cell-val ${val ? '' : 'empty'}">${val || 'Not set'}</div>
-            </div>
-          `;
-        }).join('');
-
-        html += `
-          <details class="profile-group" open>
-            <summary>
-              <span>${groupName}</span>
-              <span class="group-indicator">▶</span>
-            </summary>
-            <div class="data-grid">
-              ${gridCells}
-            </div>
-          </details>
-        `;
-      }
-
-      // Add custom fields group if present
-      if (d.customFields && d.customFields.length > 0) {
-        const customCells = d.customFields.map(f => {
-          const val = d[f.key];
-          return `
-            <div class="data-cell">
-              <div class="data-cell-label">${f.label}</div>
-              <div class="data-cell-val ${val ? '' : 'empty'}">${val || 'Not set'}</div>
-            </div>
-          `;
-        }).join('');
-        
-        html += `
-          <details class="profile-group" open>
-            <summary>
-              <span>Custom Fields</span>
-              <span class="group-indicator">▶</span>
-            </summary>
-            <div class="data-grid">
-              ${customCells}
-            </div>
-          </details>
-        `;
-      }
-
-      renderDiv.innerHTML = html;
-    }
-
-    // Manual Profile Edits
-    function toggleEditProfile(editing) {
-      const readDiv = document.getElementById('profile-view-mode');
-      const editDiv = document.getElementById('profile-edit-mode');
-      const editBtn = document.getElementById('edit-btn-profile');
-      
-      if (editing) {
-        const formDiv = document.getElementById('manual-edit-form');
-        const d = sessionData || {};
-        
-        // Group fields
-        const groups = {};
-        PROFILE_FIELDS.forEach(f => {
-          if (!groups[f.group]) groups[f.group] = [];
-          groups[f.group].push(f);
+      try {
+        // Request camera permission
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "environment" } 
         });
+        
+        // Stop the stream used for testing permissions
+        stream.getTracks().forEach(track => track.stop());
 
-        let html = '';
-        for (const [groupName, fields] of Object.entries(groups)) {
-          const cells = fields.map(f => {
-            if (f.options) {
-              const optionsHtml = f.options.map(opt => 
-                `<option value="${opt}" ${d[f.key] === opt ? 'selected' : ''}>${opt}</option>`
-              ).join('');
-              return `
-                <div class="edit-form-cell">
-                  <label>${f.label}</label>
-                  <select id="edit-${f.key}" onchange="autoSaveProfileField('${f.key}', this.value)" style="width:100%; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; color:var(--text); font-family:inherit; font-size:13px; outline:none;">
-                    <option value="">— Select —</option>
-                    ${optionsHtml}
-                  </select>
-                </div>
-              `;
-            }
-            return `
-              <div class="edit-form-cell">
-                <label>${f.label}</label>
-                <input type="text" id="edit-${f.key}" onchange="autoSaveProfileField('${f.key}', this.value)" value="${d[f.key] || ''}">
-              </div>
-            `;
-          }).join('');
+        // Get devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        cameraDevices = devices.filter(device => device.kind === 'videoinput');
 
-          html += `
-            <details class="profile-group" open>
-              <summary>
-                <span>${groupName}</span>
-                <span class="group-indicator">▶</span>
-              </summary>
-              <div class="edit-grid">
-                ${cells}
-              </div>
-            </details>
-          `;
+        if (cameraDevices.length > 1) {
+          document.getElementById('camera-device-select-container').style.display = 'flex';
+          cameraDevices.forEach((device, index) => {
+            const opt = document.createElement('option');
+            opt.value = device.deviceId;
+            opt.textContent = device.label || `Camera ${index + 1}`;
+            select.appendChild(opt);
+          });
+          await startVideoStream(cameraDevices[0].deviceId);
+        } else if (cameraDevices.length === 1) {
+          await startVideoStream(cameraDevices[0].deviceId);
+        } else {
+          await startVideoStream();
         }
 
-        // Render Custom Fields in Edit mode
-        const customFieldsList = d.customFields || [];
-        const customCells = customFieldsList.map(f => {
-          return `
-            <div class="edit-form-cell" style="position:relative;">
-              <label style="display:flex; justify-content:space-between; align-items:center;">
-                <span>${f.label}</span>
-                <button onclick="removeCustomField('${f.key}')" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:11px; font-weight:bold; padding:0 4px;">🗑️ Delete Field</button>
-              </label>
-              <input type="text" id="edit-${f.key}" onchange="autoSaveCustomField('${f.key}', this.value)" value="${d[f.key] || ''}">
-            </div>
-          `;
-        }).join('');
-
-        html += `
-          <details class="profile-group" open>
-            <summary>
-              <span>Custom Fields</span>
-              <span class="group-indicator">▶</span>
-            </summary>
-            <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 14px;">
-              <div class="edit-grid" style="margin-bottom:10px;">
-                ${customCells || '<p style="font-size:12px; color:var(--muted); margin:0;">No custom fields yet.</p>'}
-              </div>
-            </div>
-          </details>
-        `;
-        
-        formDiv.innerHTML = html;
-        readDiv.style.display = 'none';
-        editDiv.style.display = 'block';
-        editBtn.style.display = 'none';
-      } else {
-        readDiv.style.display = 'block';
-        editDiv.style.display = 'none';
-        editBtn.style.display = 'inline-block';
+      } catch (err) {
+        console.error("Camera access error:", err);
+        toast("Could not access camera. Please check permissions.", "error");
+        closeCameraCapture();
       }
     }
 
-    async function autoSaveProfileField(key, value) {
-      if (!sessionData) sessionData = {};
-      sessionData[key] = value.trim() || null;
-      await saveLocalVault();
-      renderDataGrid(); // updates the view mode in the background
-      renderDocSlots();
-      updateBadges();
-      // Optional: a very subtle toast can be added if needed, but usually autosave is silent.
+    async function startVideoStream(deviceId = null) {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+      }
+
+      const constraints = {
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+
+      if (deviceId) {
+        constraints.video.deviceId = { exact: deviceId };
+      } else {
+        constraints.video.facingMode = "environment";
+      }
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const videoEl = document.getElementById('camera-video');
+        videoEl.srcObject = cameraStream;
+        
+        const activeTrack = cameraStream.getVideoTracks()[0];
+        const settings = activeTrack ? activeTrack.getSettings() : {};
+        if (settings.facingMode === 'user') {
+          videoEl.style.transform = 'scaleX(-1)';
+        } else {
+          videoEl.style.transform = 'scaleX(1)';
+        }
+      } catch (err) {
+        console.error("Error starting camera stream:", err);
+        toast("Failed to start camera preview.", "error");
+      }
+    }
+
+    async function switchCamera(deviceId) {
+      await startVideoStream(deviceId);
+    }
+
+    function closeCameraCapture() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      document.getElementById('camera-video').srcObject = null;
+      document.getElementById('camera-modal').style.display = 'none';
+      currentCaptureTarget = null;
+    }
+
+    async function capturePhoto() {
+      if (!cameraStream || !currentCaptureTarget) return;
+
+      const videoEl = document.getElementById('camera-video');
+      const canvas = document.createElement('canvas');
+      canvas.width = videoEl.videoWidth || 640;
+      canvas.height = videoEl.videoHeight || 480;
+
+      const ctx = canvas.getContext('2d');
+      
+      const activeTrack = cameraStream.getVideoTracks()[0];
+      const settings = activeTrack ? activeTrack.getSettings() : {};
+      if (settings.facingMode === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast("Failed to capture image.", "error");
+          return;
+        }
+
+        const fileName = `${currentCaptureTarget}_capture.jpg`;
+        const file = new File([blob], fileName, { type: 'image/jpeg' });
+        
+        closeCameraCapture();
+        toast("Image captured! Processing OCR...", "success");
+        await handleUpload([file], currentCaptureTarget);
+        
+      }, 'image/jpeg', 0.85);
     }
 
     async function deleteProfile() {
@@ -4257,6 +4477,7 @@
 
       try {
         await dbPut("profiles", newProfile);
+        syncProfilesToExtension(); // sync to extension storage
         
         // Sync profile to backend
         try {
@@ -5084,9 +5305,9 @@
       activeKey = null;
       activeProfile = null;
       
-      // Clear session storage & DOM attributes for Chrome extension
-      sessionStorage.removeItem("fs_active_session");
-      sessionStorage.removeItem("fs_active_profile");
+      // Clear localStorage & DOM attributes for Chrome extension
+      localStorage.removeItem("fs_active_session");
+      localStorage.removeItem("fs_active_profile");
       document.body.removeAttribute("data-fs-session");
       
       // Clear localStorage pending autofill data
