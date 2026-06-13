@@ -23,13 +23,16 @@ const SESSION_KEY           = 'fs_vault_session';
 // CLEAR VAULT SESSION
 // ────────────────────────────────────────────────────────────
 async function clearVaultSession() {
-  try {
-    await chrome.storage.session.remove(SESSION_KEY);
-    console.log('[FormSarthi BG] Vault session cleared');
-  } catch (e) {
-    // chrome.storage.session may not exist in older Chrome — fallback
-    try { await chrome.storage.local.remove(SESSION_KEY); } catch (_) {}
+  const session = await getVaultSession();
+  if (session) {
+    console.log('[FormSarthi] Destroying unlocked vault session');
   }
+  await chrome.storage.session.remove([
+    SESSION_KEY,
+    'vaultUnlocked',
+    'activeProfile',
+    'decryptedProfileData'
+  ]);
 }
 
 async function getVaultSession() {
@@ -37,17 +40,18 @@ async function getVaultSession() {
     const result = await chrome.storage.session.get(SESSION_KEY);
     return result[SESSION_KEY] ?? null;
   } catch (_) {
-    // fallback
-    return new Promise(r => chrome.storage.local.get(SESSION_KEY, res => r(res[SESSION_KEY] ?? null)));
+    return null;
   }
 }
 
 async function setVaultSession(data) {
-  try {
-    await chrome.storage.session.set({ [SESSION_KEY]: data });
-  } catch (_) {
-    await new Promise(r => chrome.storage.local.set({ [SESSION_KEY]: data }, r));
-  }
+  await chrome.storage.session.set({
+    [SESSION_KEY]: data,
+    'vaultUnlocked': true,
+    'activeProfile': data.profile,
+    'decryptedProfileData': data.decryptedData
+  });
+  console.log('[FormSarthi] Vault unlocked');
 }
 
 // ────────────────────────────────────────────────────────────
@@ -65,10 +69,18 @@ async function handleMessage(message, sender) {
 
     // ── Save vault session (called by popup after successful unlock) ──
     case 'SAVE_VAULT_SESSION': {
+      let activeTabId = message.activeTabId;
+      if (!activeTabId) {
+        try {
+          const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+          activeTabId = activeTab?.id || null;
+        } catch (_) {}
+      }
       await setVaultSession({
         profile:       message.profile,
         decryptedData: message.decryptedData,
         expiry:        Date.now() + (15 * 60 * 1000),
+        activeTabId:   activeTabId,
       });
       return { success: true };
     }
@@ -571,3 +583,35 @@ function fillFormPageDirect(profile) {
   log(`Autofill complete: ${filled} field(s) filled`);
   return filled;
 }
+
+// ────────────────────────────────────────────────────────────
+// TAB LIFECYCLE MONITORING
+// ────────────────────────────────────────────────────────────
+console.log('[FormSarthi] Monitoring active form tab');
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  const session = await getVaultSession();
+  const isBoundTab = session && session.activeTabId === tabId;
+  const isFormUrl = tab.url && (tab.url.includes('docs.google.com/forms') || tab.url.includes('forms.gle'));
+
+  if (changeInfo.status === 'loading') {
+    if (isBoundTab || isFormUrl) {
+      console.log('[FormSarthi] Form page refresh detected');
+      await clearVaultSession();
+      try {
+        chrome.runtime.sendMessage({ type: 'FORCE_LOCK_VAULT' });
+      } catch (_) {}
+    }
+  }
+});
+
+chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+  const session = await getVaultSession();
+  if (session && session.activeTabId === tabId) {
+    await clearVaultSession();
+    try {
+      chrome.runtime.sendMessage({ type: 'FORCE_LOCK_VAULT' });
+    } catch (_) {}
+  }
+});
+

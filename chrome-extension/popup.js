@@ -40,9 +40,31 @@ const LOG = {
 // ────────────────────────────────────────────────────────────
 // INIT
 // ────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', async () => {
-  const initStart = performance.now();
-  LOG.info('Popup initialized');
+function showLoadingState() {
+  showScreen('profiles');
+  document.getElementById('profiles-loading').style.display = 'flex';
+  document.getElementById('profiles-empty').style.display   = 'none';
+  document.getElementById('profiles-list').style.display    = 'none';
+}
+
+function renderProfiles(profiles) {
+  _profiles = profiles;
+  const container = document.getElementById('profiles-container');
+  if (container) container.innerHTML = '';
+  renderProfileList();
+  document.getElementById('profiles-loading').style.display = 'none';
+  document.getElementById('profiles-list').style.display    = 'block';
+}
+
+function renderNoProfiles() {
+  document.getElementById('profiles-loading').style.display = 'none';
+  showEmptyState('Open the FormSarthi portal, create a profile, then come back here.');
+}
+
+async function initializePopup() {
+  console.log('[FormSarthi] Popup mounted');
+  console.log('[FormSarthi] Popup boot started');
+  showLoadingState();
 
   // Sanity check CryptoJS
   if (typeof CryptoJS === 'undefined') {
@@ -57,8 +79,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   wirePasswordField();
   await tryRestoreSession();
-  LOG.info(`Popup init timing: ${(performance.now() - initStart).toFixed(2)}ms`);
-});
+}
+
+document.addEventListener('DOMContentLoaded', initializePopup);
 
 // ────────────────────────────────────────────────────────────
 // PASSWORD FIELD WIRING
@@ -142,44 +165,74 @@ async function tryRestoreSession() {
 // PROFILE LIST
 // ────────────────────────────────────────────────────────────
 async function loadProfiles() {
-  const loadStart = performance.now();
-  showScreen('profiles');
-  document.getElementById('profiles-loading').style.display = 'flex';
-  document.getElementById('profiles-empty').style.display   = 'none';
-  document.getElementById('profiles-list').style.display    = 'none';
-
+  console.log('[FormSarthi] Fetching profiles');
   try {
-    const stored = await localGet(STORAGE_PROFILES_KEY);
-    LOG.info(`Storage retrieval complete. Cache status: ${stored ? 'Present' : 'Empty'}`);
-    _profiles = Array.isArray(stored) ? stored.filter(p => p?.email && p?.encryptedProfile) : [];
-    LOG.info(`Profiles fetched from storage: ${_profiles.length}`);
+    const result = await chrome.storage.local.get(null);
+    console.log('[FormSarthi] Raw storage result:', result);
+    console.log('[FormSarthi] Storage payload:', result);
 
-    if (_profiles.length === 0) {
-      LOG.info('Local storage profile cache is empty. Fallback trigger reason: No cached profiles. Requesting sync from portal...');
-      try {
-        const resp = await bgMessage({ type: 'GET_PROFILES_FROM_PORTAL' });
-        if (resp?.success && Array.isArray(resp.profiles) && resp.profiles.length > 0) {
-          _profiles = resp.profiles;
-          await localSet(STORAGE_PROFILES_KEY, _profiles);
-          LOG.info(`Profiles fetched from portal: ${_profiles.length}`);
-        } else {
-          LOG.info('No active portal tab found to query or portal returned no profiles.');
-        }
-      } catch (e) { LOG.warn('Portal fetch failed:', e.message); }
+    const possibleKeys = [
+      'fs_ext_profiles',
+      'formsarthiProfiles',
+      'fs_profiles',
+      'profiles',
+      'userProfiles',
+      'vaultProfiles'
+    ];
+
+    let profiles = [];
+    for (const key of possibleKeys) {
+      if (result[key]) {
+        profiles = result[key];
+        console.log(`[FormSarthi] Profiles detected under key: ${key}`, profiles);
+        break;
+      }
     }
-  } catch (e) { LOG.error('Profile load error:', e.message); }
 
-  document.getElementById('profiles-loading').style.display = 'none';
+    // Fallback: search the entire storage object for any key containing profile-like arrays or objects
+    if (!profiles || (Array.isArray(profiles) && profiles.length === 0)) {
+      for (const key in result) {
+        const val = result[key];
+        if (Array.isArray(val) && val.length > 0 && val[0].email) {
+          profiles = val;
+          console.log(`[FormSarthi] Auto-detected profiles under array key: ${key}`, profiles);
+          break;
+        }
+        if (val && typeof val === 'object' && !Array.isArray(val) && Object.keys(val).length > 0) {
+          const firstVal = Object.values(val)[0];
+          if (firstVal && typeof firstVal === 'object' && firstVal.email) {
+            profiles = val;
+            console.log(`[FormSarthi] Auto-detected profiles under object key: ${key}`, profiles);
+            break;
+          }
+        }
+      }
+    }
 
-  if (_profiles.length === 0) {
-    showEmptyState('Open the FormSarthi portal, create a profile, then come back here.');
-  } else {
-    const renderStart = performance.now();
-    renderProfileList();
-    document.getElementById('profiles-list').style.display = 'block';
-    LOG.info(`Profiles rendered successfully in ${(performance.now() - renderStart).toFixed(2)}ms`);
+    // Handle both array and object formats
+    let profileList = [];
+    if (Array.isArray(profiles)) {
+      profileList = profiles;
+    } else if (profiles && typeof profiles === 'object') {
+      profileList = Object.values(profiles);
+    }
+
+    console.log('[FormSarthi] Parsed profiles:', profileList);
+    console.log('[FormSarthi] Final parsed profiles:', profileList);
+
+    if (profileList.length > 0) {
+      console.log('[FormSarthi] Rendering profiles now');
+      console.log('[FormSarthi] Rendering profiles UI');
+      renderProfiles(profileList);
+    } else {
+      console.log('[FormSarthi] No profiles found');
+      renderNoProfiles();
+    }
+  } catch (err) {
+    console.error('[FormSarthi] Popup crash:', err);
+    console.error('[FormSarthi] Popup init failed:', err);
+    renderNoProfiles();
   }
-  LOG.info(`Total profile load timing: ${(performance.now() - loadStart).toFixed(2)}ms`);
 }
 
 const COLOR_MAP = {
@@ -278,11 +331,19 @@ async function attemptUnlock(passwordRaw) {
 
     _decryptedData = vaultData;
 
+    // Query active tab to bind session
+    let activeTabId = null;
+    try {
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      activeTabId = activeTab?.id || null;
+    } catch (_) {}
+
     // Save session in background (stored in chrome.storage.session)
     await bgMessage({
       type:          'SAVE_VAULT_SESSION',
       profile:       _selectedProfile,
       decryptedData: _decryptedData,
+      activeTabId:   activeTabId,
     });
 
     populateReviewScreen(_selectedProfile, _decryptedData);
@@ -439,6 +500,29 @@ document.getElementById('btn-refresh').addEventListener('click', async () => {
   _selectedProfile = null;
   await bgMessage({ type: 'LOCK_VAULT' });
   await localRemove(STORAGE_PROFILES_KEY);
+
+  // Clear other stale storage keys to clean up old mock profiles
+  const staleKeys = [
+    'formsarthiProfiles',
+    'fs_profiles',
+    'profiles',
+    'userProfiles',
+    'vaultProfiles'
+  ];
+  for (const key of staleKeys) {
+    await localRemove(key);
+  }
+
+  // Ask portal to sync profiles (if portal tab is active)
+  try {
+    const resp = await bgMessage({ type: 'GET_PROFILES_FROM_PORTAL' });
+    if (resp?.success && Array.isArray(resp.profiles) && resp.profiles.length > 0) {
+      await localSet(STORAGE_PROFILES_KEY, resp.profiles);
+    }
+  } catch (e) {
+    console.warn('[FormSarthi] Portal sync failed on refresh:', e.message);
+  }
+
   await loadProfiles();
 });
 
@@ -558,3 +642,36 @@ function truncate(str, max) {
   const s = String(str || '');
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
+
+// ────────────────────────────────────────────────────────────
+// RUNTIME MESSAGES
+// ────────────────────────────────────────────────────────────
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'FORCE_LOCK_VAULT') {
+    console.log('[FormSarthi] Popup forced back to locked state');
+    _decryptedData = null;
+    _selectedProfile = null;
+
+    // Reset password input
+    const pwdInput = document.getElementById('password-input');
+    if (pwdInput) {
+      pwdInput.value = '';
+      pwdInput.disabled = false;
+    }
+    setPasswordError('');
+
+    // Clear sensitive DOM elements in review screen
+    const reviewName = document.getElementById('review-name');
+    if (reviewName) reviewName.textContent = '';
+    const reviewEmail = document.getElementById('review-email');
+    if (reviewEmail) reviewEmail.textContent = '';
+    const groupsEl = document.getElementById('field-groups');
+    if (groupsEl) groupsEl.innerHTML = '';
+    const missChips = document.getElementById('missing-chips');
+    if (missChips) missChips.innerHTML = '';
+
+    // Load and render locked profile selector
+    loadProfiles();
+  }
+});
+
