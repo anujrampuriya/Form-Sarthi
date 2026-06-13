@@ -5469,7 +5469,11 @@ async function openCameraCapture(docKey, docLabel) {
     function openPortalUrl(url, reminderId) {
       markNotificationAsRead(reminderId);
       document.getElementById('notification-dropdown').style.display = 'none';
-      window.open(url, '_blank');
+      if (url) {
+        document.getElementById('form-url').value = url;
+        switchTab('autofill', document.getElementById('nav-autofill'));
+        analyzeForm();
+      }
     }
 
     function markNotificationAsRead(id) {
